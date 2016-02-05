@@ -1,6 +1,5 @@
-sudo: false
-
 language: rust
+sudo: required
 rust:
   - stable
 git:
@@ -14,5 +13,15 @@ cache:
   directories:
     - $TRAVIS_BUILD_DIR/target
     - $HOME/.cargo
+before_install:
+  - sudo apt-get install ruby
+  - sudo apt-get install bison
+  - wget https://github.com/mruby/mruby/archive/1.2.0.zip
+  - unzip 1.2.0.zip
+  - sed -i "24s/.*/  conf.cc do |cc| cc.flags << \'-fPIC\' end/" mruby-1.2.0/build_config.rb
+  - cd mruby-1.2.0
+  - ./minirake
+  - sudo cp build/host/lib/libmruby.a /usr/local/lib
+  - cd ..
 script:
   - cargo test
