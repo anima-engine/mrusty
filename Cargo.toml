@@ -1,0 +1,8 @@
+[package]
+name = "mrusty"
+version = "0.1.0"
+authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
+
+[dependencies]
+libc = "0.2.6"
+byteorder = "0.4.2"

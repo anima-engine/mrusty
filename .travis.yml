@@ -1,0 +1,18 @@
+sudo: false
+
+language: rust
+rust:
+  - stable
+git:
+  depth: 1
+branches:
+  only:
+    - master
+notifications:
+  email: false
+cache:
+  directories:
+    - $TRAVIS_BUILD_DIR/target
+    - $HOME/.cargo
+script:
+  - cargo test
