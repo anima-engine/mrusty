@@ -15,19 +15,3 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 mod mruby_ffi;
-
-#[test]
-fn test() {
-    unsafe {
-        let mrb = mruby_ffi::mrb_open();
-        let context = mruby_ffi::mrbc_context_new(mrb);
-
-        let code = "2".as_ptr();
-
-        let value = mruby_ffi::mrb_load_string_cxt(mrb, code, context);
-
-        assert_eq!(value.to_i32().unwrap(), 2);
-
-        mruby_ffi::mrb_close(mrb);
-    }
-}

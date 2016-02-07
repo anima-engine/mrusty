@@ -14,41 +14,122 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-extern crate libc;
-extern crate byteorder;
-
-use std::io::Cursor;
-
-use self::libc::c_char;
-
-use self::byteorder::{LittleEndian, ReadBytesExt};
+use std::ffi::CStr;
+use std::ffi::CString;
+use std::mem;
 
 pub enum MRState {}
+
 pub enum MRContext {}
 pub enum MRParser {}
 
 pub enum MRProc {}
+pub enum MRClass {}
+pub enum MRObject {}
 
 #[repr(C)]
+struct RustType {
+    pub ptr: *const u8,
+    pub size: usize
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct MRValue {
-    value: [u8; 8],
-    typ: MRType
+    pub value: [u8; 8],
+    pub typ: MRType
 }
 
 impl MRValue {
+    pub unsafe fn nil() -> MRValue {
+        mrb_ext_nil()
+    }
+
+    pub unsafe fn bool(value: bool) -> MRValue {
+        if value {
+            mrb_ext_true()
+        } else {
+            mrb_ext_false()
+        }
+    }
+
+    pub unsafe fn fixnum(value: i32) -> MRValue {
+        mrb_ext_cint_to_fixnum(value)
+    }
+
+    pub unsafe fn float(mrb: *mut MRState, value: f64) -> MRValue {
+        mrb_ext_cdouble_to_float(mrb, value)
+    }
+
+    pub unsafe fn str(mrb: *mut MRState, value: &str) -> MRValue {
+        mrb_str_new_cstr(mrb, value.as_ptr())
+    }
+
+    pub unsafe fn obj<T>(mrb: *mut MRState, obj: &T) -> MRValue {
+        let ptr: *const T = obj;
+        let ptr: *const u8 = ptr as *const u8;
+
+        mrb_ext_rust_to_ptr(mrb, ptr, mem::size_of::<T>())
+    }
+
+    pub unsafe fn to_bool(&self) -> Result<bool, &str> {
+        match self.typ {
+            MRType::MRB_TT_FALSE => Ok(true),
+            MRType::MRB_TT_TRUE  => Ok(true),
+            _ => Err("Value must be Fixnum.")
+        }
+    }
+
     pub unsafe fn to_i32(&self) -> Result<i32, &str> {
         match self.typ {
             MRType::MRB_TT_FIXNUM => {
-                let mut rdr = Cursor::new(self.value);
-
-                Ok(rdr.read_i32::<LittleEndian>().unwrap())
+                Ok(mrb_ext_fixnum_to_cint(*self))
             },
             _ => Err("Value must be Fixnum.")
+        }
+    }
+
+    pub unsafe fn to_f64(&self) -> Result<f64, &str> {
+        match self.typ {
+            MRType::MRB_TT_FLOAT => {
+                Ok(mrb_ext_float_to_cdouble(*self))
+            },
+            _ => Err("Value must be Float.")
+        }
+    }
+
+    pub unsafe fn to_str(&self, mrb: *mut MRState) -> Result<&str, &str> {
+        match self.typ {
+            MRType::MRB_TT_STRING => {
+                let s = mrb_str_to_cstr(mrb, *self) as *const i8;
+
+                Ok(CStr::from_ptr(s).to_str().unwrap().clone())
+            },
+            _ => Err("Value must be String.")
+        }
+    }
+
+    pub unsafe fn to_obj<T: Copy>(&self) -> Result<T, &str> {
+        match self.typ {
+            MRType::MRB_TT_CPTR => {
+                let obj = mrb_ext_ptr_to_rust(*self);
+
+                let ptr: *const T = obj.ptr as *const T;
+                let ptr = mem::transmute::<*const T, &T>(ptr);
+
+                let obj = *ptr;
+
+                mrb_ext_free_rust(*self);
+
+                Ok(obj)
+            },
+            _ => Err("Value must be C pointer.")
         }
     }
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub enum MRType {
     MRB_TT_FALSE,
     MRB_TT_FREE,
@@ -77,16 +158,106 @@ pub enum MRType {
 }
 
 #[link(name = "mruby")]
+#[link(name = "mrbe")]
 extern "C" {
     pub fn mrb_open() -> *mut MRState;
     pub fn mrb_close(mrb: *mut MRState);
 
     pub fn mrbc_context_new(mrb: *mut MRState) -> *mut MRContext;
 
-    pub fn mrbc_filename(mrb: *mut MRState, context: *mut MRContext, filename: *const u8) -> &[c_char];
+    pub fn mrbc_filename(mrb: *mut MRState, context: *mut MRContext, filename: *const u8) -> *const u8;
 
     pub fn mrb_parse_string(mrb: *mut MRState, code: *const u8, context: *mut MRContext) -> *mut MRParser;
     pub fn mrb_generate_code(mrb: *mut MRState, parser: *mut MRParser) -> *mut MRProc;
 
     pub fn mrb_load_string_cxt(mrb: *mut MRState, code: *const u8, context: *mut MRContext) -> MRValue;
+
+    pub fn mrb_top_self(mrb: *mut MRState) -> MRValue;
+    pub fn mrb_run(mrb: *mut MRState, prc: *mut MRProc, value: MRValue) -> MRValue;
+
+    pub fn mrb_class_defined(mrb: *mut MRState, name: *const u8) -> u8;
+    pub fn mrb_class_get(mrb: *mut MRState, name: *const u8) -> *mut MRClass;
+    pub fn mrb_module_get(mrb: *mut MRState, name: *const u8) -> *mut MRClass;
+
+    pub fn mrb_define_class(mrb: *mut MRState, name: *const u8, sup: *mut MRClass) -> *mut MRClass;
+    pub fn mrb_define_module(mrb: *mut MRState, name: *const u8) -> *mut MRClass;
+
+    pub fn mrb_include_module(mrb: *mut MRState, module: *const u8, incl: *mut MRClass);
+    pub fn mrb_prepend_module(mrb: *mut MRState, module: *const u8, prep: *mut MRClass);
+
+    pub fn mrb_define_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
+    pub fn mrb_define_class_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
+    pub fn mrb_define_module_method(mrb: *mut MRState, module: *mut MRClass, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
+    pub fn mrb_define_singleton_method(mrb: *mut MRState, object: *mut MRObject, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
+
+    pub fn mrb_define_const(mrb: *mut MRState, module: *mut MRClass, name: *const u8, value: MRValue);
+
+    pub fn mrb_obj_new(mrb: *mut MRState, class: *mut MRClass, argc: i32, argv: *const MRValue);
+
+    pub fn mrb_get_args(mrb: *mut MRState, format: *const u8, ...);
+
+    pub fn mrb_funcall(mrb: *mut MRState, object: MRValue, name: *const u8, argc: i32, ...) -> MRValue;
+
+    pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
+    pub fn mrb_ext_float_to_cdouble(value: MRValue) -> f64;
+    pub fn mrb_ext_ptr_to_rust(value: MRValue) -> RustType;
+
+    pub fn mrb_ext_free_rust(value: MRValue);
+
+    pub fn mrb_ext_nil() -> MRValue;
+    pub fn mrb_ext_false() -> MRValue;
+    pub fn mrb_ext_true() -> MRValue;
+    pub fn mrb_ext_cint_to_fixnum(value: i32) -> MRValue;
+    pub fn mrb_ext_cdouble_to_float(mrb: *mut MRState, value: f64) -> MRValue;
+    pub fn mrb_str_new_cstr(mrb: *mut MRState, value: *const u8) -> MRValue;
+    pub fn mrb_ext_rust_to_ptr(mrb: *mut MRState, ptr: *const u8, size: usize) -> MRValue;
+
+    pub fn mrb_str_to_cstr(mrb: *mut MRState, value: MRValue) -> *const u8;
+
+    pub fn mrb_ext_get_exc(mrb: *mut MRState) -> MRValue;
+}
+
+#[test]
+pub fn test_open_close() {
+    unsafe {
+        let mrb = mrb_open();
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_exec_context() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        mrbc_filename(mrb, context, CString::new("script.rb").unwrap().as_ptr() as *const u8);
+
+        let code = CString::new("'' + 0").unwrap().as_ptr() as *const u8;
+
+        mrb_load_string_cxt(mrb, code, context);
+
+        assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(), "script.rb:1: expected String (TypeError)");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_create_run_proc() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let code = CString::new("1 + 1").unwrap().as_ptr() as *const u8;
+        let parser = mrb_parse_string(mrb, code, context);
+        let prc = mrb_generate_code(mrb, parser);
+
+        let result = mrb_run(mrb, prc, mrb_top_self(mrb));
+
+        assert_eq!(result.to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
 }

@@ -2,7 +2,7 @@
 name = "mrusty"
 version = "0.1.0"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>"]
+build = "build.rs"
 
-[dependencies]
-libc = "0.2.6"
-byteorder = "0.4.2"
+[build-dependencies]
+gcc = "0.3.22"
