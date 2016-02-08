@@ -43,6 +43,13 @@ pub struct MRValue {
 }
 
 impl MRValue {
+    pub fn empty() -> MRValue {
+        MRValue {
+            value: [0; 8],
+            typ: MRType::MRB_TT_FALSE
+        }
+    }
+    
     pub unsafe fn nil() -> MRValue {
         mrb_ext_nil()
     }
