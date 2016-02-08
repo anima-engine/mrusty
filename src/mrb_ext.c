@@ -3,6 +3,7 @@
 #include <mruby.h>
 #include <mruby/error.h>
 #include <mruby/value.h>
+#include <mruby/proc.h>
 
 typedef struct rust_type {
   const char* ptr;
@@ -15,6 +16,10 @@ int mrb_ext_fixnum_to_cint(mrb_value value) {
 
 double mrb_ext_float_to_cdouble(mrb_value value) {
   return mrb_float(value);
+}
+
+struct RProc* mrb_ext_value_to_proc(mrb_value value) {
+  return mrb_proc_ptr(value);
 }
 
 mrb_value mrb_ext_nil() {
@@ -35,6 +40,14 @@ mrb_value mrb_ext_cint_to_fixnum(int value) {
 
 mrb_value mrb_ext_cdouble_to_float(struct mrb_state* mrb, double value) {
   return mrb_float_value(mrb, value);
+}
+
+mrb_value mrb_ext_proc_to_value(struct mrb_state* mrb, struct RProc* proc) {
+  mrb_value value = mrb_cptr_value(mrb, proc);
+
+  value.tt = MRB_TT_PROC;
+
+  return value;
 }
 
 mrb_value mrb_ext_rust_to_ptr(struct mrb_state* mrb, const char* ptr, size_t size) {

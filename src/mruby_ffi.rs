@@ -27,6 +27,8 @@ pub enum MRProc {}
 pub enum MRClass {}
 pub enum MRObject {}
 
+type MRFunc = extern "C" fn(*mut MRState, MRValue) -> MRValue;
+
 #[repr(C)]
 struct RustType {
     pub ptr: *const u8,
@@ -65,6 +67,10 @@ impl MRValue {
         mrb_str_new_cstr(mrb, value.as_ptr())
     }
 
+    pub unsafe fn prc(mrb: *mut MRState, value: *mut MRProc) -> MRValue {
+        mrb_ext_proc_to_value(mrb, value)
+    }
+
     pub unsafe fn obj<T>(mrb: *mut MRState, obj: &T) -> MRValue {
         let ptr: *const T = obj;
         let ptr: *const u8 = ptr as *const u8;
@@ -74,7 +80,7 @@ impl MRValue {
 
     pub unsafe fn to_bool(&self) -> Result<bool, &str> {
         match self.typ {
-            MRType::MRB_TT_FALSE => Ok(true),
+            MRType::MRB_TT_FALSE => Ok(false),
             MRType::MRB_TT_TRUE  => Ok(true),
             _ => Err("Value must be Fixnum.")
         }
@@ -106,6 +112,15 @@ impl MRValue {
                 Ok(CStr::from_ptr(s).to_str().unwrap().clone())
             },
             _ => Err("Value must be String.")
+        }
+    }
+
+    pub unsafe fn to_prc(&self) -> Result<*mut MRProc, &str> {
+        match self.typ {
+            MRType::MRB_TT_PROC => {
+                Ok(mrb_ext_value_to_proc(*self))
+            },
+            _ => Err("Value must be Proc.")
         }
     }
 
@@ -182,24 +197,28 @@ extern "C" {
     pub fn mrb_define_class(mrb: *mut MRState, name: *const u8, sup: *mut MRClass) -> *mut MRClass;
     pub fn mrb_define_module(mrb: *mut MRState, name: *const u8) -> *mut MRClass;
 
-    pub fn mrb_include_module(mrb: *mut MRState, module: *const u8, incl: *mut MRClass);
-    pub fn mrb_prepend_module(mrb: *mut MRState, module: *const u8, prep: *mut MRClass);
+    pub fn mrb_include_module(mrb: *mut MRState, module: *mut MRClass, incl: *mut MRClass);
+    pub fn mrb_prepend_module(mrb: *mut MRState, module: *mut MRClass, prep: *mut MRClass);
 
-    pub fn mrb_define_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
-    pub fn mrb_define_class_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
-    pub fn mrb_define_module_method(mrb: *mut MRState, module: *mut MRClass, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
-    pub fn mrb_define_singleton_method(mrb: *mut MRState, object: *mut MRObject, name: *const u8, fun: extern "C" fn(*mut MRState, MRValue) -> MRValue, aspec: u32);
+    pub fn mrb_define_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_class_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_module_function(mrb: *mut MRState, module: *mut MRClass, name: *const u8, fun: MRFunc, aspec: u32);
 
-    pub fn mrb_define_const(mrb: *mut MRState, module: *mut MRClass, name: *const u8, value: MRValue);
+    pub fn mrb_obj_new(mrb: *mut MRState, class: *mut MRClass, argc: i32, argv: *const MRValue) -> MRValue;
 
-    pub fn mrb_obj_new(mrb: *mut MRState, class: *mut MRClass, argc: i32, argv: *const MRValue);
+    pub fn mrb_proc_new_cfunc(mrb: *mut MRState, fun: MRFunc) -> *mut MRProc;
 
     pub fn mrb_get_args(mrb: *mut MRState, format: *const u8, ...);
+    pub fn mrb_yield_argv(mrb: *mut MRState, prc: MRValue, argc: i32, argv: *const MRValue) -> MRValue;
+
+    pub fn mrb_intern_cstr(mrb: *mut MRState, string: *const u8) -> u32;
 
     pub fn mrb_funcall(mrb: *mut MRState, object: MRValue, name: *const u8, argc: i32, ...) -> MRValue;
+    pub fn mrb_funcall_with_block(mrb: *mut MRState, object: MRValue, sym: u32, argc: i32, argv: *const MRValue, prc: MRValue) -> MRValue;
 
     pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
     pub fn mrb_ext_float_to_cdouble(value: MRValue) -> f64;
+    pub fn mrb_ext_value_to_proc(value: MRValue) -> *mut MRProc;
     pub fn mrb_ext_ptr_to_rust(value: MRValue) -> RustType;
 
     pub fn mrb_ext_free_rust(value: MRValue);
@@ -210,6 +229,7 @@ extern "C" {
     pub fn mrb_ext_cint_to_fixnum(value: i32) -> MRValue;
     pub fn mrb_ext_cdouble_to_float(mrb: *mut MRState, value: f64) -> MRValue;
     pub fn mrb_str_new_cstr(mrb: *mut MRState, value: *const u8) -> MRValue;
+    pub fn mrb_ext_proc_to_value(mrb: *mut MRState, prc: *mut MRProc) -> MRValue;
     pub fn mrb_ext_rust_to_ptr(mrb: *mut MRState, ptr: *const u8, size: usize) -> MRValue;
 
     pub fn mrb_str_to_cstr(mrb: *mut MRState, value: MRValue) -> *const u8;
@@ -232,9 +252,9 @@ pub fn test_exec_context() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        mrbc_filename(mrb, context, CString::new("script.rb").unwrap().as_ptr() as *const u8);
+        mrbc_filename(mrb, context, "script.rb\0".as_ptr());
 
-        let code = CString::new("'' + 0").unwrap().as_ptr() as *const u8;
+        let code = "'' + 0\0".as_ptr();
 
         mrb_load_string_cxt(mrb, code, context);
 
@@ -250,13 +270,213 @@ pub fn test_create_run_proc() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let code = CString::new("1 + 1").unwrap().as_ptr() as *const u8;
+        let code = "1 + 1\0".as_ptr();
         let parser = mrb_parse_string(mrb, code, context);
         let prc = mrb_generate_code(mrb, parser);
 
         let result = mrb_run(mrb, prc, mrb_top_self(mrb));
 
         assert_eq!(result.to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_class_defined() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = "Object\0".as_ptr();
+
+        assert_eq!(mrb_class_defined(mrb, obj_class), 1);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_define_class() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = "Object\0".as_ptr();
+        let new_class = "Mine\0".as_ptr();
+
+        let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
+
+        mrb_define_class(mrb, new_class, obj_class);
+
+        assert_eq!(mrb_class_defined(mrb, new_class), 1);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_define_module() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let new_module = "Mine\0".as_ptr();
+
+        mrb_define_module(mrb, new_module);
+
+        mrb_module_get(mrb, new_module);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_include_module() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let kernel = "Kernel\0".as_ptr();
+        let new_module = "Mine\0".as_ptr();
+
+        let new_module = mrb_define_module(mrb, new_module);
+        let kernel = mrb_module_get(mrb, kernel);
+
+        mrb_include_module(mrb, kernel, new_module);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_prepend_module() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let kernel = "Kernel\0".as_ptr();
+        let new_module = "Mine\0".as_ptr();
+
+        let new_module = mrb_define_module(mrb, new_module);
+        let kernel = mrb_module_get(mrb, kernel);
+
+        mrb_prepend_module(mrb, kernel, new_module);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_define_method() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = "Object\0".as_ptr();
+        let new_class = "Mine\0".as_ptr();
+
+        let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
+        let new_class = mrb_define_class(mrb, new_class, obj_class);
+
+        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                MRValue::fixnum(2)
+            }
+        }
+
+        mrb_define_method(mrb, new_class, "job\0".as_ptr(), job, 0);
+
+        let code = "Mine.new.job\0".as_ptr();
+
+        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_define_class_method() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = "Object\0".as_ptr();
+        let new_class = "Mine\0".as_ptr();
+
+        let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
+        let new_class = mrb_define_class(mrb, new_class, obj_class);
+
+        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                MRValue::fixnum(2)
+            }
+        }
+
+        mrb_define_class_method(mrb, new_class, "job\0".as_ptr(), job, 0);
+
+        let code = "Mine.job\0".as_ptr();
+
+        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_define_module_function() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let new_module = "Mine\0".as_ptr();
+        let new_module = mrb_define_module(mrb, new_module);
+
+        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                MRValue::fixnum(2)
+            }
+        }
+
+        mrb_define_module_function(mrb, new_module, "job\0".as_ptr(), job, 0);
+
+        let code = "Mine.job\0".as_ptr();
+
+        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_obj_new() {
+    use std::ptr;
+
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = "Object\0".as_ptr();
+        let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
+
+        mrb_obj_new(mrb, obj_class, 0, ptr::null() as *const MRValue);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_proc_new_cfunc() {
+    use std::ptr;
+
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                MRValue::fixnum(2)
+            }
+        }
+
+        let prc = MRValue::prc(mrb, mrb_proc_new_cfunc(mrb, job));
+
+        mrb_funcall_with_block(mrb, MRValue::fixnum(5), mrb_intern_cstr(mrb, "times\0".as_ptr()), 0, ptr::null() as *const MRValue, prc);
 
         mrb_close(mrb);
     }
