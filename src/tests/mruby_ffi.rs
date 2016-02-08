@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-pub fn test_open_close() {
+fn test_open_close() {
     unsafe {
         let mrb = mrb_open();
 
@@ -10,7 +10,7 @@ pub fn test_open_close() {
 }
 
 #[test]
-pub fn test_exec_context() {
+fn test_exec_context() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -28,7 +28,7 @@ pub fn test_exec_context() {
 }
 
 #[test]
-pub fn test_create_run_proc() {
+fn test_create_run_proc() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -46,7 +46,7 @@ pub fn test_create_run_proc() {
 }
 
 #[test]
-pub fn test_class_defined() {
+fn test_class_defined() {
     unsafe {
         let mrb = mrb_open();
 
@@ -59,7 +59,7 @@ pub fn test_class_defined() {
 }
 
 #[test]
-pub fn test_define_class() {
+fn test_define_class() {
     unsafe {
         let mrb = mrb_open();
 
@@ -77,7 +77,7 @@ pub fn test_define_class() {
 }
 
 #[test]
-pub fn test_define_module() {
+fn test_define_module() {
     unsafe {
         let mrb = mrb_open();
 
@@ -92,7 +92,7 @@ pub fn test_define_module() {
 }
 
 #[test]
-pub fn test_include_module() {
+fn test_include_module() {
     unsafe {
         let mrb = mrb_open();
 
@@ -109,7 +109,7 @@ pub fn test_include_module() {
 }
 
 #[test]
-pub fn test_prepend_module() {
+fn test_prepend_module() {
     unsafe {
         let mrb = mrb_open();
 
@@ -126,7 +126,7 @@ pub fn test_prepend_module() {
 }
 
 #[test]
-pub fn test_define_method() {
+fn test_define_method() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -154,7 +154,7 @@ pub fn test_define_method() {
 }
 
 #[test]
-pub fn test_define_class_method() {
+fn test_define_class_method() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -182,7 +182,7 @@ pub fn test_define_class_method() {
 }
 
 #[test]
-pub fn test_define_module_function() {
+fn test_define_module_function() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -207,7 +207,7 @@ pub fn test_define_module_function() {
 }
 
 #[test]
-pub fn test_obj_new() {
+fn test_obj_new() {
     use std::ptr;
 
     unsafe {
@@ -224,7 +224,7 @@ pub fn test_obj_new() {
 }
 
 #[test]
-pub fn test_proc_new_cfunc() {
+fn test_proc_new_cfunc() {
     use std::ptr;
 
     unsafe {
@@ -240,6 +240,105 @@ pub fn test_proc_new_cfunc() {
         let prc = MRValue::prc(mrb, mrb_proc_new_cfunc(mrb, job));
 
         mrb_funcall_with_block(mrb, MRValue::fixnum(5), mrb_intern_cstr(mrb, "times\0".as_ptr()), 0, ptr::null() as *const MRValue, prc);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_nil() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let nil = MRValue::nil();
+        let result = mrb_funcall(mrb, nil, "to_s\0".as_ptr(), 0);
+
+        assert_eq!(result.to_str(mrb).unwrap(), "");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_bool_true() {
+    unsafe {
+        let bool_true = MRValue::bool(true);
+        assert_eq!(bool_true.to_bool().unwrap(), true);
+    }
+}
+
+#[test]
+fn test_bool_false() {
+    unsafe {
+        let bool_false = MRValue::bool(false);
+        assert_eq!(bool_false.to_bool().unwrap(), false);
+    }
+}
+
+#[test]
+fn test_fixnum() {
+    unsafe {
+        let number = MRValue::fixnum(-1291657);
+        assert_eq!(number.to_i32().unwrap(), -1291657);
+    }
+}
+
+#[test]
+fn test_float() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let number = MRValue::float(mrb, -1291657.37);
+        assert_eq!(number.to_f64().unwrap(), -1291657.37);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_string() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let string_value = MRValue::str(mrb, "qwerty\0");
+        assert_eq!(string_value.to_str(mrb).unwrap(), "qwerty");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_proc() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let code = "1 + 1\0".as_ptr();
+        let parser = mrb_parse_string(mrb, code, context);
+        let prc = mrb_generate_code(mrb, parser);
+
+        let result = mrb_run(mrb, MRValue::prc(mrb, prc).to_prc().unwrap(), mrb_top_self(mrb));
+
+        assert_eq!(result.to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_object() {
+    unsafe {
+        let mrb = mrb_open();
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        struct Container {
+            value: i32
+        }
+
+        let container = Container { value: 42 };
+        let obj = MRValue::obj::<Container>(mrb, &container);
+
+        assert_eq!(obj.to_obj::<Container>().unwrap(), container);
 
         mrb_close(mrb);
     }
