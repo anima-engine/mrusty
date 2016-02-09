@@ -63,14 +63,10 @@ fn test_define_class() {
     unsafe {
         let mrb = mrb_open();
 
-        let obj_class = "Object\0".as_ptr();
-        let new_class = "Mine\0".as_ptr();
-
         let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
+        mrb_define_class(mrb, "Mine\0".as_ptr(), obj_class);
 
-        mrb_define_class(mrb, new_class, obj_class);
-
-        assert_eq!(mrb_class_defined(mrb, new_class), 1);
+        assert_eq!(mrb_class_defined(mrb, "Mine\0".as_ptr()), 1);
 
         mrb_close(mrb);
     }
@@ -81,11 +77,8 @@ fn test_define_module() {
     unsafe {
         let mrb = mrb_open();
 
-        let new_module = "Mine\0".as_ptr();
-
-        mrb_define_module(mrb, new_module);
-
-        mrb_module_get(mrb, new_module);
+        mrb_define_module(mrb, "Mine\0".as_ptr());
+        mrb_module_get(mrb, "Mine\0".as_ptr());
 
         mrb_close(mrb);
     }
@@ -96,11 +89,8 @@ fn test_include_module() {
     unsafe {
         let mrb = mrb_open();
 
-        let kernel = "Kernel\0".as_ptr();
-        let new_module = "Mine\0".as_ptr();
-
-        let new_module = mrb_define_module(mrb, new_module);
-        let kernel = mrb_module_get(mrb, kernel);
+        let new_module = mrb_define_module(mrb, "Mine\0".as_ptr());
+        let kernel = mrb_module_get(mrb, "Kernel\0".as_ptr());
 
         mrb_include_module(mrb, kernel, new_module);
 
@@ -113,11 +103,8 @@ fn test_prepend_module() {
     unsafe {
         let mrb = mrb_open();
 
-        let kernel = "Kernel\0".as_ptr();
-        let new_module = "Mine\0".as_ptr();
-
-        let new_module = mrb_define_module(mrb, new_module);
-        let kernel = mrb_module_get(mrb, kernel);
+        let new_module = mrb_define_module(mrb, "Mine\0".as_ptr());
+        let kernel = mrb_module_get(mrb, "Kernel\0".as_ptr());
 
         mrb_prepend_module(mrb, kernel, new_module);
 
@@ -131,11 +118,8 @@ fn test_define_method() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = "Object\0".as_ptr();
-        let new_class = "Mine\0".as_ptr();
-
         let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
-        let new_class = mrb_define_class(mrb, new_class, obj_class);
+        let new_class = mrb_define_class(mrb, "Mine\0".as_ptr(), obj_class);
 
         extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
@@ -159,11 +143,8 @@ fn test_define_class_method() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = "Object\0".as_ptr();
-        let new_class = "Mine\0".as_ptr();
-
         let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
-        let new_class = mrb_define_class(mrb, new_class, obj_class);
+        let new_class = mrb_define_class(mrb, "Mine\0".as_ptr(), obj_class);
 
         extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
@@ -187,8 +168,7 @@ fn test_define_module_function() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let new_module = "Mine\0".as_ptr();
-        let new_module = mrb_define_module(mrb, new_module);
+        let new_module = mrb_define_module(mrb, "Mine\0".as_ptr());
 
         extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
@@ -214,7 +194,6 @@ fn test_obj_new() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = "Object\0".as_ptr();
         let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
 
         mrb_obj_new(mrb, obj_class, 0, ptr::null() as *const MRValue);
@@ -247,8 +226,6 @@ fn test_proc_new_cfunc() {
 
 #[test]
 pub fn test_args() {
-    use std::ptr;
-
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -264,11 +241,8 @@ pub fn test_args() {
             }
         }
 
-        let obj_class = "Object\0".as_ptr();
-        let new_class = "Mine\0".as_ptr();
-
         let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
-        let new_class = mrb_define_class(mrb, new_class, obj_class);
+        let new_class = mrb_define_class(mrb, "Mine\0".as_ptr(), obj_class);
 
         mrb_define_method(mrb, new_class, "add\0".as_ptr(), add, (2 & 0x1f) << 18);
 

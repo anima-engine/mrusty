@@ -15,7 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::ffi::CStr;
-use std::ffi::CString;
 use std::mem;
 
 pub enum MRState {}
@@ -49,7 +48,7 @@ impl MRValue {
             typ: MRType::MRB_TT_FALSE
         }
     }
-    
+
     pub unsafe fn nil() -> MRValue {
         mrb_ext_nil()
     }
