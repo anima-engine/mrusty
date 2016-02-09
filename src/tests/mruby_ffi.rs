@@ -246,9 +246,42 @@ pub fn test_args() {
 
         mrb_define_method(mrb, new_class, "add\0".as_ptr(), add, (2 & 0x1f) << 18);
 
-        let code = "Mine.new.add 1, 1\0".as_ptr();mrb_load_string_cxt(mrb, code, context);
+        let code = "Mine.new.add 1, 1\0".as_ptr();
 
         assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_yield() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                let mut a = MRValue::empty();
+                let mut b = MRValue::fixnum(1);
+
+                let mut prc = MRValue::empty();
+
+                mrb_get_args(mrb, "o&\0".as_ptr(), &a as *const MRValue, &prc as *const MRValue);
+                let mut b = mrb_yield_argv(mrb, prc, 1, [b].as_ptr());
+
+                mrb_funcall(mrb, a, "+\0".as_ptr(), 1, b)
+            }
+        }
+
+        let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
+        let new_class = mrb_define_class(mrb, "Mine\0".as_ptr(), obj_class);
+
+        mrb_define_method(mrb, new_class, "add\0".as_ptr(), add, (2 & 0x1f) << 18);
+
+        let code = "Mine.new.add(1) { |n| n + 1 }\0".as_ptr();
+
+        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 3);
 
         mrb_close(mrb);
     }
