@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include <mruby.h>
+#include <mruby/class.h>
 #include <mruby/error.h>
 #include <mruby/value.h>
 #include <mruby/proc.h>
@@ -67,29 +68,17 @@ mrb_value mrb_ext_proc_to_value(struct mrb_state* mrb, struct RProc* proc) {
   return value;
 }
 
-mrb_value mrb_ext_rust_to_ptr(struct mrb_state* mrb, const char* ptr, size_t size) {
-  rust_type* obj = malloc(sizeof(rust_type));
-  const char* new_ptr = malloc(size);
+mrb_value mrb_ext_data_value(struct RData* data) {
+  mrb_value value;
 
-  memcpy(new_ptr, ptr, size);
+  value.value.p = data;
+  value.tt = MRB_TT_DATA;
 
-  obj->ptr = new_ptr;
-  obj->size = size;
-
-  return mrb_cptr_value(mrb, obj);
+  return value;
 }
 
-rust_type mrb_ext_ptr_to_rust(mrb_value ptr) {
-  rust_type* obj = mrb_ptr(ptr);
-
-  return *obj;
-}
-
-void mrb_ext_free_rust(mrb_value ptr) {
-  rust_type* obj = mrb_ptr(ptr);
-
-  free(obj->ptr);
-  free(obj);
+void mrb_ext_set_instance_tt(struct RClass* class, enum mrb_vtype type) {
+  MRB_SET_INSTANCE_TT(class, type);
 }
 
 mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {

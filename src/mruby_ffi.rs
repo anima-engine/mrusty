@@ -24,14 +24,14 @@ pub enum MRParser {}
 
 pub enum MRProc {}
 pub enum MRClass {}
-pub enum MRObject {}
+pub enum MRData {}
 
 type MRFunc = extern "C" fn(*mut MRState, MRValue) -> MRValue;
 
 #[repr(C)]
-struct RustType {
-    pub ptr: *const u8,
-    pub size: usize
+pub struct MRDataType {
+    pub name: *const u8,
+    pub free: extern "C" fn(*mut MRState, *const u8)
 }
 
 #[repr(C)]
@@ -77,11 +77,10 @@ impl MRValue {
         mrb_ext_proc_to_value(mrb, value)
     }
 
-    pub unsafe fn obj<T>(mrb: *mut MRState, obj: &T) -> MRValue {
-        let ptr: *const T = obj;
-        let ptr: *const u8 = ptr as *const u8;
+    pub unsafe fn obj<T>(mrb: *mut MRState, class: *mut MRClass, ptr: *const u8, typ: &MRDataType) -> MRValue {
+        let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MRDataType);
 
-        mrb_ext_rust_to_ptr(mrb, ptr, mem::size_of::<T>())
+        mrb_ext_data_value(data)
     }
 
     pub unsafe fn to_bool(&self) -> Result<bool, &str> {
@@ -130,21 +129,15 @@ impl MRValue {
         }
     }
 
-    pub unsafe fn to_obj<T: Copy>(&self) -> Result<T, &str> {
+    pub unsafe fn to_obj<T: Copy>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<T, &str> {
         match self.typ {
-            MRType::MRB_TT_CPTR => {
-                let obj = mrb_ext_ptr_to_rust(*self);
-
-                let ptr: *const T = obj.ptr as *const T;
+            MRType::MRB_TT_DATA => {
+                let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const T;
                 let ptr = mem::transmute::<*const T, &T>(ptr);
 
-                let obj = *ptr;
-
-                mrb_ext_free_rust(*self);
-
-                Ok(obj)
+                Ok(*ptr)
             },
-            _ => Err("Value must be C pointer.")
+            _ => Err("Value must be Data.")
         }
     }
 }
@@ -225,9 +218,6 @@ extern "C" {
     pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
     pub fn mrb_ext_float_to_cdouble(value: MRValue) -> f64;
     pub fn mrb_ext_value_to_proc(value: MRValue) -> *mut MRProc;
-    pub fn mrb_ext_ptr_to_rust(value: MRValue) -> RustType;
-
-    pub fn mrb_ext_free_rust(value: MRValue);
 
     pub fn mrb_ext_nil() -> MRValue;
     pub fn mrb_ext_false() -> MRValue;
@@ -236,9 +226,19 @@ extern "C" {
     pub fn mrb_ext_cdouble_to_float(mrb: *mut MRState, value: f64) -> MRValue;
     pub fn mrb_str_new_cstr(mrb: *mut MRState, value: *const u8) -> MRValue;
     pub fn mrb_ext_proc_to_value(mrb: *mut MRState, prc: *mut MRProc) -> MRValue;
-    pub fn mrb_ext_rust_to_ptr(mrb: *mut MRState, ptr: *const u8, size: usize) -> MRValue;
 
     pub fn mrb_str_to_cstr(mrb: *mut MRState, value: MRValue) -> *const u8;
+
+    pub fn mrb_data_object_alloc(mrb: *mut MRState, class: *mut MRClass, ptr: *const u8, typ: *const MRDataType) -> *mut MRData;
+    pub fn mrb_data_init(value: MRValue, ptr: *const u8, typ: *const MRDataType);
+    pub fn mrb_data_get_ptr(mrb: *mut MRState, value: MRValue, typ: *const MRDataType) -> *const u8;
+
+    pub fn mrb_ext_set_instance_tt(class: *mut MRClass, typ: MRType);
+    pub fn mrb_ext_data_value(data: *mut MRData) -> MRValue;
+
+    // pub fn mrb_ary_new_from_values(mrb: *mut MRState, size: i32, values: *const MRValue) -> MRValue;
+    // pub fn mrb_ary_ref(mrb: *mut MRState, array: MRValue, i: i32) -> MRValue;
+    // pub fn mrb_ary_set(mrb: *mut MRState, array: MRValue, i: i32, value: MRValue);
 
     pub fn mrb_ext_get_exc(mrb: *mut MRState) -> MRValue;
 }

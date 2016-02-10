@@ -232,8 +232,8 @@ pub fn test_args() {
 
         extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
-                let mut a = MRValue::empty();
-                let mut b = MRValue::empty();
+                let a = MRValue::empty();
+                let b = MRValue::empty();
 
                 mrb_get_args(mrb, "oo\0".as_ptr(), &a as *const MRValue, &b as *const MRValue);
 
@@ -262,13 +262,13 @@ fn test_yield() {
 
         extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
-                let mut a = MRValue::empty();
-                let mut b = MRValue::fixnum(1);
+                let a = MRValue::empty();
+                let b = MRValue::fixnum(1);
 
-                let mut prc = MRValue::empty();
+                let prc = MRValue::empty();
 
                 mrb_get_args(mrb, "o&\0".as_ptr(), &a as *const MRValue, &prc as *const MRValue);
-                let mut b = mrb_yield_argv(mrb, prc, 1, [b].as_ptr());
+                let b = mrb_yield_argv(mrb, prc, 1, [b].as_ptr());
 
                 mrb_funcall(mrb, a, "+\0".as_ptr(), 1, b)
             }
@@ -368,19 +368,34 @@ fn test_proc() {
 }
 
 #[test]
-fn test_object() {
+fn test_obj() {
     unsafe {
-        let mrb = mrb_open();
-
-        #[derive(Clone, Copy, Debug, PartialEq)]
-        struct Container {
+        #[repr(C)]
+        #[derive(Clone, Copy)]
+        struct Cont {
             value: i32
         }
 
-        let container = Container { value: 42 };
-        let obj = MRValue::obj::<Container>(mrb, &container);
+        let mrb = mrb_open();
 
-        assert_eq!(obj.to_obj::<Container>().unwrap(), container);
+        let obj_class = mrb_class_get(mrb, "Object\0".as_ptr());
+        let cont_class = mrb_define_class(mrb, "Cont\0".as_ptr(), obj_class);
+
+        mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
+
+        extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
+            unsafe {
+                Box::from_raw(ptr as *mut Cont);
+            }
+        }
+
+        let data_type = MRDataType { name: "Cont\0".as_ptr(), free: free };
+
+        let obj = Box::new(Cont { value: 3 });
+        let obj = MRValue::obj::<Cont>(mrb, cont_class, Box::into_raw(obj) as *const u8, &data_type);
+        let obj = obj.to_obj::<Cont>(mrb, &data_type).unwrap();
+
+        assert_eq!(obj.value, 3);
 
         mrb_close(mrb);
     }
