@@ -392,8 +392,8 @@ fn test_obj() {
         let data_type = MRDataType { name: "Cont\0".as_ptr(), free: free };
 
         let obj = Box::new(Cont { value: 3 });
-        let obj = MRValue::obj::<Cont>(mrb, cont_class, Box::into_raw(obj) as *const u8, &data_type);
-        let obj = obj.to_obj::<Cont>(mrb, &data_type).unwrap();
+        let obj = MRValue::obj(mrb, cont_class, Box::into_raw(obj), &data_type);
+        let obj: Cont = obj.to_obj(mrb, &data_type).unwrap();
 
         assert_eq!(obj.value, 3);
 

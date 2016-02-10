@@ -77,8 +77,8 @@ impl MRValue {
         mrb_ext_proc_to_value(mrb, value)
     }
 
-    pub unsafe fn obj<T>(mrb: *mut MRState, class: *mut MRClass, ptr: *const u8, typ: &MRDataType) -> MRValue {
-        let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MRDataType);
+    pub unsafe fn obj<T>(mrb: *mut MRState, class: *mut MRClass, ptr: *const T, typ: &MRDataType) -> MRValue {
+        let data = mrb_data_object_alloc(mrb, class, ptr as *const u8, typ as *const MRDataType);
 
         mrb_ext_data_value(data)
     }
