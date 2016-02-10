@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/error.h>
 #include <mruby/value.h>
@@ -79,6 +80,10 @@ mrb_value mrb_ext_data_value(struct RData* data) {
 
 void mrb_ext_set_instance_tt(struct RClass* class, enum mrb_vtype type) {
   MRB_SET_INSTANCE_TT(class, type);
+}
+
+int mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
+  return mrb_ary_len(mrb, array);
 }
 
 mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {

@@ -400,3 +400,18 @@ fn test_obj() {
         mrb_close(mrb);
     }
 }
+
+#[test]
+fn test_array() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let vec: Vec<MRValue> = [1, 2, 3].iter().map(|v| MRValue::fixnum(*v)).collect();
+
+        let array = MRValue::array(mrb, &vec);
+
+        assert_eq!(*array.to_vec(mrb).unwrap(), vec);
+
+        mrb_close(mrb);
+    }
+}

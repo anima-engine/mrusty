@@ -35,7 +35,7 @@ pub struct MRDataType {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MRValue {
     pub value: [u8; 8],
     pub typ: MRType
@@ -81,6 +81,16 @@ impl MRValue {
         let data = mrb_data_object_alloc(mrb, class, ptr as *const u8, typ as *const MRDataType);
 
         mrb_ext_data_value(data)
+    }
+
+    pub unsafe fn array(mrb: *mut MRState, value: &Vec<MRValue>) -> MRValue {
+        let array = mrb_ary_new_capa(mrb, value.len() as i32);
+
+        for (i, value) in value.iter().enumerate() {
+            mrb_ary_set(mrb, array, i as i32, *value);
+        }
+
+        array
     }
 
     pub unsafe fn to_bool(&self) -> Result<bool, &str> {
@@ -140,10 +150,26 @@ impl MRValue {
             _ => Err("Value must be Data.")
         }
     }
+
+    pub unsafe fn to_vec(&self, mrb: *mut MRState) -> Result<Box<Vec<MRValue>>, &str> {
+        match self.typ {
+            MRType::MRB_TT_ARRAY => {
+                let len = mrb_ext_ary_len(mrb, *self) as usize;
+                let mut vec = Box::new(Vec::with_capacity(len));
+
+                for i in 0..len {
+                    vec.push(mrb_ary_ref(mrb, *self, i as i32));
+                }
+
+                Ok(vec)
+            },
+            _ => Err("Value must be Array.")
+        }
+    }
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MRType {
     MRB_TT_FALSE,
     MRB_TT_FREE,
@@ -236,9 +262,10 @@ extern "C" {
     pub fn mrb_ext_set_instance_tt(class: *mut MRClass, typ: MRType);
     pub fn mrb_ext_data_value(data: *mut MRData) -> MRValue;
 
-    // pub fn mrb_ary_new_from_values(mrb: *mut MRState, size: i32, values: *const MRValue) -> MRValue;
-    // pub fn mrb_ary_ref(mrb: *mut MRState, array: MRValue, i: i32) -> MRValue;
-    // pub fn mrb_ary_set(mrb: *mut MRState, array: MRValue, i: i32, value: MRValue);
+    pub fn mrb_ary_new_capa(mrb: *mut MRState, size: i32) -> MRValue;
+    pub fn mrb_ary_ref(mrb: *mut MRState, array: MRValue, i: i32) -> MRValue;
+    pub fn mrb_ary_set(mrb: *mut MRState, array: MRValue, i: i32, value: MRValue);
+    pub fn mrb_ext_ary_len(mrb: *mut MRState, array: MRValue) -> i32;
 
     pub fn mrb_ext_get_exc(mrb: *mut MRState) -> MRValue;
 }
