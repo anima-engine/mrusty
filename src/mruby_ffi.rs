@@ -93,7 +93,7 @@ impl MRValue {
         array
     }
 
-    pub unsafe fn to_bool(&self) -> Result<bool, &str> {
+    pub unsafe fn to_bool<'a>(&self) -> Result<bool, &str> {
         match self.typ {
             MRType::MRB_TT_FALSE => Ok(false),
             MRType::MRB_TT_TRUE  => Ok(true),
@@ -119,7 +119,7 @@ impl MRValue {
         }
     }
 
-    pub unsafe fn to_str(&self, mrb: *mut MRState) -> Result<&str, &str> {
+    pub unsafe fn to_str<'a>(&self, mrb: *mut MRState) -> Result<&'a str, &str> {
         match self.typ {
             MRType::MRB_TT_STRING => {
                 let s = mrb_str_to_cstr(mrb, *self) as *const i8;

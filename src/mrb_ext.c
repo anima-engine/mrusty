@@ -87,10 +87,14 @@ int mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
 }
 
 mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
-  mrb_value exc = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
-  mrb_value backtrace = mrb_exc_backtrace(mrb, mrb_obj_value(mrb->exc));
+  if (mrb->exc) {
+    mrb_value exc = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+    mrb_value backtrace = mrb_exc_backtrace(mrb, mrb_obj_value(mrb->exc));
 
-  mrb_funcall(mrb, backtrace, "unshift", 1, exc);
+    mrb_funcall(mrb, backtrace, "unshift", 1, exc);
 
-  return mrb_funcall(mrb, backtrace, "join", 1, mrb_str_new_cstr(mrb, "\n"));
+    return mrb_funcall(mrb, backtrace, "join", 1, mrb_str_new_cstr(mrb, "\n"));
+  } else {
+    return mrb_nil_value();
+  }
 }
