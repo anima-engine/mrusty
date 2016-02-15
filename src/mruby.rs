@@ -157,6 +157,44 @@ impl Value {
             self.value.to_i32()
         }
     }
+
+    /// Casts a `Value` and returns an `f64` in an `Ok` or an `Err` if the types mismatch.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// let mruby = MRuby::new();
+    /// let result = mruby.run("
+    ///   3 / 2.0
+    /// ").unwrap();
+    ///
+    /// assert_eq!(result.to_f64().unwrap(), 1.5);
+    /// ```
+    pub fn to_f64(&self) -> Result<f64, &str> {
+        unsafe {
+            self.value.to_f64()
+        }
+    }
+
+    /// Casts a `Value` and returns a `&str` in an `Ok` or an `Err` if the types mismatch.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// let mruby = MRuby::new();
+    /// let result = mruby.run("
+    ///   [1, 2, 3].map(&:to_s).join
+    /// ").unwrap();
+    ///
+    /// assert_eq!(result.to_str().unwrap(), "123");
+    /// ```
+    pub fn to_str<'a>(&self) -> Result<&'a str, &str> {
+        unsafe {
+            self.value.to_str(self.mrb)
+        }
+    }
 }
 
 impl PartialEq<Value> for Value {
