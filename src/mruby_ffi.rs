@@ -198,7 +198,6 @@ pub enum MRType {
 }
 
 #[link(name = "mruby")]
-#[link(name = "mrbe")]
 extern "C" {
     pub fn mrb_open() -> *mut MRState;
     pub fn mrb_close(mrb: *mut MRState);

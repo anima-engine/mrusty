@@ -112,7 +112,7 @@ impl Value {
         }
     }
 
-    /// Casts a `Value` and returns a `bool` in an `Ok` or an `Err` the the types mismatch.
+    /// Casts a `Value` and returns a `bool` in an `Ok` or an `Err` if the types mismatch.
     ///
     /// # Example
     ///
@@ -132,6 +132,29 @@ impl Value {
     pub fn to_bool(&self) -> Result<bool, &str> {
         unsafe {
             self.value.to_bool()
+        }
+    }
+
+    /// Casts a `Value` and returns an `i32` in an `Ok` or an `Err` if the types mismatch.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// let mruby = MRuby::new();
+    /// let result = mruby.run("
+    ///   def fact(n)
+    ///     n > 1 ? fact(n - 1) * n : 1
+    ///   end
+    ///
+    ///   fact 5
+    /// ").unwrap();
+    ///
+    /// assert_eq!(result.to_i32().unwrap(), 120);
+    /// ```
+    pub fn to_i32(&self) -> Result<i32, &str> {
+        unsafe {
+            self.value.to_i32()
         }
     }
 }
