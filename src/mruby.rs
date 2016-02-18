@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::collections::HashMap;
+use std::ffi::CString;
+
 use super::mruby_ffi::*;
 
 /// A safe `struct` for the mruby API.
@@ -30,7 +33,8 @@ use super::mruby_ffi::*;
 #[derive(Debug)]
 pub struct MRuby {
     mrb: *mut MRState,
-    ctx: *mut MRContext
+    ctx: *mut MRContext,
+    classes: Box<HashMap<String, (*mut MRClass, MRDataType)>>
 }
 
 impl MRuby {
@@ -48,7 +52,8 @@ impl MRuby {
 
             MRuby {
                 mrb: mrb,
-                ctx: mrbc_context_new(mrb)
+                ctx: mrbc_context_new(mrb),
+                classes: Box::new(HashMap::new())
             }
         }
     }
@@ -86,8 +91,75 @@ impl MRuby {
 
             match exc.typ {
                 MRType::MRB_TT_STRING => Err(exc.to_str(self.mrb).unwrap()),
-                _                     => Ok(Value::new(self.mrb, value))
+                _                     => Ok(Value::new(self, value))
             }
+        }
+    }
+
+    /// Defines Rust type `T` as an mruby `Class` named `name`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// let mut mruby = MRuby::new();
+    ///
+    /// struct Cont {
+    ///     value: i32
+    /// }
+    ///
+    /// mruby.define_class::<Cont>("Container");
+    /// ```
+    pub fn define_class<T>(&mut self, name: &str) {
+        unsafe {
+            let name = name.to_string();
+
+            let c_name = CString::new(name.clone()).unwrap();
+            let object = CString::new("Object").unwrap();
+
+            let class = mrb_define_class(self.mrb, c_name.as_ptr() as *const u8, mrb_class_get(self.mrb, object.as_ptr()  as *const u8));
+
+            mrb_ext_set_instance_tt(class, MRType::MRB_TT_DATA);
+
+            extern "C" fn free<T>(_mrb: *mut MRState, ptr: *const u8) {
+                unsafe {
+                    Box::from_raw(ptr as *mut T);
+                }
+            }
+
+            let data_type = MRDataType { name: c_name.as_ptr() as *const u8, free: free::<T> };
+
+            self.classes.insert(name, (class, data_type));
+        }
+    }
+
+    /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// let mut mruby = MRuby::new();
+    ///
+    /// #[derive(Clone, Copy)]
+    /// struct Cont {
+    ///     value: i32
+    /// }
+    ///
+    /// mruby.define_class::<Cont>("Container");
+    ///
+    /// let value = mruby.obj(Cont { value: 3 }, "Container");
+    /// ```
+    pub fn obj<T>(&self, obj: T, name: &str) -> Value {
+        let pair = match self.classes.get(name) {
+            Some(pair) => pair,
+            None       => panic!("{} class not found.", name)
+        };
+
+        let boxed = Box::into_raw(Box::new(obj));
+
+        unsafe {
+            Value::new(self, MRValue::obj(self.mrb, pair.0 as *mut MRClass, boxed, &pair.1))
         }
     }
 }
@@ -98,16 +170,16 @@ impl Drop for MRuby {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq)]
-pub struct Value {
-    mrb: *mut MRState,
+#[derive(Clone, Copy, Debug)]
+pub struct Value<'a> {
+    mruby: &'a MRuby,
     value: MRValue
 }
 
-impl Value {
-    fn new(mrb: *mut MRState, value: MRValue) -> Value {
+impl<'a> Value<'a> {
+    fn new(mruby: &'a MRuby, value: MRValue) -> Value {
         Value {
-            mrb: mrb,
+            mruby: mruby,
             value: value
         }
     }
@@ -190,14 +262,45 @@ impl Value {
     ///
     /// assert_eq!(result.to_str().unwrap(), "123");
     /// ```
-    pub fn to_str<'a>(&self) -> Result<&'a str, &str> {
+    pub fn to_str<'b>(&self) -> Result<&'b str, &str> {
         unsafe {
-            self.value.to_str(self.mrb)
+            self.value.to_str(self.mruby.mrb)
+        }
+    }
+
+    /// Casts mruby `Value` of `Class` `name` to Rust type `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// let mut mruby = MRuby::new();
+    ///
+    /// #[derive(Clone, Copy)]
+    /// struct Cont {
+    ///     value: i32
+    /// }
+    ///
+    /// mruby.define_class::<Cont>("Container");
+    ///
+    /// let value = mruby.obj(Cont { value: 3 }, "Container");
+    /// let cont: Cont = value.to_obj("Container").unwrap();
+    ///
+    /// assert_eq!(cont.value, 3);
+    /// ```
+    pub fn to_obj<T: Copy>(&self, name: &str) -> Result<T, &str> {
+        unsafe {
+            let pair = match self.mruby.classes.get(name) {
+                Some(pair) => pair,
+                None       => panic!("{} class not found.", name)
+            };
+
+            self.value.to_obj::<T>(self.mruby.mrb, &pair.1)
         }
     }
 }
 
-impl PartialEq<Value> for Value {
+impl<'a> PartialEq<Value<'a>> for Value<'a> {
     fn eq(&self, other: &Value) -> bool {
         self.value.eq(&other.value)
     }

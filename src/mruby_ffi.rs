@@ -29,6 +29,7 @@ pub enum MRData {}
 type MRFunc = extern "C" fn(*mut MRState, MRValue) -> MRValue;
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct MRDataType {
     pub name: *const u8,
     pub free: extern "C" fn(*mut MRState, *const u8)
