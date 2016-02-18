@@ -86,7 +86,7 @@ impl MRuby {
     /// ```
     pub fn run(&self, script: &str) -> Result<Value, &str> {
         unsafe {
-            let value = mrb_load_string_cxt(self.mrb, (script.to_string() + "\0").as_ptr(), self.ctx);
+            let value = mrb_load_string_cxt(self.mrb, CString::new(script).unwrap().as_ptr(), self.ctx);
             let exc = mrb_ext_get_exc(self.mrb);
 
             match exc.typ {
@@ -116,8 +116,9 @@ impl MRuby {
 
             let c_name = CString::new(name.clone()).unwrap();
             let object = CString::new("Object").unwrap();
+            let object = mrb_class_get(self.mrb, object.as_ptr());
 
-            let class = mrb_define_class(self.mrb, c_name.as_ptr() as *const u8, mrb_class_get(self.mrb, object.as_ptr()  as *const u8));
+            let class = mrb_define_class(self.mrb, c_name.as_ptr(), object);
 
             mrb_ext_set_instance_tt(class, MRType::MRB_TT_DATA);
 
@@ -127,7 +128,7 @@ impl MRuby {
                 }
             }
 
-            let data_type = MRDataType { name: c_name.as_ptr() as *const u8, free: free::<T> };
+            let data_type = MRDataType { name: c_name.as_ptr(), free: free::<T> };
 
             self.classes.insert(name, (class, data_type));
         }

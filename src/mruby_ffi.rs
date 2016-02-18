@@ -15,7 +15,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::ffi::CStr;
+use std::ffi::CString;
 use std::mem;
+use std::os::raw::c_char;
 
 pub enum MRState {}
 
@@ -31,7 +33,7 @@ type MRFunc = extern "C" fn(*mut MRState, MRValue) -> MRValue;
 #[repr(C)]
 #[derive(Debug)]
 pub struct MRDataType {
-    pub name: *const u8,
+    pub name: *const c_char,
     pub free: extern "C" fn(*mut MRState, *const u8)
 }
 
@@ -71,7 +73,7 @@ impl MRValue {
     }
 
     pub unsafe fn str(mrb: *mut MRState, value: &str) -> MRValue {
-        mrb_str_new_cstr(mrb, value.as_ptr())
+        mrb_str_new_cstr(mrb, CString::new(value).unwrap().as_ptr())
     }
 
     pub unsafe fn prc(mrb: *mut MRState, value: *mut MRProc) -> MRValue {
@@ -205,40 +207,40 @@ extern "C" {
 
     pub fn mrbc_context_new(mrb: *mut MRState) -> *mut MRContext;
 
-    pub fn mrbc_filename(mrb: *mut MRState, context: *mut MRContext, filename: *const u8) -> *const u8;
+    pub fn mrbc_filename(mrb: *mut MRState, context: *mut MRContext, filename: *const c_char) -> *const c_char;
 
-    pub fn mrb_parse_string(mrb: *mut MRState, code: *const u8, context: *mut MRContext) -> *mut MRParser;
+    pub fn mrb_parse_string(mrb: *mut MRState, code: *const c_char, context: *mut MRContext) -> *mut MRParser;
     pub fn mrb_generate_code(mrb: *mut MRState, parser: *mut MRParser) -> *mut MRProc;
 
-    pub fn mrb_load_string_cxt(mrb: *mut MRState, code: *const u8, context: *mut MRContext) -> MRValue;
+    pub fn mrb_load_string_cxt(mrb: *mut MRState, code: *const c_char, context: *mut MRContext) -> MRValue;
 
     pub fn mrb_top_self(mrb: *mut MRState) -> MRValue;
     pub fn mrb_run(mrb: *mut MRState, prc: *mut MRProc, value: MRValue) -> MRValue;
 
-    pub fn mrb_class_defined(mrb: *mut MRState, name: *const u8) -> u8;
-    pub fn mrb_class_get(mrb: *mut MRState, name: *const u8) -> *mut MRClass;
-    pub fn mrb_module_get(mrb: *mut MRState, name: *const u8) -> *mut MRClass;
+    pub fn mrb_class_defined(mrb: *mut MRState, name: *const c_char) -> u8;
+    pub fn mrb_class_get(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
+    pub fn mrb_module_get(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
 
-    pub fn mrb_define_class(mrb: *mut MRState, name: *const u8, sup: *mut MRClass) -> *mut MRClass;
-    pub fn mrb_define_module(mrb: *mut MRState, name: *const u8) -> *mut MRClass;
+    pub fn mrb_define_class(mrb: *mut MRState, name: *const c_char, sup: *mut MRClass) -> *mut MRClass;
+    pub fn mrb_define_module(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
 
     pub fn mrb_include_module(mrb: *mut MRState, module: *mut MRClass, incl: *mut MRClass);
     pub fn mrb_prepend_module(mrb: *mut MRState, module: *mut MRClass, prep: *mut MRClass);
 
-    pub fn mrb_define_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: MRFunc, aspec: u32);
-    pub fn mrb_define_class_method(mrb: *mut MRState, class: *mut MRClass, name: *const u8, fun: MRFunc, aspec: u32);
-    pub fn mrb_define_module_function(mrb: *mut MRState, module: *mut MRClass, name: *const u8, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_method(mrb: *mut MRState, class: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_class_method(mrb: *mut MRState, class: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_module_function(mrb: *mut MRState, module: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
 
     pub fn mrb_obj_new(mrb: *mut MRState, class: *mut MRClass, argc: i32, argv: *const MRValue) -> MRValue;
 
     pub fn mrb_proc_new_cfunc(mrb: *mut MRState, fun: MRFunc) -> *mut MRProc;
 
-    pub fn mrb_get_args(mrb: *mut MRState, format: *const u8, ...);
+    pub fn mrb_get_args(mrb: *mut MRState, format: *const c_char, ...);
     pub fn mrb_yield_argv(mrb: *mut MRState, prc: MRValue, argc: i32, argv: *const MRValue) -> MRValue;
 
-    pub fn mrb_intern_cstr(mrb: *mut MRState, string: *const u8) -> u32;
+    pub fn mrb_intern_cstr(mrb: *mut MRState, string: *const c_char) -> u32;
 
-    pub fn mrb_funcall(mrb: *mut MRState, object: MRValue, name: *const u8, argc: i32, ...) -> MRValue;
+    pub fn mrb_funcall(mrb: *mut MRState, object: MRValue, name: *const c_char, argc: i32, ...) -> MRValue;
     pub fn mrb_funcall_with_block(mrb: *mut MRState, object: MRValue, sym: u32, argc: i32, argv: *const MRValue, prc: MRValue) -> MRValue;
 
     pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
@@ -250,10 +252,10 @@ extern "C" {
     pub fn mrb_ext_true() -> MRValue;
     pub fn mrb_ext_cint_to_fixnum(value: i32) -> MRValue;
     pub fn mrb_ext_cdouble_to_float(mrb: *mut MRState, value: f64) -> MRValue;
-    pub fn mrb_str_new_cstr(mrb: *mut MRState, value: *const u8) -> MRValue;
+    pub fn mrb_str_new_cstr(mrb: *mut MRState, value: *const c_char) -> MRValue;
     pub fn mrb_ext_proc_to_value(mrb: *mut MRState, prc: *mut MRProc) -> MRValue;
 
-    pub fn mrb_str_to_cstr(mrb: *mut MRState, value: MRValue) -> *const u8;
+    pub fn mrb_str_to_cstr(mrb: *mut MRState, value: MRValue) -> *const c_char;
 
     pub fn mrb_data_object_alloc(mrb: *mut MRState, class: *mut MRClass, ptr: *const u8, typ: *const MRDataType) -> *mut MRData;
     pub fn mrb_data_init(value: MRValue, ptr: *const u8, typ: *const MRDataType);
