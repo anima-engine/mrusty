@@ -142,13 +142,13 @@ impl MRValue {
         }
     }
 
-    pub unsafe fn to_obj<T: Copy>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<T, &str> {
+    pub unsafe fn to_obj<T>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<&T, &str> {
         match self.typ {
             MRType::MRB_TT_DATA => {
                 let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const T;
                 let ptr = mem::transmute::<*const T, &T>(ptr);
 
-                Ok(*ptr)
+                Ok(ptr)
             },
             _ => Err("Value must be Data.")
         }

@@ -372,8 +372,6 @@ fn test_proc() {
 #[test]
 fn test_obj() {
     unsafe {
-        #[repr(C)]
-        #[derive(Clone, Copy)]
         struct Cont {
             value: i32
         }
@@ -395,11 +393,66 @@ fn test_obj() {
 
         let obj = Box::new(Cont { value: 3 });
         let obj = MRValue::obj(mrb, cont_class, Box::into_raw(obj), &data_type);
-        let obj: Cont = obj.to_obj(mrb, &data_type).unwrap();
+        let obj: &Cont = obj.to_obj(mrb, &data_type).unwrap();
 
         assert_eq!(obj.value, 3);
 
         mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_obj_scoping() {
+    unsafe {
+        static mut dropped: bool = false;
+
+        struct Cont {
+            value: i32
+        }
+
+        impl Drop for Cont {
+            fn drop(&mut self) {
+                unsafe {
+                    dropped = true;
+                }
+            }
+        }
+
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
+
+        mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
+
+        extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
+            unsafe {
+                Box::from_raw(ptr as *mut Cont);
+            }
+        }
+
+        let data_type = MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+
+        {
+            let orig = Box::new(Cont { value: 3 });
+
+            {
+                let obj = MRValue::obj(mrb, cont_class, Box::into_raw(orig), &data_type);
+                let obj: &Cont = obj.to_obj(mrb, &data_type).unwrap();
+
+                assert_eq!(obj.value, 3);
+
+                assert_eq!(dropped, false);
+            }
+
+            assert_eq!(dropped, false);
+        }
+
+        assert_eq!(dropped, false);
+
+        mrb_close(mrb);
+
+        assert_eq!(dropped, true);
     }
 }
 

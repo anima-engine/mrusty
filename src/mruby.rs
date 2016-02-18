@@ -142,7 +142,6 @@ impl MRuby {
     /// # use mrusty::MRuby;
     /// let mut mruby = MRuby::new();
     ///
-    /// #[derive(Clone, Copy)]
     /// struct Cont {
     ///     value: i32
     /// }
@@ -269,7 +268,7 @@ impl<'a> Value<'a> {
         }
     }
 
-    /// Casts mruby `Value` of `Class` `name` to Rust type `T`.
+    /// Casts mruby `Value` of `Class` `name` to Rust type `&T`.
     ///
     /// # Examples
     ///
@@ -277,7 +276,6 @@ impl<'a> Value<'a> {
     /// # use mrusty::MRuby;
     /// let mut mruby = MRuby::new();
     ///
-    /// #[derive(Clone, Copy)]
     /// struct Cont {
     ///     value: i32
     /// }
@@ -285,11 +283,11 @@ impl<'a> Value<'a> {
     /// mruby.define_class::<Cont>("Container");
     ///
     /// let value = mruby.obj(Cont { value: 3 }, "Container");
-    /// let cont: Cont = value.to_obj("Container").unwrap();
+    /// let cont: &Cont = value.to_obj("Container").unwrap();
     ///
     /// assert_eq!(cont.value, 3);
     /// ```
-    pub fn to_obj<T: Copy>(&self, name: &str) -> Result<T, &str> {
+    pub fn to_obj<T>(&self, name: &str) -> Result<&T, &str> {
         unsafe {
             let pair = match self.mruby.classes.get(name) {
                 Some(pair) => pair,
