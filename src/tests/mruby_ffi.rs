@@ -246,14 +246,16 @@ fn test_proc_new_cfunc() {
 
 #[test]
 pub fn test_args() {
+    use std::mem::uninitialized;
+
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
         extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
-                let a = MRValue::empty();
-                let b = MRValue::empty();
+                let a = uninitialized::<MRValue>();
+                let b = uninitialized::<MRValue>();;
 
                 mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MRValue, &b as *const MRValue);
 
@@ -276,16 +278,18 @@ pub fn test_args() {
 
 #[test]
 fn test_yield() {
+    use std::mem::uninitialized;
+
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
         extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
-                let a = MRValue::empty();
+                let a = uninitialized::<MRValue>();;
                 let b = MRValue::fixnum(1);
 
-                let prc = MRValue::empty();
+                let prc = uninitialized::<MRValue>();;
 
                 mrb_get_args(mrb, CString::new("o&").unwrap().as_ptr(), &a as *const MRValue, &prc as *const MRValue);
                 let b = mrb_yield_argv(mrb, prc, 1, [b].as_ptr());
