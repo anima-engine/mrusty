@@ -38,7 +38,7 @@ pub struct MRuby {
     mrb: *mut MRState,
     ctx: *mut MRContext,
     classes: Box<HashMap<String, (*mut MRClass, MRDataType)>>,
-    methods: Box<HashMap<String, Box<HashMap<u32, Box<Fn(&Rc<RefCell<MRuby>>, Value) -> Value>>>>>
+    methods: Box<HashMap<String, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>
 }
 
 impl MRuby {
@@ -172,7 +172,7 @@ pub fn def_class<T>(mruby: &Rc<RefCell<MRuby>>, name: &str) {
 /// assert_eq!(result.to_i32().unwrap(), 2);
 /// ```
 pub fn def_method<F>(mruby: &Rc<RefCell<MRuby>>, class: &str, name: &str, method: F)
-    where F: Fn(&Rc<RefCell<MRuby>>, Value) -> Value + 'static {
+    where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static {
     {
         let sym = unsafe {
             mrb_intern_cstr(mruby.borrow().mrb, CString::new(name.clone()).unwrap().as_ptr())
@@ -213,7 +213,7 @@ pub fn def_method<F>(mruby: &Rc<RefCell<MRuby>>, class: &str, name: &str, method
                 None         => panic!("Method not found.")
             };
 
-            method(&mruby, value).value
+            method(mruby.clone(), value).value
         }
     }
 
