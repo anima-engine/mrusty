@@ -12,6 +12,24 @@ fn test_open_close() {
 }
 
 #[test]
+fn test_ud() {
+    use std::mem;
+
+    unsafe {
+        let mrb = mrb_open();
+
+        let n = &1;
+
+        mrb_ext_set_ud(mrb, mem::transmute::<&i32, *const u8>(n));
+        let n = mem::transmute::<*const u8, &i32>(mrb_ext_get_ud(mrb));
+
+        assert_eq!(*n, 1);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn test_exec_context() {
     unsafe {
         let mrb = mrb_open();

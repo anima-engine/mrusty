@@ -24,10 +24,13 @@
 #include <mruby/value.h>
 #include <mruby/proc.h>
 
-typedef struct rust_type {
-  const char* ptr;
-  size_t size;
-} rust_type;
+void* mrb_ext_get_ud(struct mrb_state* mrb) {
+  return mrb->ud;
+}
+
+void mrb_ext_set_ud(struct mrb_state* mrb, void* ud) {
+  mrb->ud = ud;
+}
 
 int mrb_ext_fixnum_to_cint(mrb_value value) {
   return mrb_fixnum(value);
@@ -84,6 +87,10 @@ void mrb_ext_set_instance_tt(struct RClass* class, enum mrb_vtype type) {
 
 int mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
   return mrb_ary_len(mrb, array);
+}
+
+unsigned int mrb_ext_get_mid(struct mrb_state* mrb) {
+  return mrb_get_mid(mrb);
 }
 
 mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {

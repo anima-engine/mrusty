@@ -205,6 +205,9 @@ extern "C" {
     pub fn mrb_open() -> *mut MRState;
     pub fn mrb_close(mrb: *mut MRState);
 
+    pub fn mrb_ext_get_ud(mrb: *mut MRState) -> *const u8;
+    pub fn mrb_ext_set_ud(mrb: *mut MRState, ud: *const u8);
+
     pub fn mrbc_context_new(mrb: *mut MRState) -> *mut MRContext;
 
     pub fn mrbc_filename(mrb: *mut MRState, context: *mut MRContext, filename: *const c_char) -> *const c_char;
@@ -236,6 +239,7 @@ extern "C" {
     pub fn mrb_proc_new_cfunc(mrb: *mut MRState, fun: MRFunc) -> *mut MRProc;
 
     pub fn mrb_get_args(mrb: *mut MRState, format: *const c_char, ...);
+    pub fn mrb_ext_get_mid(mrb: *mut MRState) -> u32;
     pub fn mrb_yield_argv(mrb: *mut MRState, prc: MRValue, argc: i32, argv: *const MRValue) -> MRValue;
 
     pub fn mrb_intern_cstr(mrb: *mut MRState, string: *const c_char) -> u32;

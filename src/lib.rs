@@ -19,3 +19,9 @@ mod mruby_ffi;
 
 pub use mruby::MRuby;
 pub use mruby::Value;
+
+pub use mruby::run;
+pub use mruby::def_class;
+pub use mruby::def_method;
+pub use mruby::fixnum;
+pub use mruby::obj;
