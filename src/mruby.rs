@@ -63,7 +63,7 @@ impl MRuby {
                 }
             ));
 
-            mrb_ext_set_ud(mrb, mem::transmute::<&Rc<RefCell<MRuby>>, *const u8>(&mruby));
+            mrb_ext_set_ud(mrb, mem::transmute::<Rc<RefCell<MRuby>>, *const u8>(mruby.clone()));
 
             mruby
         }
@@ -117,7 +117,7 @@ pub fn run<'a>(mruby: &'a Rc<RefCell<MRuby>>, script: &str) -> Result<Value, &'a
 /// ```
 /// # use mrusty::MRuby;
 /// # use mrusty::def_class;
-/// let mut mruby = MRuby::new();
+/// let mruby = MRuby::new();
 ///
 /// struct Cont {
 ///     value: i32
@@ -160,7 +160,7 @@ pub fn def_class<T>(mruby: &Rc<RefCell<MRuby>>, name: &str) {
 /// # use mrusty::def_class;
 /// # use mrusty::def_method;
 /// # use mrusty::fixnum;
-/// let mut mruby = MRuby::new();
+/// let mruby = MRuby::new();
 ///
 /// struct Cont;
 ///
@@ -191,7 +191,7 @@ pub fn def_method<F>(mruby: &Rc<RefCell<MRuby>>, class: &str, name: &str, method
     extern "C" fn call_method(mrb: *mut MRState, slf: MRValue) -> MRValue {
         unsafe {
             let ptr = mrb_ext_get_ud(mrb);
-            let mruby = mem::transmute::<*const u8, &Rc<RefCell<MRuby>>>(ptr);
+            let mruby = mem::transmute::<*const u8, Rc<RefCell<MRuby>>>(ptr);
 
             let value = Value::new(mruby.clone(), slf);
 
@@ -213,7 +213,7 @@ pub fn def_method<F>(mruby: &Rc<RefCell<MRuby>>, class: &str, name: &str, method
                 None         => panic!("Method not found.")
             };
 
-            method(mruby, value).value
+            method(&mruby, value).value
         }
     }
 
@@ -236,7 +236,7 @@ pub fn def_method<F>(mruby: &Rc<RefCell<MRuby>>, class: &str, name: &str, method
 /// ```
 /// # use mrusty::MRuby;
 /// # use mrusty::fixnum;
-/// let mut mruby = MRuby::new();
+/// let mruby = MRuby::new();
 ///
 /// let fixn = fixnum(&mruby, 2);
 ///
@@ -256,7 +256,7 @@ pub fn fixnum(mruby: &Rc<RefCell<MRuby>>, value: i32) -> Value {
 /// # use mrusty::MRuby;
 /// # use mrusty::def_class;
 /// # use mrusty::obj;
-/// let mut mruby = MRuby::new();
+/// let mruby = MRuby::new();
 ///
 /// struct Cont {
 ///     value: i32
@@ -397,7 +397,7 @@ impl Value {
     /// # use mrusty::MRuby;
     /// # use mrusty::def_class;
     /// # use mrusty::obj;
-    /// let mut mruby = MRuby::new();
+    /// let mruby = MRuby::new();
     ///
     /// struct Cont {
     ///     value: i32
