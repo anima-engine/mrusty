@@ -13,23 +13,24 @@ cache:
   directories:
     - $TRAVIS_BUILD_DIR/target
     - $HOME/.cargo
-addons:
-  apt:
-    packages:
-      - libcurl4-openssl-dev
-      - libelf-dev
-      - libdw-dev
-      - binutils-dev
-      - ruby
-      - bison
 before_install:
   - |
     pip install 'travis-cargo<0.2' --user &&
     export PATH=$HOME/.local/bin:$PATH
+  - sudo apt-get install -y bison ruby
+  - wget https://github.com/mruby/mruby/archive/1.2.0.zip
+  - unzip 1.2.0.zip
+  - sed -i "24s/.*/  conf.cc do |cc| cc.flags << \'-fPIC\' end/" mruby-1.2.0/build_config.rb
+  - cd mruby-1.2.0
+  - ./minirake
+  - sudo cp -R include/* /usr/local/include
+  - sudo cp build/host/lib/libmruby.a /usr/local/lib
+  - cd ..
 script:
   - |
       travis-cargo build &&
       travis-cargo test
 after_success: |
-  travis-cargo coveralls --no-sudo --verify \
+  sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev &&
+  travis-cargo coveralls --verify
     --exclude-pattern=/.cargo --exclude-pattern=mruby-1.2.0 target/kcov target/debug/mrusty-*
