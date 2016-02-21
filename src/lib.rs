@@ -17,6 +17,13 @@
 mod mruby;
 mod mruby_ffi;
 
+/// Not meant to be called directly.
+#[doc(hidden)]
+pub use mruby_ffi::MRValue;
+/// Not meant to be called directly.
+#[doc(hidden)]
+pub use mruby_ffi::mrb_get_args;
+
 pub use mruby::MRuby;
 pub use mruby::MRubyImpl;
 pub use mruby::Value;

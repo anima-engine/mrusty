@@ -20,7 +20,159 @@ use std::ffi::CString;
 use std::mem;
 use std::rc::Rc;
 
-use super::mruby_ffi::*;
+pub use super::mruby_ffi::*;
+
+/// A `macro` useful for defining Rust closures for mruby.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate mrusty;
+/// # use mrusty::MRuby;
+/// # use mrusty::MRubyImpl;
+/// # use mrusty::mrb_get_args;
+/// # fn main() {
+/// let mruby = MRuby::new();
+///
+/// struct Cont;
+///
+/// mruby.def_class::<Cont>("Container");
+/// mruby.def_method("Container", "hi", mrfn!(|mruby, slf, a: i32, b: i32| {
+///     mruby.fixnum(a + b)
+/// }));
+///
+/// let result = mruby.run("Container.new.hi 1, 2").unwrap();
+///
+/// assert_eq!(result.to_i32().unwrap(), 3);
+/// # }
+/// ```
+///
+/// ```
+/// # #[macro_use] extern crate mrusty;
+/// # use mrusty::MRuby;
+/// # use mrusty::MRubyImpl;
+/// # use mrusty::mrb_get_args;
+/// # fn main() {
+/// let mruby = MRuby::new();
+///
+/// struct Cont;
+///
+/// mruby.def_class::<Cont>("Container");
+/// mruby.def_method("Container", "hi", mrfn!(|mruby, slf, a: str, b: str| {
+///     mruby.string(&(a.to_string() + b))
+/// }));
+///
+/// let result = mruby.run("Container.new.hi 'a', 'b'").unwrap();
+///
+/// assert_eq!(result.to_str().unwrap(), "ab");
+/// # }
+/// ```
+///
+/// ```
+/// # #[macro_use] extern crate mrusty;
+/// # use mrusty::MRuby;
+/// # use mrusty::MRubyImpl;
+/// # use mrusty::Value;
+/// # use mrusty::MRValue;
+/// # use mrusty::mrb_get_args;
+/// # fn main() {
+/// let mruby = MRuby::new();
+///
+/// struct Cont {
+///     value: i32
+/// };
+///
+/// mruby.def_class::<Cont>("Container");
+/// mruby.def_method("Container", "gt", mrfn!(|mruby, slf, o: Value| {
+///    let slf = slf.to_obj::<Cont>("Container").unwrap();
+///    let o = o.to_obj::<Cont>("Container").unwrap();
+///
+///    mruby.bool(slf.value > o.value)
+/// }));
+///
+/// let a = mruby.obj::<Cont>("Container", Cont { value: 3 });
+/// let b = mruby.obj::<Cont>("Container", Cont { value: 2 });
+///
+/// let result = a.call("gt", vec![b]);
+///
+/// assert_eq!(result.to_bool().unwrap(), true);
+/// # }
+/// ```
+#[macro_export]
+macro_rules! mrfn {
+    // init
+    ( I ) => ();
+    ( I $name:ident, bool )   => (let $name = uninitialized::<bool>(););
+    ( I $name:ident, i32 )    => (let $name = uninitialized::<i32>(););
+    ( I $name:ident, f64 )    => (let $name = uninitialized::<f64>(););
+    ( I $name:ident, str )    => (let $name = uninitialized::<*const c_char>(););
+    ( I $name:ident, Value ) => (let $name = uninitialized::<MRValue>(););
+    ( I $name:ident : $t:tt ) => (mrfn!(I $name, $t));
+    ( I $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        mrfn!(I $name, $t);
+        mrfn!(I $( $names : $ts ),*);
+    };
+
+    // sig
+    ( S ) => ("");
+    ( S bool )   => ("b");
+    ( S i32 )    => ("i");
+    ( S f64 )    => ("f");
+    ( S str )    => ("z");
+    ( S Value ) => ("o");
+    ( S $t:tt, $( $ts:tt ),+ ) => (concat!(mrfn!(S $t), mrfn!(S $( $ts ),*)));
+
+    // args
+    ( A ) => ();
+    ( A $name:ident, bool )   => (&$name as *const bool);
+    ( A $name:ident, i32 )    => (&$name as *const i32);
+    ( A $name:ident, f64 )    => (&$name as *const f64);
+    ( A $name:ident, str )    => (&$name as *const *const c_char);
+    ( A $name:ident, Value ) => (&$name as *const MRValue);
+    ( A $name:ident : $t:tt ) => (mrfn!(A $name, $t));
+    ( A $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
+        mrb_get_args($mrb, $sig, mrfn!(A $name, $t));
+    };
+    ( A $mrb:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        mrb_get_args($mrb, $sig, mrfn!(A $name, $t), mrfn!(A $( $names : $ts ),*));
+    };
+
+    // conv
+    ( C $mruby:expr )                      => ();
+    ( C $mruby:expr, $name:ident, str )    => (let $name = CStr::from_ptr($name).to_str().unwrap(););
+    ( C $mruby:expr, $name:ident, Value )  => (let $name = Value::new($mruby.clone(), $name););
+    ( C $mruby:expr, $name:ident, $_t:ty ) => ();
+    ( C $mruby:expr, $name:ident : $t:tt ) => (mrfn!(C $mruby, $name, $t));
+    ( C $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        mrfn!(C $mruby, $name, $t);
+        mrfn!(C $mruby, $( $names : $ts ),*);
+    };
+
+    // closures
+    ( |$mruby:ident, $slf:ident| $block:expr ) => {
+        |$mruby, $slf| $block
+    };
+    ( |$mruby:ident, $slf:ident, $( $name:ident : $t:tt ),*| $block:expr ) => {
+        |$mruby, $slf| {
+            use std::ffi::CStr;
+            use std::ffi::CString;
+            use std::mem::uninitialized;
+            use std::os::raw::c_char;
+
+            unsafe {
+                mrfn!(I $( $name : $t ),*);
+
+                let mrb = $mruby.borrow().mrb;
+                let sig = CString::new(mrfn!(S $( $t ),*)).unwrap().as_ptr();
+
+                mrfn!(A mrb, sig, $( $name : $t ),*);
+                mrfn!(C $mruby, $( $name : $t ),*);
+
+                $block
+            }
+        }
+    };
+}
 
 /// A safe `struct` for the mruby API.
 ///
@@ -34,7 +186,7 @@ use super::mruby_ffi::*;
 /// assert_eq!(result.to_bool().unwrap(), false);
 /// ```
 pub struct MRuby {
-    mrb: *mut MRState,
+    pub mrb: *mut MRState,
     ctx: *mut MRContext,
     classes: Box<HashMap<String, (*mut MRClass, MRDataType)>>,
     methods: Box<HashMap<String, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>
@@ -230,9 +382,9 @@ pub trait MRubyImpl {
     ///
     /// mruby.def_class::<Cont>("Container");
     ///
-    /// let value = mruby.obj(Cont { value: 3 }, "Container");
+    /// let value = mruby.obj("Container", Cont { value: 3 });
     /// ```
-    fn obj<T>(&self, obj: T, name: &str) -> Value;
+    fn obj<T>(&self, name: &str, obj: T) -> Value;
 
     /// Creates mruby `Value` of `Class` `Array`.
     ///
@@ -383,7 +535,7 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
         }
     }
 
-    fn obj<T>(&self, obj: T, name: &str) -> Value {
+    fn obj<T>(&self, name: &str, obj: T) -> Value {
         let borrow = self.borrow();
 
         let class = match borrow.classes.get(name) {
@@ -422,7 +574,9 @@ pub struct Value {
 }
 
 impl Value {
-    fn new(mruby: Rc<RefCell<MRuby>>, value: MRValue) -> Value {
+    /// Not meant to be called directly.
+    #[doc(hidden)]
+    pub fn new(mruby: Rc<RefCell<MRuby>>, value: MRValue) -> Value {
         Value {
             mruby: mruby,
             value: value
@@ -560,7 +714,7 @@ impl Value {
     ///
     /// mruby.def_class::<Cont>("Container");
     ///
-    /// let value = mruby.obj(Cont { value: 3 }, "Container");
+    /// let value = mruby.obj("Container", Cont { value: 3 });
     /// let cont: &Cont = value.to_obj("Container").unwrap();
     ///
     /// assert_eq!(cont.value, 3);

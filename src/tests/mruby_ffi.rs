@@ -256,7 +256,7 @@ pub fn test_args() {
         extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
                 let a = uninitialized::<MRValue>();
-                let b = uninitialized::<MRValue>();;
+                let b = uninitialized::<MRValue>();
 
                 mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MRValue, &b as *const MRValue);
 
@@ -272,6 +272,43 @@ pub fn test_args() {
         let code = CString::new("Mine.new.add 1, 1").unwrap().as_ptr();
 
         assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+pub fn test_str_args() {
+    use std::ffi::CStr;
+    use std::mem::uninitialized;
+    use std::os::raw::c_char;
+
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                let a = uninitialized::<*const c_char>();
+                let b = uninitialized::<*const c_char>();
+
+                mrb_get_args(mrb, CString::new("zz").unwrap().as_ptr(), &a as *const *const c_char, &b as *const *const c_char);
+
+                let a = CStr::from_ptr(a).to_str().unwrap();
+                let b = CStr::from_ptr(b).to_str().unwrap();
+
+                mrb_funcall(mrb, MRValue::string(mrb, a), CString::new("+").unwrap().as_ptr(), 1, MRValue::string(mrb, b))
+            }
+        }
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+
+        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add, (2 & 0x1f) << 18);
+
+        let code = CString::new("Mine.new.add 'a', 'b'").unwrap().as_ptr();
+
+        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_str(mrb).unwrap(), "ab");
 
         mrb_close(mrb);
     }
