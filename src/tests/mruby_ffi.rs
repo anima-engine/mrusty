@@ -366,7 +366,7 @@ fn test_string() {
     unsafe {
         let mrb = mrb_open();
 
-        let string_value = MRValue::str(mrb, "qwerty");
+        let string_value = MRValue::string(mrb, "qwerty");
         assert_eq!(string_value.to_str(mrb).unwrap(), "qwerty");
 
         mrb_close(mrb);
@@ -487,7 +487,7 @@ fn test_array() {
 
         let array = MRValue::array(mrb, &vec);
 
-        assert_eq!(*array.to_vec(mrb).unwrap(), vec);
+        assert_eq!(array.to_vec(mrb).unwrap(), vec);
 
         mrb_close(mrb);
     }

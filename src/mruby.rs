@@ -27,8 +27,7 @@ use super::mruby_ffi::*;
 /// # Examples
 ///
 /// ```
-/// # use mrusty::MRuby;
-/// # use mrusty::MRubyImpl;
+/// use mrusty::*;
 /// let mruby = MRuby::new();
 /// let result = mruby.run("2 + 2 == 5").unwrap();
 ///
@@ -139,6 +138,40 @@ pub trait MRubyImpl {
     fn def_method<F>(&self, class: &str, name: &str, method: F)
         where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static;
 
+    /// Creates mruby `Value` `nil`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_method("Container", "nil", |mruby, _slf| mruby.nil());
+    ///
+    /// let result = mruby.run("Container.new.nil.nil?").unwrap();
+    ///
+    /// assert_eq!(result.to_bool().unwrap(), true);
+    /// ```
+    fn nil(&self) -> Value;
+
+    /// Creates mruby `Value` containing `true` or `false`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let b = mruby.bool(true);
+    ///
+    /// assert_eq!(b.to_bool().unwrap(), true);
+    /// ```
+    fn bool(&self, value: bool) -> Value;
+
     /// Creates mruby `Value` of `Class` `Fixnum`.
     ///
     /// # Examples
@@ -153,6 +186,34 @@ pub trait MRubyImpl {
     /// assert_eq!(fixn.to_i32().unwrap(), 2);
     /// ```
     fn fixnum(&self, value: i32) -> Value;
+
+    /// Creates mruby `Value` of `Class` `Float`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let fl = mruby.float(2.3);
+    ///
+    /// assert_eq!(fl.to_f64().unwrap(), 2.3);
+    /// ```
+    fn float(&self, value: f64) -> Value;
+
+    /// Creates mruby `Value` of `Class` `String`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let s = mruby.string("hi");
+    ///
+    /// assert_eq!(s.to_str().unwrap(), "hi");
+    /// ```
+    fn string(&self, value: &str) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
     ///
@@ -172,6 +233,28 @@ pub trait MRubyImpl {
     /// let value = mruby.obj(Cont { value: 3 }, "Container");
     /// ```
     fn obj<T>(&self, obj: T, name: &str) -> Value;
+
+    /// Creates mruby `Value` of `Class` `Array`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let array = mruby.array(&vec![
+    ///     mruby.fixnum(1),
+    ///     mruby.fixnum(2),
+    ///     mruby.fixnum(3)
+    /// ]);
+    ///
+    /// assert_eq!(array.to_vec().unwrap(), vec![
+    ///     mruby.fixnum(1),
+    ///     mruby.fixnum(2),
+    ///     mruby.fixnum(3)
+    /// ]);
+    /// ```
+    fn array(&self, value: &Vec<Value>) -> Value;
 }
 
 impl MRubyImpl for Rc<RefCell<MRuby>> {
@@ -270,9 +353,33 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
         }
     }
 
+    fn nil(&self) -> Value {
+        unsafe {
+            Value::new(self.clone(), MRValue::nil())
+        }
+    }
+
+    fn bool(&self, value: bool) -> Value {
+        unsafe {
+            Value::new(self.clone(), MRValue::bool(value))
+        }
+    }
+
     fn fixnum(&self, value: i32) -> Value {
         unsafe {
             Value::new(self.clone(), MRValue::fixnum(value))
+        }
+    }
+
+    fn float(&self, value: f64) -> Value {
+        unsafe {
+            Value::new(self.clone(), MRValue::float(self.borrow().mrb, value))
+        }
+    }
+
+    fn string(&self, value: &str) -> Value {
+        unsafe {
+            Value::new(self.clone(), MRValue::string(self.borrow().mrb, value))
         }
     }
 
@@ -288,6 +395,16 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
         unsafe {
             Value::new(self.clone(), MRValue::obj(self.borrow().mrb, class.0 as *mut MRClass, boxed, &class.1))
+        }
+    }
+
+    fn array(&self, value: &Vec<Value>) -> Value {
+        let array: Vec<MRValue> = value.iter().map(|value| {
+            value.value
+        }).collect();
+
+        unsafe {
+            Value::new(self.clone(), MRValue::array(self.borrow().mrb, &array))
         }
     }
 }
@@ -432,13 +549,46 @@ impl Value {
             self.value.to_obj::<T>(self.mruby.borrow().mrb, &class.1)
         }
     }
+
+    /// Casts mruby `Value` of `Class` `Array` to Rust type `Vec<Value>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    /// let result = mruby.run("
+    ///   [1, 2, 3].map(&:to_s)
+    /// ").unwrap();
+    ///
+    /// assert_eq!(result.to_vec().unwrap(), vec![
+    ///     mruby.string("1"),
+    ///     mruby.string("2"),
+    ///     mruby.string("3")
+    /// ]);
+    /// ```
+    pub fn to_vec(&self) -> Result<Vec<Value>, &str> {
+        unsafe {
+            self.value.to_vec(self.mruby.borrow().mrb).map(|vec| {
+                vec.iter().map(|mrvalue| {
+                    Value::new(self.mruby.clone(), *mrvalue)
+                }).collect()
+            })
+        }
+    }
 }
 
 use std::fmt;
 
 impl PartialEq<Value> for Value {
     fn eq(&self, other: &Value) -> bool {
-        self.value.eq(&other.value)
+        unsafe {
+            let call = CString::new("==").unwrap().as_ptr();
+            let result = mrb_funcall(self.mruby.borrow().mrb, self.value, call, 1, other.value);
+
+            result.to_bool().unwrap()
+        }
     }
 }
 

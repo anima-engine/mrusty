@@ -65,7 +65,7 @@ impl MRValue {
         mrb_ext_cdouble_to_float(mrb, value)
     }
 
-    pub unsafe fn str(mrb: *mut MRState, value: &str) -> MRValue {
+    pub unsafe fn string(mrb: *mut MRState, value: &str) -> MRValue {
         mrb_str_new_cstr(mrb, CString::new(value).unwrap().as_ptr())
     }
 
@@ -147,11 +147,11 @@ impl MRValue {
         }
     }
 
-    pub unsafe fn to_vec(&self, mrb: *mut MRState) -> Result<Box<Vec<MRValue>>, &str> {
+    pub unsafe fn to_vec(&self, mrb: *mut MRState) -> Result<Vec<MRValue>, &str> {
         match self.typ {
             MRType::MRB_TT_ARRAY => {
                 let len = mrb_ext_ary_len(mrb, *self) as usize;
-                let mut vec = Box::new(Vec::with_capacity(len));
+                let mut vec = Vec::with_capacity(len);
 
                 for i in 0..len {
                     vec.push(mrb_ary_ref(mrb, *self, i as i32));
