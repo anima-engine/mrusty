@@ -29,9 +29,7 @@ before_install:
 script:
   - |
       travis-cargo build &&
-      travis-cargo test &&
-      # travis-cargo bench &&
-      # travis-cargo --only stable doc
+      travis-cargo test
 after_success: |
   travis-cargo coveralls --no-sudo --verify \
     --exclude-pattern=/.cargo --exclude-pattern=mruby-1.2.0 target/kcov target/debug/mrusty-*
