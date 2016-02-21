@@ -60,6 +60,7 @@ fn test_create_run_proc() {
         let result = mrb_run(mrb, prc, mrb_top_self(mrb));
 
         assert_eq!(result.to_i32().unwrap(), 2);
+        assert_eq!(mrb_ext_get_exc(mrb).to_bool().unwrap(), false);
 
         mrb_close(mrb);
     }
