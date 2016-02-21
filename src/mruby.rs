@@ -429,6 +429,34 @@ impl Value {
         }
     }
 
+    /// Calls method `name` on a `Value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let one = mruby.fixnum(1);
+    /// let result = one.call("+", vec![mruby.fixnum(2)]);
+    ///
+    /// assert_eq!(result.to_i32().unwrap(), 3);
+    /// ```
+    pub fn call(&self, name: &str, args: Vec<Value>) -> Value {
+        unsafe {
+            let c_name = CString::new(name).unwrap().as_ptr();
+            let sym = mrb_intern_cstr(self.mruby.borrow().mrb, c_name);
+
+            let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
+
+            let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
+                args.len() as i32, args.as_ptr());
+
+            Value::new(self.mruby.clone(), result)
+        }
+    }
+
     /// Casts a `Value` and returns a `bool` in an `Ok` or an `Err` if the types mismatch.
     ///
     /// # Example
@@ -583,12 +611,9 @@ use std::fmt;
 
 impl PartialEq<Value> for Value {
     fn eq(&self, other: &Value) -> bool {
-        unsafe {
-            let call = CString::new("==").unwrap().as_ptr();
-            let result = mrb_funcall(self.mruby.borrow().mrb, self.value, call, 1, other.value);
+        let result = self.call("==", vec![other.clone()]);
 
-            result.to_bool().unwrap()
-        }
+        result.to_bool().unwrap()
     }
 }
 

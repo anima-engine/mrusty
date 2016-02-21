@@ -277,6 +277,24 @@ pub fn test_args() {
 }
 
 #[test]
+fn test_funcall_argv() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let one = MRValue::fixnum(1);
+        let args = &[MRValue::fixnum(2)];
+
+        let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+
+        let result = mrb_funcall_argv(mrb, one, sym, 1, args.as_ptr());
+
+        assert_eq!(result.to_i32().unwrap(), 3);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn test_yield() {
     use std::mem::uninitialized;
 

@@ -238,6 +238,7 @@ extern "C" {
     pub fn mrb_intern_cstr(mrb: *mut MRState, string: *const c_char) -> u32;
 
     pub fn mrb_funcall(mrb: *mut MRState, object: MRValue, name: *const c_char, argc: i32, ...) -> MRValue;
+    pub fn mrb_funcall_argv(mrb: *mut MRState, object: MRValue, sym: u32, argc: i32, argv: *const MRValue) -> MRValue;
     pub fn mrb_funcall_with_block(mrb: *mut MRState, object: MRValue, sym: u32, argc: i32, argv: *const MRValue, prc: MRValue) -> MRValue;
 
     pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
