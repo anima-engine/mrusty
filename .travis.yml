@@ -32,5 +32,4 @@ script:
       travis-cargo test
 after_success: |
   sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev &&
-  travis-cargo coveralls --verify \
-    --exclude-pattern=/.cargo --exclude-pattern=mruby-1.2.0
+  travis-cargo coveralls --verify
