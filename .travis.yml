@@ -1,5 +1,5 @@
 language: rust
-sudo: required
+sudo: false
 rust:
   - stable
 git:
@@ -13,9 +13,19 @@ cache:
   directories:
     - $TRAVIS_BUILD_DIR/target
     - $HOME/.cargo
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
+      - ruby
+      - bison
 before_install:
-  - sudo apt-get install ruby
-  - sudo apt-get install bison
+  - |
+    pip install 'travis-cargo<0.2' --user &&
+    export PATH=$HOME/.local/bin:$PATH
   - wget https://github.com/mruby/mruby/archive/1.2.0.zip
   - unzip 1.2.0.zip
   - sed -i "24s/.*/  conf.cc do |cc| cc.flags << \'-fPIC\' end/" mruby-1.2.0/build_config.rb
@@ -25,10 +35,11 @@ before_install:
   - sudo cp build/host/lib/libmruby.a /usr/local/lib
   - cd ..
 script:
-  - cargo test
+  - |
+      travis-cargo build &&
+      travis-cargo test &&
+      # travis-cargo bench &&
+      # travis-cargo --only stable doc
 after_success: |
-  sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev &&
-  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make &&
-  sudo make install && cd ../.. &&
-  kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo --exclude-pattern=mruby-1.2.0 target/kcov target/debug/mrusty-*
+  travis-cargo coveralls --no-sudo --verify \
+    --exclude-pattern=/.cargo --exclude-pattern=mruby-1.2.0 target/kcov target/debug/mrusty-*
