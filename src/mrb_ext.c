@@ -20,14 +20,18 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/value.h>
 #include <mruby/proc.h>
 
-typedef struct rust_type {
-  const char* ptr;
-  size_t size;
-} rust_type;
+void* mrb_ext_get_ud(struct mrb_state* mrb) {
+  return mrb->ud;
+}
+
+void mrb_ext_set_ud(struct mrb_state* mrb, void* ud) {
+  mrb->ud = ud;
+}
 
 int mrb_ext_fixnum_to_cint(mrb_value value) {
   return mrb_fixnum(value);
@@ -39,6 +43,10 @@ double mrb_ext_float_to_cdouble(mrb_value value) {
 
 struct RProc* mrb_ext_value_to_proc(mrb_value value) {
   return mrb_proc_ptr(value);
+}
+
+void* mrb_ext_data_ptr(mrb_value value) {
+  return DATA_PTR(value);
 }
 
 mrb_value mrb_ext_nil() {
@@ -69,6 +77,10 @@ mrb_value mrb_ext_proc_to_value(struct mrb_state* mrb, struct RProc* proc) {
   return value;
 }
 
+void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
+  mrb_data_init(*value, ptr, type);
+}
+
 mrb_value mrb_ext_data_value(struct RData* data) {
   mrb_value value;
 
@@ -86,11 +98,19 @@ int mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
   return mrb_ary_len(mrb, array);
 }
 
+unsigned int mrb_ext_get_mid(struct mrb_state* mrb) {
+  return mrb_get_mid(mrb);
+}
+
 mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
-  mrb_value exc = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
-  mrb_value backtrace = mrb_exc_backtrace(mrb, mrb_obj_value(mrb->exc));
+  if (mrb->exc) {
+    mrb_value exc = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+    mrb_value backtrace = mrb_exc_backtrace(mrb, mrb_obj_value(mrb->exc));
 
-  mrb_funcall(mrb, backtrace, "unshift", 1, exc);
+    mrb_funcall(mrb, backtrace, "unshift", 1, exc);
 
-  return mrb_funcall(mrb, backtrace, "join", 1, mrb_str_new_cstr(mrb, "\n"));
+    return mrb_funcall(mrb, backtrace, "join", 1, mrb_str_new_cstr(mrb, "\n"));
+  } else {
+    return mrb_nil_value();
+  }
 }

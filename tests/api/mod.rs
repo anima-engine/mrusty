@@ -14,16 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-mod mruby;
-mod mruby_ffi;
+mod scalar;
+mod vector;
 
-/// Not meant to be called directly.
-#[doc(hidden)]
-pub use mruby_ffi::MRValue;
-/// Not meant to be called directly.
-#[doc(hidden)]
-pub use mruby_ffi::mrb_get_args;
-
-pub use mruby::MRuby;
-pub use mruby::MRubyImpl;
-pub use mruby::Value;
+pub use api::scalar::Scalar;
+pub use api::vector::Vector;
