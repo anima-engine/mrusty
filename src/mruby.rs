@@ -413,6 +413,29 @@ pub trait MRubyImpl {
     /// ```
     fn obj<T: Any>(&self, obj: T) -> Value;
 
+    /// Creates mruby `Value` of `Class` `name` containing a Rust `Option` of type `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// struct Cont {
+    ///     value: i32
+    /// }
+    ///
+    /// mruby.def_class::<Cont>("Container");
+    ///
+    /// let none = mruby.option::<Cont>(None);
+    /// let some = mruby.option(Some(Cont { value: 3 }));
+    ///
+    /// assert_eq!(none.call("nil?", vec![]).to_bool().unwrap(), true);
+    /// assert_eq!(some.to_obj::<Cont>().unwrap().value, 3);
+    /// ```
+    fn option<T: Any>(&self, obj: Option<T>) -> Value;
+
     /// Creates mruby `Value` of `Class` `Array`.
     ///
     /// # Examples
@@ -572,6 +595,13 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
         unsafe {
             Value::new(self.clone(), MRValue::obj(self.borrow().mrb, class.0 as *mut MRClass, obj, &class.1))
+        }
+    }
+
+    fn option<T: Any>(&self, obj: Option<T>) -> Value {
+        match obj {
+            Some(obj) => self.obj(obj),
+            None      => self.nil()
         }
     }
 
@@ -771,7 +801,7 @@ impl Value {
         }
     }
 
-    /// Casts mruby `Value` of `Class` `name` to Rust type `&T`.
+    /// Casts mruby `Value` of `Class` `name` to Rust type `Rc<T>`.
     ///
     /// # Examples
     ///
@@ -801,6 +831,35 @@ impl Value {
             };
 
             self.value.to_obj::<T>(self.mruby.borrow().mrb, &class.1)
+        }
+    }
+
+    /// Casts mruby `Value` of `Class` `name` to Rust `Option` of `Rc<T>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// struct Cont {
+    ///     value: i32
+    /// }
+    ///
+    /// mruby.def_class::<Cont>("Container");
+    ///
+    /// let value = mruby.obj(Cont { value: 3 });
+    /// let cont = value.to_option::<Cont>().unwrap();
+    ///
+    /// assert_eq!(cont.unwrap().value, 3);
+    /// assert!(mruby.nil().to_option::<Cont>().unwrap().is_none());
+    /// ```
+    pub fn to_option<T: Any>(&self) -> Result<Option<Rc<T>>, &str> {
+        if self.value.typ == MRType::MRB_TT_DATA {
+            self.to_obj::<T>().map(|obj| Some(obj))
+        } else {
+            Ok(None)
         }
     }
 
