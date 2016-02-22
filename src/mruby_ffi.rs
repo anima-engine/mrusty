@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::any::Any;
+use std::any::TypeId;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem;
@@ -32,7 +34,6 @@ pub enum MRData {}
 type MRFunc = extern "C" fn(*mut MRState, MRValue) -> MRValue;
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct MRDataType {
     pub name: *const c_char,
     pub free: extern "C" fn(*mut MRState, *const u8)
@@ -74,7 +75,7 @@ impl MRValue {
         mrb_ext_proc_to_value(mrb, value)
     }
 
-    pub unsafe fn obj<T: 'static>(mrb: *mut MRState, class: *mut MRClass, obj: T, typ: &MRDataType) -> MRValue {
+    pub unsafe fn obj<T: Any>(mrb: *mut MRState, class: *mut MRClass, obj: T, typ: &MRDataType) -> MRValue {
         let rc = Rc::new(obj);
         let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
         let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MRDataType);
@@ -138,7 +139,7 @@ impl MRValue {
         }
     }
 
-    pub unsafe fn to_obj<T: 'static>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, &str> {
+    pub unsafe fn to_obj<T: Any>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, &str> {
         match self.typ {
             MRType::MRB_TT_DATA => {
                 let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const u8;

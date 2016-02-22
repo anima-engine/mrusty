@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::any::Any;
+use std::any::TypeId;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -101,7 +103,7 @@ macro_rules! conv {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method("Container", "hi", mrfn!(|mruby, slf, a: i32, b: i32| {
+/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf, a: i32, b: i32| {
 ///     mruby.fixnum(a + b)
 /// }));
 ///
@@ -121,7 +123,7 @@ macro_rules! conv {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method("Container", "hi", mrfn!(|mruby, slf, a: str, b: str| {
+/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf, a: str, b: str| {
 ///     mruby.string(&(a.to_string() + b))
 /// }));
 ///
@@ -143,15 +145,15 @@ macro_rules! conv {
 /// };
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method("Container", "gt", mrfn!(|mruby, slf, o: Value| {
-///    let slf = slf.to_obj::<Cont>("Container").unwrap();
-///    let o = o.to_obj::<Cont>("Container").unwrap();
+/// mruby.def_method::<Cont, _>("gt", mrfn!(|mruby, slf, o: Value| {
+///    let slf = slf.to_obj::<Cont>().unwrap();
+///    let o = o.to_obj::<Cont>().unwrap();
 ///
 ///    mruby.bool(slf.value > o.value)
 /// }));
 ///
-/// let a = mruby.obj::<Cont>("Container", Cont { value: 3 });
-/// let b = mruby.obj::<Cont>("Container", Cont { value: 2 });
+/// let a = mruby.obj::<Cont>(Cont { value: 3 });
+/// let b = mruby.obj::<Cont>(Cont { value: 2 });
 ///
 /// let result = a.call("gt", vec![b]);
 ///
@@ -199,8 +201,8 @@ macro_rules! mrfn {
 pub struct MRuby {
     pub mrb: *mut MRState,
     ctx: *mut MRContext,
-    classes: Box<HashMap<String, (*mut MRClass, MRDataType)>>,
-    methods: Box<HashMap<String, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>
+    classes: Box<HashMap<TypeId, (*mut MRClass, MRDataType)>>,
+    methods: Box<HashMap<TypeId, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>
 }
 
 impl MRuby {
@@ -278,7 +280,7 @@ pub trait MRubyImpl {
     ///
     /// mruby.def_class::<Cont>("Container");
     /// ```
-    fn def_class<T: 'static>(&self, name: &str);
+    fn def_class<T: Any>(&self, name: &str);
 
     /// Defines Rust type `T` as an mruby `Class` named `name`.
     ///
@@ -296,13 +298,13 @@ pub trait MRubyImpl {
     /// };
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method("Container", "initialize", mrfn!(|mruby, slf, v: i32| {
+    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf, v: i32| {
     ///     let cont = Cont { value: v };
     ///
-    ///     slf.init("Container", cont)
+    ///     slf.init(cont)
     /// }));
-    /// mruby.def_method("Container", "value", mrfn!(|mruby, slf| {
-    ///     let cont = slf.to_obj::<Cont>("Container").unwrap();
+    /// mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf| {
+    ///     let cont = slf.to_obj::<Cont>().unwrap();
     ///
     ///     mruby.fixnum(cont.value)
     /// }));
@@ -312,7 +314,7 @@ pub trait MRubyImpl {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// # }
     /// ```
-    fn def_method<F>(&self, class: &str, name: &str, method: F)
+    fn def_method<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static;
 
     /// Creates mruby `Value` `nil`.
@@ -327,7 +329,7 @@ pub trait MRubyImpl {
     /// struct Cont;
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method("Container", "nil", |mruby, _slf| mruby.nil());
+    /// mruby.def_method::<Cont, _>("nil", |mruby, _slf| mruby.nil());
     ///
     /// let result = mruby.run("Container.new.nil.nil?").unwrap();
     ///
@@ -407,9 +409,9 @@ pub trait MRubyImpl {
     ///
     /// mruby.def_class::<Cont>("Container");
     ///
-    /// let value = mruby.obj("Container", Cont { value: 3 });
+    /// let value = mruby.obj(Cont { value: 3 });
     /// ```
-    fn obj<T: 'static>(&self, name: &str, obj: T) -> Value;
+    fn obj<T: Any>(&self, obj: T) -> Value;
 
     /// Creates mruby `Value` of `Class` `Array`.
     ///
@@ -447,11 +449,9 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
         }
     }
 
-    fn def_class<T: 'static>(&self, name: &str) {
+    fn def_class<T: Any>(&self, name: &str) {
         unsafe {
-            let name = name.to_string();
-
-            let c_name = CString::new(name.clone()).unwrap();
+            let c_name = CString::new(name.to_string()).unwrap();
             let object = CString::new("Object").unwrap();
             let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
 
@@ -467,12 +467,12 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
             let data_type = MRDataType { name: c_name.as_ptr(), free: free::<T> };
 
-            self.borrow_mut().classes.insert(name.clone(), (class, data_type));
-            self.borrow_mut().methods.insert(name, Box::new(HashMap::new()));
+            self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type));
+            self.borrow_mut().methods.insert(TypeId::of::<T>(), Box::new(HashMap::new()));
         }
     }
 
-    fn def_method<F>(&self, class: &str, name: &str, method: F)
+    fn def_method<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static {
         {
             let sym = unsafe {
@@ -481,15 +481,15 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
             let mut borrow = self.borrow_mut();
 
-            let methods = match borrow.methods.get_mut(class) {
+            let methods = match borrow.methods.get_mut(&TypeId::of::<T>()) {
                 Some(methods) => methods,
-                None       => panic!("{} class not found.", class)
+                None          => panic!("Class not found.")
             };
 
             methods.insert(sym, Box::new(method));
         }
 
-        extern "C" fn call_method(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn call_method<T: Any>(mrb: *mut MRState, slf: MRValue) -> MRValue {
             unsafe {
                 let ptr = mrb_ext_get_ud(mrb);
                 let mruby = mem::transmute::<*const u8, Rc<RefCell<MRuby>>>(ptr);
@@ -497,15 +497,11 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
 
-                    let class = mrb_funcall(mrb, slf, CString::new("class").unwrap().as_ptr(), 0);
-                    let class = mrb_funcall(mrb, class, CString::new("to_s").unwrap().as_ptr(), 0);
-                    let class = class.to_str(mrb).unwrap();
-
                     let borrow = mruby.borrow();
 
-                    let methods = match borrow.methods.get(class) {
+                    let methods = match borrow.methods.get(&TypeId::of::<T>()) {
                         Some(methods) => methods,
-                        None          => panic!("{} class not found.", class)
+                        None          => panic!("Class not found.")
                     };
 
                     let sym = mrb_ext_get_mid(mrb);
@@ -526,13 +522,13 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
         let borrow = self.borrow();
 
-        let class = match borrow.classes.get(class) {
+        let class = match borrow.classes.get(&TypeId::of::<T>()) {
             Some(class) => class,
-            None       => panic!("{} class not found.", class)
+            None       => panic!("Class not found.")
         };
 
         unsafe {
-            mrb_define_method(self.borrow().mrb, class.0, CString::new(name).unwrap().as_ptr(), call_method, 1 << 12);
+            mrb_define_method(self.borrow().mrb, class.0, CString::new(name).unwrap().as_ptr(), call_method::<T>, 1 << 12);
         }
     }
 
@@ -566,12 +562,12 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
         }
     }
 
-    fn obj<T: 'static>(&self, name: &str, obj: T) -> Value {
+    fn obj<T: Any>(&self, obj: T) -> Value {
         let borrow = self.borrow();
 
-        let class = match borrow.classes.get(name) {
+        let class = match borrow.classes.get(&TypeId::of::<T>()) {
             Some(class) => class,
-            None       => panic!("{} class not found.", name)
+            None       => panic!("Class not found.")
         };
 
         unsafe {
@@ -628,27 +624,27 @@ impl Value {
     /// };
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method("Container", "initialize", mrfn!(|mruby, slf, v: i32| {
+    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf, v: i32| {
     ///     let cont = Cont { value: v };
     ///
-    ///     slf.init("Container", cont)
+    ///     slf.init(cont)
     /// }));
     ///
     /// let result = mruby.run("Container.new 3").unwrap();
     ///
-    /// assert_eq!(result.to_obj::<Cont>("Container").unwrap().value, 3);
+    /// assert_eq!(result.to_obj::<Cont>().unwrap().value, 3);
     /// # }
     /// ```
-    pub fn init<T: 'static>(self, name: &str, obj: T) -> Value {
+    pub fn init<T: Any>(self, obj: T) -> Value {
         unsafe {
             let rc = Rc::new(obj);
             let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
 
             let borrow = self.mruby.borrow();
 
-            let class = match borrow.classes.get(name) {
+            let class = match borrow.classes.get(&TypeId::of::<T>()) {
                 Some(class) => class,
-                None       => panic!("{} class not found.", name)
+                None       => panic!("Class not found.")
             };
 
             let data_type = &class.1;
@@ -790,18 +786,18 @@ impl Value {
     ///
     /// mruby.def_class::<Cont>("Container");
     ///
-    /// let value = mruby.obj("Container", Cont { value: 3 });
-    /// let cont = value.to_obj::<Cont>("Container").unwrap();
+    /// let value = mruby.obj(Cont { value: 3 });
+    /// let cont = value.to_obj::<Cont>().unwrap();
     ///
     /// assert_eq!(cont.value, 3);
     /// ```
-    pub fn to_obj<T: 'static>(&self, name: &str) -> Result<Rc<T>, &str> {
+    pub fn to_obj<T: Any>(&self) -> Result<Rc<T>, &str> {
         unsafe {
             let borrow = self.mruby.borrow();
 
-            let class = match borrow.classes.get(name) {
+            let class = match borrow.classes.get(&TypeId::of::<T>()) {
                 Some(class) => class,
-                None       => panic!("{} class not found.", name)
+                None       => panic!("Class not found.")
             };
 
             self.value.to_obj::<T>(self.mruby.borrow().mrb, &class.1)
