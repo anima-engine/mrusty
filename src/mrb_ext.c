@@ -20,6 +20,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/value.h>
 #include <mruby/proc.h>
@@ -70,6 +71,10 @@ mrb_value mrb_ext_proc_to_value(struct mrb_state* mrb, struct RProc* proc) {
   value.tt = MRB_TT_PROC;
 
   return value;
+}
+
+void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
+  mrb_data_init(*value, ptr, type);
 }
 
 mrb_value mrb_ext_data_value(struct RData* data) {

@@ -449,6 +449,9 @@ fn test_proc() {
 
 #[test]
 fn test_obj() {
+    use std::mem;
+    use std::rc::Rc;
+
     unsafe {
         struct Cont {
             value: i32
@@ -463,15 +466,68 @@ fn test_obj() {
 
         extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
             unsafe {
-                Box::from_raw(ptr as *mut Cont);
+                mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
         }
 
         let data_type = MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
 
-        let obj = Box::new(Cont { value: 3 });
-        let obj = MRValue::obj(mrb, cont_class, Box::into_raw(obj), &data_type);
-        let obj: &Cont = obj.to_obj(mrb, &data_type).unwrap();
+        let obj = Cont { value: 3 };
+        let obj = MRValue::obj(mrb, cont_class, obj, &data_type);
+        let obj: Rc<Cont> = obj.to_obj(mrb, &data_type).unwrap();
+
+        assert_eq!(obj.value, 3);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_obj_init() {
+    use std::mem;
+    use std::rc::Rc;
+
+    unsafe {
+        struct Cont {
+            value: i32
+        }
+
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
+
+        mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
+
+        extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
+            unsafe {
+                mem::transmute::<*const u8, Rc<Cont>>(ptr);
+            }
+        }
+
+        extern "C" fn init(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                let cont = Cont { value: 3 };
+                let rc = Rc::new(cont);
+                let ptr = mem::transmute::<Rc<Cont>, *const u8>(rc);
+
+                let data_type = mem::transmute::<*const u8, *const MRDataType>(mrb_ext_get_ud(mrb));
+
+                mrb_ext_data_init(&slf as *const MRValue, ptr, data_type);
+
+                slf
+            }
+        }
+
+        let data_type = &MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+
+        mrb_ext_set_ud(mrb, mem::transmute::<&MRDataType, *const u8>(data_type));
+
+        mrb_define_method(mrb, cont_class, CString::new("initialize").unwrap().as_ptr(), init, 1 << 12);
+
+        let code = CString::new("Cont.new").unwrap().as_ptr();
+        let obj = mrb_load_string_cxt(mrb, code, context).to_obj::<Cont>(mrb, data_type).unwrap();
 
         assert_eq!(obj.value, 3);
 
@@ -481,6 +537,9 @@ fn test_obj() {
 
 #[test]
 fn test_obj_scoping() {
+    use std::mem;
+    use std::rc::Rc;
+
     unsafe {
         static mut dropped: bool = false;
 
@@ -505,18 +564,18 @@ fn test_obj_scoping() {
 
         extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
             unsafe {
-                Box::from_raw(ptr as *mut Cont);
+                mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
         }
 
         let data_type = MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
 
         {
-            let orig = Box::new(Cont { value: 3 });
+            let orig = Cont { value: 3 };
 
             {
-                let obj = MRValue::obj(mrb, cont_class, Box::into_raw(orig), &data_type);
-                let obj: &Cont = obj.to_obj(mrb, &data_type).unwrap();
+                let obj = MRValue::obj(mrb, cont_class, orig, &data_type);
+                let obj: Rc<Cont> = obj.to_obj(mrb, &data_type).unwrap();
 
                 assert_eq!(obj.value, 3);
 

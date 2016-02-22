@@ -31,7 +31,7 @@ macro_rules! init {
     ( $name:ident, i32 )    => (let $name = uninitialized::<i32>(););
     ( $name:ident, f64 )    => (let $name = uninitialized::<f64>(););
     ( $name:ident, str )    => (let $name = uninitialized::<*const c_char>(););
-    ( $name:ident, Value ) => (let $name = uninitialized::<MRValue>(););
+    ( $name:ident, Value )  => (let $name = uninitialized::<MRValue>(););
     ( $name:ident : $t:tt ) => (init!($name, $t));
     ( $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         init!($name, $t);
@@ -48,7 +48,7 @@ macro_rules! sig {
     ( i32 )    => ("i");
     ( f64 )    => ("f");
     ( str )    => ("z");
-    ( Value ) => ("o");
+    ( Value )  => ("o");
     ( $t:tt, $( $ts:tt ),+ ) => (concat!(sig!($t), sig!($( $ts ),*)));
 }
 
@@ -61,7 +61,7 @@ macro_rules! args {
     ( $name:ident, i32 )    => (&$name as *const i32);
     ( $name:ident, f64 )    => (&$name as *const f64);
     ( $name:ident, str )    => (&$name as *const *const c_char);
-    ( $name:ident, Value ) => (&$name as *const MRValue);
+    ( $name:ident, Value )  => (&$name as *const MRValue);
     ( $name:ident : $t:tt ) => (args!($name, $t));
     ( $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
         mrb_get_args($mrb, $sig, args!($name, $t));
@@ -285,18 +285,32 @@ pub trait MRubyImpl {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
+    /// # #[macro_use] extern crate mrusty;
+    /// use mrusty::*;
+    ///
+    /// # fn main() {
     /// let mruby = MRuby::new();
     ///
-    /// struct Cont;
+    /// struct Cont {
+    ///     value: i32
+    /// };
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method("Container", "hi", |mruby, _slf| mruby.fixnum(2));
+    /// mruby.def_method("Container", "initialize", mrfn!(|mruby, slf, v: i32| {
+    ///     let cont = Cont { value: v };
     ///
-    /// let result = mruby.run("Container.new.hi").unwrap();
+    ///     mruby.obj::<Cont>("Container", cont)
+    /// }));
+    /// mruby.def_method("Container", "value", mrfn!(|mruby, slf| {
+    ///     let cont = slf.to_obj::<Cont>("Container").unwrap();
     ///
-    /// assert_eq!(result.to_i32().unwrap(), 2);
+    ///     mruby.fixnum(cont.value)
+    /// }));
+    ///
+    /// // let result = mruby.run("Container.new(3).value").unwrap();
+    ///
+    /// // assert_eq!(result.to_i32().unwrap(), 3);
+    /// # }
     /// ```
     fn def_method<F>(&self, class: &str, name: &str, method: F)
         where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static;
@@ -447,7 +461,7 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
             extern "C" fn free<T>(_mrb: *mut MRState, ptr: *const u8) {
                 unsafe {
-                    Box::from_raw(ptr as *mut T);
+                    mem::transmute::<*const u8, Rc<T>>(ptr);
                 }
             }
 
@@ -554,10 +568,8 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
             None       => panic!("{} class not found.", name)
         };
 
-        let boxed = Box::into_raw(Box::new(obj));
-
         unsafe {
-            Value::new(self.clone(), MRValue::obj(self.borrow().mrb, class.0 as *mut MRClass, boxed, &class.1))
+            Value::new(self.clone(), MRValue::obj(self.borrow().mrb, class.0 as *mut MRClass, obj, &class.1))
         }
     }
 
@@ -592,6 +604,53 @@ impl Value {
             mruby: mruby,
             value: value
         }
+    }
+
+    /// Initializes the `self` mruby object passed to `initialize` with a Rust object of type `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[macro_use] extern crate mrusty;
+    /// use mrusty::*;
+    ///
+    /// # fn main() {
+    /// let mruby = MRuby::new();
+    ///
+    /// struct Cont {
+    ///     value: i32
+    /// };
+    ///
+    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_method("Container", "initialize", mrfn!(|mruby, slf, v: i32| {
+    ///     let cont = Cont { value: v };
+    ///
+    ///     slf.init("Container", cont)
+    /// }));
+    ///
+    /// let result = mruby.run("Container.new 3").unwrap();
+    ///
+    /// assert_eq!(result.to_obj::<Cont>("Container").unwrap().value, 3);
+    /// # }
+    /// ```
+    pub fn init<T>(self, name: &str, obj: T) -> Value {
+        unsafe {
+            let rc = Rc::new(obj);
+            let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
+
+            let borrow = self.mruby.borrow();
+
+            let class = match borrow.classes.get(name) {
+                Some(class) => class,
+                None       => panic!("{} class not found.", name)
+            };
+
+            let data_type = &class.1;
+
+            mrb_ext_data_init(&self.value as *const MRValue, ptr, data_type as *const MRDataType);
+        }
+
+        self
     }
 
     /// Calls method `name` on a `Value`.
@@ -726,11 +785,11 @@ impl Value {
     /// mruby.def_class::<Cont>("Container");
     ///
     /// let value = mruby.obj("Container", Cont { value: 3 });
-    /// let cont: &Cont = value.to_obj("Container").unwrap();
+    /// let cont = value.to_obj::<Cont>("Container").unwrap();
     ///
     /// assert_eq!(cont.value, 3);
     /// ```
-    pub fn to_obj<T>(&self, name: &str) -> Result<&T, &str> {
+    pub fn to_obj<T>(&self, name: &str) -> Result<Rc<T>, &str> {
         unsafe {
             let borrow = self.mruby.borrow();
 

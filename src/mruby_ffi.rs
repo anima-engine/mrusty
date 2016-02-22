@@ -18,6 +18,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
+use std::rc::Rc;
 
 pub enum MRState {}
 
@@ -73,8 +74,10 @@ impl MRValue {
         mrb_ext_proc_to_value(mrb, value)
     }
 
-    pub unsafe fn obj<T>(mrb: *mut MRState, class: *mut MRClass, ptr: *const T, typ: &MRDataType) -> MRValue {
-        let data = mrb_data_object_alloc(mrb, class, ptr as *const u8, typ as *const MRDataType);
+    pub unsafe fn obj<T>(mrb: *mut MRState, class: *mut MRClass, obj: T, typ: &MRDataType) -> MRValue {
+        let rc = Rc::new(obj);
+        let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
+        let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MRDataType);
 
         mrb_ext_data_value(data)
     }
@@ -135,13 +138,17 @@ impl MRValue {
         }
     }
 
-    pub unsafe fn to_obj<T>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<&T, &str> {
+    pub unsafe fn to_obj<T>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, &str> {
         match self.typ {
             MRType::MRB_TT_DATA => {
-                let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const T;
-                let ptr = mem::transmute::<*const T, &T>(ptr);
+                let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const u8;
+                let rc = mem::transmute::<*const u8, Rc<T>>(ptr);
 
-                Ok(ptr)
+                let result = Ok(rc.clone());
+
+                mem::forget(rc);
+
+                result
             },
             _ => Err("Value must be Data.")
         }
@@ -256,9 +263,9 @@ extern "C" {
     pub fn mrb_str_to_cstr(mrb: *mut MRState, value: MRValue) -> *const c_char;
 
     pub fn mrb_data_object_alloc(mrb: *mut MRState, class: *mut MRClass, ptr: *const u8, typ: *const MRDataType) -> *mut MRData;
-    pub fn mrb_data_init(value: MRValue, ptr: *const u8, typ: *const MRDataType);
     pub fn mrb_data_get_ptr(mrb: *mut MRState, value: MRValue, typ: *const MRDataType) -> *const u8;
 
+    pub fn mrb_ext_data_init(value: *const MRValue, ptr: *const u8, typ: *const MRDataType);
     pub fn mrb_ext_set_instance_tt(class: *mut MRClass, typ: MRType);
     pub fn mrb_ext_data_value(data: *mut MRData) -> MRValue;
 
