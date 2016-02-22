@@ -520,16 +520,27 @@ fn test_obj_init() {
             }
         }
 
+        extern "C" fn value(mrb: *mut MRState, slf: MRValue) -> MRValue {
+            unsafe {
+                let data_type = mem::transmute::<*const u8, &MRDataType>(mrb_ext_get_ud(mrb));
+
+                let cont = slf.to_obj::<Cont>(mrb, data_type);
+
+                MRValue::fixnum(cont.unwrap().value)
+            }
+        }
+
         let data_type = &MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
 
         mrb_ext_set_ud(mrb, mem::transmute::<&MRDataType, *const u8>(data_type));
 
         mrb_define_method(mrb, cont_class, CString::new("initialize").unwrap().as_ptr(), init, 1 << 12);
+        mrb_define_method(mrb, cont_class, CString::new("value").unwrap().as_ptr(), value, 1 << 12);
 
-        let code = CString::new("Cont.new").unwrap().as_ptr();
-        let obj = mrb_load_string_cxt(mrb, code, context).to_obj::<Cont>(mrb, data_type).unwrap();
+        let code = CString::new("Cont.new.value").unwrap().as_ptr();
+        let val = mrb_load_string_cxt(mrb, code, context).to_i32().unwrap();
 
-        assert_eq!(obj.value, 3);
+        assert_eq!(val, 3);
 
         mrb_close(mrb);
     }

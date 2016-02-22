@@ -74,7 +74,7 @@ impl MRValue {
         mrb_ext_proc_to_value(mrb, value)
     }
 
-    pub unsafe fn obj<T>(mrb: *mut MRState, class: *mut MRClass, obj: T, typ: &MRDataType) -> MRValue {
+    pub unsafe fn obj<T: 'static>(mrb: *mut MRState, class: *mut MRClass, obj: T, typ: &MRDataType) -> MRValue {
         let rc = Rc::new(obj);
         let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
         let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MRDataType);
@@ -138,7 +138,7 @@ impl MRValue {
         }
     }
 
-    pub unsafe fn to_obj<T>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, &str> {
+    pub unsafe fn to_obj<T: 'static>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, &str> {
         match self.typ {
             MRType::MRB_TT_DATA => {
                 let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const u8;
