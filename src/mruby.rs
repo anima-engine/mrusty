@@ -227,9 +227,11 @@ impl MRuby {
                 }
             ));
 
-            mrb_ext_set_ud(mrb, mem::transmute::<Rc<RefCell<MRuby>>, *const u8>(mruby.clone()));
+            let ptr = mem::transmute::<Rc<RefCell<MRuby>>, *const u8>(mruby);
 
-            mruby
+            mrb_ext_set_ud(mrb, ptr);
+
+            mem::transmute::<*const u8, Rc<RefCell<MRuby>>>(ptr)
         }
     }
 
