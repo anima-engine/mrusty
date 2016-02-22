@@ -83,7 +83,7 @@ impl MRValue {
         mrb_ext_data_value(data)
     }
 
-    pub unsafe fn array(mrb: *mut MRState, value: &Vec<MRValue>) -> MRValue {
+    pub unsafe fn array(mrb: *mut MRState, value: Vec<MRValue>) -> MRValue {
         let array = mrb_ary_new_capa(mrb, value.len() as i32);
 
         for (i, value) in value.iter().enumerate() {

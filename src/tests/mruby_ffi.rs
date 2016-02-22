@@ -611,7 +611,7 @@ fn test_array() {
 
         let vec: Vec<MRValue> = [1, 2, 3].iter().map(|v| MRValue::fixnum(*v)).collect();
 
-        let array = MRValue::array(mrb, &vec);
+        let array = MRValue::array(mrb, vec.clone());
 
         assert_eq!(array.to_vec(mrb).unwrap(), vec);
 
