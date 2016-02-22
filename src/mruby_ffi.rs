@@ -265,6 +265,7 @@ extern "C" {
 
     pub fn mrb_data_object_alloc(mrb: *mut MRState, class: *mut MRClass, ptr: *const u8, typ: *const MRDataType) -> *mut MRData;
     pub fn mrb_data_get_ptr(mrb: *mut MRState, value: MRValue, typ: *const MRDataType) -> *const u8;
+    pub fn mrb_ext_data_ptr(value: MRValue) -> *const u8;
 
     pub fn mrb_ext_data_init(value: *const MRValue, ptr: *const u8, typ: *const MRDataType);
     pub fn mrb_ext_set_instance_tt(class: *mut MRClass, typ: MRType);

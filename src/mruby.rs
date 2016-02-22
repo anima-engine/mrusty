@@ -20,6 +20,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::mem;
+use std::os::raw::c_void;
 use std::rc::Rc;
 
 pub use super::mruby_ffi::*;
@@ -495,6 +496,10 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
             self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type));
             self.borrow_mut().methods.insert(TypeId::of::<T>(), Box::new(HashMap::new()));
         }
+
+        self.def_method::<T, _>("dup", |_mruby, slf| {
+            slf.clone()
+        });
     }
 
     fn def_method<T: Any, F>(&self, name: &str, method: F)
@@ -624,7 +629,6 @@ impl Drop for MRuby {
     }
 }
 
-#[derive(Clone)]
 pub struct Value {
     mruby: Rc<RefCell<MRuby>>,
     value: MRValue
@@ -895,6 +899,23 @@ impl Value {
 }
 
 use std::fmt;
+
+impl Clone for Value {
+    fn clone(&self) -> Value {
+        if self.value.typ == MRType::MRB_TT_DATA {
+            unsafe {
+                let ptr = mrb_ext_data_ptr(self.value);
+                let rc = mem::transmute::<*const u8, Rc<c_void>>(ptr);
+
+                rc.clone();
+
+                mem::forget(rc);
+            }
+        }
+
+        Value::new(self.mruby.clone(), self.value.clone())
+    }
+}
 
 impl PartialEq<Value> for Value {
     fn eq(&self, other: &Value) -> bool {
