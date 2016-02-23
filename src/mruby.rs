@@ -23,7 +23,7 @@ use std::mem;
 use std::os::raw::c_void;
 use std::rc::Rc;
 
-pub use super::mruby_ffi::*;
+use super::mruby_ffi::*;
 
 /// Not meant to be called directly.
 #[doc(hidden)]
@@ -152,7 +152,7 @@ macro_rules! slf {
 /// }));
 /// // slf is a Value here. (mruby Class type)
 /// mruby.def_class_method::<Cont, _>("class_name", mrfn!(|mruby, slf: Value| {
-///     slf.call("to_s", vec![])
+///     slf.call("to_s", vec![]).unwrap()
 /// }));
 ///
 /// let result = mruby.run("Container.hi 'a', 'b'").unwrap();
@@ -185,7 +185,7 @@ macro_rules! slf {
 /// let a = mruby.obj::<Cont>(Cont { value: 3 });
 /// let b = mruby.obj::<Cont>(Cont { value: 2 });
 ///
-/// let result = a.call("gt", vec![b]);
+/// let result = a.call("gt", vec![b]).unwrap();
 ///
 /// assert_eq!(result.to_bool().unwrap(), true);
 /// # }
@@ -227,9 +227,12 @@ macro_rules! mrfn {
     };
 }
 
+///
+pub type MRubyType = Rc<RefCell<MRuby>>;
+
 /// A safe `struct` for the mruby API. The `struct` only contains creation and desctruction
-/// methods. Creating an `MRuby` returns a `Rc<RefCell<MRuby>>` which implements `MRubyImpl`
-/// where the rest of the implemented API is found.
+/// methods. Creating an `MRuby` returns a `MRubyType` (`Rc<RefCell<MRuby>>`) which implements
+/// `MRubyImpl` where the rest of the implemented API is found.
 ///
 /// # Examples
 ///
@@ -257,7 +260,7 @@ impl MRuby {
     /// # use mrusty::MRuby;
     /// let mruby = MRuby::new();
     /// ```
-    pub fn new() -> Rc<RefCell<MRuby>> {
+    pub fn new() -> MRubyType {
         unsafe {
             let mrb = mrb_open();
 
@@ -286,7 +289,7 @@ impl MRuby {
     }
 }
 
-/// A trait used on `Rc<RefCell<MRuby>>` which implements mruby functionality.
+/// A trait used on `MRubyType` which implements mruby functionality.
 pub trait MRubyImpl {
     /// Adds a filename to the mruby context.
     ///
@@ -306,7 +309,7 @@ pub trait MRubyImpl {
     fn filename(&self, filename: &str);
 
     /// Runs mruby `script` on a state and context and returns a `Value` in an `Ok`
-    /// or an `Err` containing an mruby exception.
+    /// or an `Err` containing an mruby `Exception`'s message.
     ///
     /// # Examples
     ///
@@ -532,7 +535,7 @@ pub trait MRubyImpl {
     /// let none = mruby.option::<Cont>(None);
     /// let some = mruby.option(Some(Cont { value: 3 }));
     ///
-    /// assert_eq!(none.call("nil?", vec![]).to_bool().unwrap(), true);
+    /// assert_eq!(none.call("nil?", vec![]).unwrap().to_bool().unwrap(), true);
     /// assert_eq!(some.to_obj::<Cont>().unwrap().value, 3);
     /// ```
     #[inline]
@@ -562,7 +565,7 @@ pub trait MRubyImpl {
     fn array(&self, value: Vec<Value>) -> Value;
 }
 
-impl MRubyImpl for Rc<RefCell<MRuby>> {
+impl MRubyImpl for MRubyType {
     #[inline]
     fn filename(&self, filename: &str) {
         unsafe {
@@ -833,7 +836,7 @@ impl Drop for MRuby {
 /// assert_eq!(result.to_bool().unwrap(), true);
 /// ```
 pub struct Value {
-    mruby: Rc<RefCell<MRuby>>,
+    mruby: MRubyType,
     value: MRValue
 }
 
@@ -906,11 +909,11 @@ impl Value {
     /// let mruby = MRuby::new();
     ///
     /// let one = mruby.fixnum(1);
-    /// let result = one.call("+", vec![mruby.fixnum(2)]);
+    /// let result = one.call("+", vec![mruby.fixnum(2)]).unwrap();
     ///
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// ```
-    pub fn call(&self, name: &str, args: Vec<Value>) -> Value {
+    pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, &str> {
         unsafe {
             let c_name = CString::new(name).unwrap().as_ptr();
             let sym = mrb_intern_cstr(self.mruby.borrow().mrb, c_name);
@@ -920,7 +923,12 @@ impl Value {
             let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
                 args.len() as i32, args.as_ptr());
 
-            Value::new(self.mruby.clone(), result)
+            let exc = mrb_ext_get_exc(self.mruby.borrow().mrb);
+
+            match exc.typ {
+                MRType::MRB_TT_STRING => Err(exc.to_str(self.mruby.borrow().mrb).unwrap()),
+                _                     => Ok(Value::new(self.mruby.clone(), result))
+            }
         }
     }
 
@@ -1048,8 +1056,8 @@ impl Value {
                 None       => panic!("Class not found.")
             };
 
-            let class_name = self.call("class", vec![]);
-            let class_name = class_name.call("to_s", vec![]);
+            let class_name = self.call("class", vec![]).unwrap();
+            let class_name = class_name.call("to_s", vec![]).unwrap();
             let class_name = class_name.to_str().unwrap();
 
             if class_name != class.2 {
@@ -1143,7 +1151,7 @@ impl Clone for Value {
 
 impl PartialEq<Value> for Value {
     fn eq(&self, other: &Value) -> bool {
-        let result = self.call("==", vec![other.clone()]);
+        let result = self.call("==", vec![other.clone()]).unwrap();
 
         result.to_bool().unwrap()
     }

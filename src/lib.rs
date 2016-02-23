@@ -33,8 +33,14 @@
 //! ```
 //! * run `./minirake`
 
+#[cfg(feature = "repl")]
+extern crate rl_sys;
+
 mod mruby;
 mod mruby_ffi;
+
+#[cfg(feature = "repl")]
+mod repl;
 
 /// Not meant to be called directly.
 #[doc(hidden)]
@@ -46,3 +52,6 @@ pub use mruby_ffi::mrb_get_args;
 pub use mruby::MRuby;
 pub use mruby::MRubyImpl;
 pub use mruby::Value;
+
+#[cfg(feature = "repl")]
+pub use repl::Repl;

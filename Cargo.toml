@@ -4,6 +4,15 @@ description = "mruby safe bindings for Rust"
 version = "0.1.0"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>", "Robert Krody <krody.robi@gmail.com>"]
 build = "build.rs"
+repository = "https://github.com/dragostis/mrusty"
+keywords = ["mruby", "ruby", "bindings"]
+license = "LGPL-3.0"
 
 [build-dependencies]
 gcc = "0.3.22"
+
+[features]
+repl = ["rl-sys"]
+
+[dependencies]
+rl-sys = { version = "0.4.1", optional = true }
