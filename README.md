@@ -2,6 +2,9 @@
 [![Build Status](https://travis-ci.org/dragostis/mrusty.svg?branch=master)](https://travis-ci.org/dragostis/mrusty)
 [![Coverage Status](https://coveralls.io/repos/github/dragostis/mrusty/badge.svg?branch=master)](https://coveralls.io/github/dragostis/mrusty?branch=master)
 
+mrusty lets you reflect Rust `struct`s and `enum`s in mruby and run them.
+It does this in a safely neat way while also bringing a REPL to the table.
+
 
 ## Requirements
 - [mruby](https://github.com/mruby/mruby)

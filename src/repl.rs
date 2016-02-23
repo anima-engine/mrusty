@@ -57,6 +57,8 @@ impl Repl {
 
     /// Starts a `Repl`.
     ///
+    /// Use `'\'` for multiline statements.
+    ///
     /// # Examples
     ///
     /// ```no-run
