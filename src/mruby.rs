@@ -976,32 +976,3 @@ impl fmt::Debug for Value {
         write!(f, "Value {{ {:?} }}", self.value)
     }
 }
-
-#[test]
-fn test_clone() {
-    static mut dropped: bool = false;
-
-    struct Cont {
-        value: i32
-    }
-
-    impl Drop for Cont {
-        fn drop(&mut self) {
-            unsafe {
-                dropped = true;
-            }
-        }
-    }
-
-    {
-        let mruby = MRuby::new();
-
-        mruby.def_class::<Cont>("Container");
-
-        let obj = mruby.obj(Cont { value: 2 });
-
-        obj.call("dup", vec![]);
-    }
-
-    unsafe { assert_eq!(dropped, true); }
-}
