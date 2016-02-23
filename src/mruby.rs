@@ -99,9 +99,19 @@ macro_rules! slf {
     ( $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
 }
 
-/// A `macro` useful for defining Rust closures for mruby.
+/// A `macro` useful for defining Rust closures for mruby. Requires `use mrusty::*;`. Types can be:
+///
+/// * `bool`
+/// * `i32`
+/// * `f64`
+/// * `str` (`&str`; macro limtation)
+/// * `T` (defined with `def_class`)
+/// * `Value`
 ///
 /// # Examples
+///
+/// `mrfn!` uses the usual Rust closure syntax. `mruby` does not need type information.
+/// `slf` can be either `Value` or `T`.
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
@@ -113,6 +123,7 @@ macro_rules! slf {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
+/// /// slf cannot be cast to Cont because it does not define initialize().
 /// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: i32, b: i32| {
 ///     mruby.fixnum(a + b)
 /// }));
@@ -122,6 +133,9 @@ macro_rules! slf {
 /// assert_eq!(result.to_i32().unwrap(), 3);
 /// # }
 /// ```
+/// <br/>
+///
+/// `mrfn!` is also used for class method definitions.
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
@@ -133,15 +147,25 @@ macro_rules! slf {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: str, b: str| {
+/// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: str, b: str| {
 ///     mruby.string(&(a.to_string() + b))
 /// }));
+/// /// slf is a Value here. (mruby Class type)
+/// mruby.def_class_method::<Cont, _>("class_name", mrfn!(|mruby, slf: Value| {
+///     let class = slf.call("class", vec![]);
+///     class.call("to_s", vec![])
+/// }));
 ///
-/// let result = mruby.run("Container.new.hi 'a', 'b'").unwrap();
+/// let result = mruby.run("Container.hi 'a', 'b'").unwrap();
+/// let name = mruby.run("Container.class_name").unwrap();
 ///
 /// assert_eq!(result.to_str().unwrap(), "ab");
+/// assert_eq!(name.to_str().unwrap(), "Container");
 /// # }
 /// ```
+/// <br/>
+///
+/// `mrfn!` does automatic casting on all mruby classes defined with `def_class`.
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
@@ -204,7 +228,9 @@ macro_rules! mrfn {
     };
 }
 
-/// A safe `struct` for the mruby API.
+/// A safe `struct` for the mruby API. The `struct` only contains creation and desctruction
+/// methods. Creating an `MRuby` returns a `Rc<RefCell<MRuby>>` which implements `MRubyImpl`
+/// where the rest of the implemented API is found.
 ///
 /// # Examples
 ///
@@ -224,7 +250,7 @@ pub struct MRuby {
 }
 
 impl MRuby {
-    /// Creates an mruby state and context stored in a `struct`.
+    /// Creates an mruby state and context stored in a `Rc<RefCell<MRuby>>`.
     ///
     /// # Example
     ///
@@ -261,7 +287,7 @@ impl MRuby {
     }
 }
 
-/// A trait implemented on `Rc<RefCell<MRuby>>` which implements mruby functionality.
+/// A trait used on `Rc<RefCell<MRuby>>` which implements mruby functionality.
 pub trait MRubyImpl {
     /// Adds a filename to the mruby context.
     ///
@@ -277,6 +303,7 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(result, Err("script.rb:1: undefined method \'nope\' for 1 (NoMethodError)"));
     /// ```
+    #[inline]
     fn filename(&self, filename: &str);
 
     /// Runs mruby `script` on a state and context and returns a `Value` in an `Ok`
@@ -321,7 +348,8 @@ pub trait MRubyImpl {
     /// ```
     fn def_class<T: Any>(&self, name: &str);
 
-    /// Defines an mruby method named `name`.
+    /// Defines an mruby method named `name`. The closure to be run when the `name` method is
+    /// called should be passed through the `mrfn!` macro.
     ///
     /// # Examples
     ///
@@ -354,7 +382,8 @@ pub trait MRubyImpl {
     fn def_method<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static;
 
-    /// Defines an mruby class method named `name`.
+    /// Defines an mruby class method named `name`. The closure to be run when the `name` method is
+    /// called should be passed through the `mrfn!` macro.
     ///
     /// # Examples
     ///
@@ -464,6 +493,8 @@ pub trait MRubyImpl {
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
     ///
+    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -483,6 +514,8 @@ pub trait MRubyImpl {
     fn obj<T: Any>(&self, obj: T) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust `Option` of type `T`.
+    ///
+    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
     ///
     /// # Examples
     ///
@@ -778,6 +811,17 @@ impl Drop for MRuby {
 
 /// A `struct` that wraps around any mruby variable.
 ///
+/// `Values` are created from the `MRuby` instance:
+///
+/// * [`nil`](../mrusty/trait.MRubyImpl.html#tymethod.nil)
+/// * [`bool`](../mrusty/trait.MRubyImpl.html#tymethod.bool)
+/// * [`fixnum`](../mrusty/trait.MRubyImpl.html#tymethod.fixnum)
+/// * [`float`](../mrusty/trait.MRubyImpl.html#tymethod.float)
+/// * [`string`](../mrusty/trait.MRubyImpl.html#tymethod.string)
+/// * [`obj`](../mrusty/trait.MRubyImpl.html#tymethod.obj)
+/// * [`option`](../mrusty/trait.MRubyImpl.html#tymethod.option)
+/// * [`array`](../mrusty/trait.MRubyImpl.html#tymethod.array)
+///
 /// # Examples
 ///
 /// ```
@@ -806,6 +850,8 @@ impl Value {
 
     /// Initializes the `self` mruby object passed to `initialize` with a Rust object of type `T`.
     ///
+    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -823,7 +869,7 @@ impl Value {
     /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
     ///     let cont = Cont { value: v };
     ///
-    ///     slf.init(cont)
+    ///     slf.init(cont) // Return the same slf value.
     /// }));
     ///
     /// let result = mruby.run("Container.new 3").unwrap();
@@ -851,7 +897,7 @@ impl Value {
         self
     }
 
-    /// Calls method `name` on a `Value`.
+    /// Calls method `name` on a `Value` passing `args`.
     ///
     /// # Examples
     ///
@@ -973,6 +1019,8 @@ impl Value {
 
     /// Casts mruby `Value` of `Class` `name` to Rust type `Rc<T>`.
     ///
+    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -1014,6 +1062,8 @@ impl Value {
     }
 
     /// Casts mruby `Value` of `Class` `name` to Rust `Option` of `Rc<T>`.
+    ///
+    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
     ///
     /// # Examples
     ///
