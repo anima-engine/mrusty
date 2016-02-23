@@ -37,6 +37,8 @@ pub struct MRDataType {
     pub free: extern "C" fn(*mut MRState, *const u8)
 }
 
+/// Not meant to be called directly.
+#[doc(hidden)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MRValue {

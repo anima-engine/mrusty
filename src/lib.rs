@@ -14,6 +14,24 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+//! # mrusty. mruby safe bindings for Rust
+//!
+//! ## Requirements
+//! * [mruby](https://github.com/mruby/mruby)
+//!
+//! mrusty requires mruby compiled with fPIC. To compile and install mruby 1.2.0:
+//!
+//! * download the [source](https://github.com/mruby/mruby/archive/1.2.0.zip)
+//! * unzip and `cd` to `mruby/`
+//! * add the following lines to `build_config.rb` as in the `# C compiler settings` example:
+//!
+//! ```ruby
+//! conf.cc do |cc|
+//!     cc.flags << '-fPIC'
+//! end
+//! ```
+//! * run `./minirake`
+
 mod mruby;
 mod mruby_ffi;
 
