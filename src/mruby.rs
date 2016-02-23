@@ -202,7 +202,7 @@ macro_rules! mrfn {
 pub struct MRuby {
     pub mrb: *mut MRState,
     ctx: *mut MRContext,
-    classes: Box<HashMap<TypeId, (*mut MRClass, MRDataType)>>,
+    classes: Box<HashMap<TypeId, (*mut MRClass, MRDataType, String)>>,
     methods: Box<HashMap<TypeId, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>
 }
 
@@ -478,7 +478,9 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
     fn def_class<T: Any>(&self, name: &str) {
         unsafe {
-            let c_name = CString::new(name.to_string()).unwrap();
+            let name = name.to_string();
+
+            let c_name = CString::new(name.clone()).unwrap();
             let object = CString::new("Object").unwrap();
             let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
 
@@ -494,7 +496,7 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
 
             let data_type = MRDataType { name: c_name.as_ptr(), free: free::<T> };
 
-            self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type));
+            self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
             self.borrow_mut().methods.insert(TypeId::of::<T>(), Box::new(HashMap::new()));
         }
 
@@ -836,6 +838,14 @@ impl Value {
                 Some(class) => class,
                 None       => panic!("Class not found.")
             };
+
+            let class_name = self.call("class", vec![]);
+            let class_name = class_name.call("to_s", vec![]);
+            let class_name = class_name.to_str().unwrap();
+
+            if class_name != class.2 {
+                panic!("Class not found.");
+            }
 
             self.value.to_obj::<T>(self.mruby.borrow().mrb, &class.1)
         }
