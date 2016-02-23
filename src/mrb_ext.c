@@ -109,6 +109,8 @@ mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
 
     mrb_funcall(mrb, backtrace, "unshift", 1, exc);
 
+    mrb->exc = NULL;
+
     return mrb_funcall(mrb, backtrace, "join", 1, mrb_str_new_cstr(mrb, "\n"));
   } else {
     return mrb_nil_value();
