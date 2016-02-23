@@ -30,12 +30,12 @@ pub use super::mruby_ffi::*;
 #[macro_export]
 macro_rules! init {
     () => ();
-    ( $name:ident, bool )   => (let $name = uninitialized::<bool>(););
-    ( $name:ident, i32 )    => (let $name = uninitialized::<i32>(););
-    ( $name:ident, f64 )    => (let $name = uninitialized::<f64>(););
-    ( $name:ident, str )    => (let $name = uninitialized::<*const c_char>(););
-    ( $name:ident, Value )  => (let $name = uninitialized::<MRValue>(););
-    ( $name:ident : $t:tt ) => (init!($name, $t));
+    ( $name:ident, bool )    => (let $name = uninitialized::<bool>(););
+    ( $name:ident, i32 )     => (let $name = uninitialized::<i32>(););
+    ( $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
+    ( $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
+    ( $name:ident, $_t:ty )  => (let $name = uninitialized::<MRValue>(););
+    ( $name:ident : $t:tt )  => (init!($name, $t));
     ( $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         init!($name, $t);
         init!($( $names : $ts ),*);
@@ -47,11 +47,11 @@ macro_rules! init {
 #[macro_export]
 macro_rules! sig {
     () => ("");
-    ( bool )   => ("b");
-    ( i32 )    => ("i");
-    ( f64 )    => ("f");
-    ( str )    => ("z");
-    ( Value )  => ("o");
+    ( bool )    => ("b");
+    ( i32 )     => ("i");
+    ( f64 )     => ("f");
+    ( str )     => ("z");
+    ( $_t:ty )  => ("o");
     ( $t:tt, $( $ts:tt ),+ ) => (concat!(sig!($t), sig!($( $ts ),*)));
 }
 
@@ -60,12 +60,12 @@ macro_rules! sig {
 #[macro_export]
 macro_rules! args {
     () => ();
-    ( $name:ident, bool )   => (&$name as *const bool);
-    ( $name:ident, i32 )    => (&$name as *const i32);
-    ( $name:ident, f64 )    => (&$name as *const f64);
-    ( $name:ident, str )    => (&$name as *const *const c_char);
-    ( $name:ident, Value )  => (&$name as *const MRValue);
-    ( $name:ident : $t:tt ) => (args!($name, $t));
+    ( $name:ident, bool )    => (&$name as *const bool);
+    ( $name:ident, i32 )     => (&$name as *const i32);
+    ( $name:ident, f64 )     => (&$name as *const f64);
+    ( $name:ident, str )     => (&$name as *const *const c_char);
+    ( $name:ident, $_t:ty )  => (&$name as *const MRValue);
+    ( $name:ident : $t:tt )  => (args!($name, $t));
     ( $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
         mrb_get_args($mrb, $sig, args!($name, $t));
     };
@@ -78,17 +78,26 @@ macro_rules! args {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! conv {
-    ( $mruby:expr )                      => ();
-    ( $mruby:expr, $name:ident, str )    => (let $name = CStr::from_ptr($name).to_str().unwrap(););
-    ( $mruby:expr, $name:ident, Value )  => (let $name = Value::new($mruby.clone(), $name););
-    ( $mruby:expr, $name:ident, $_t:ty ) => ();
-    ( $mruby:expr, $name:ident : $t:tt ) => (conv!($mruby, $name, $t));
+    ( $mruby:expr )                       => ();
+    ( $mruby:expr, $name:ident, bool )    => ();
+    ( $mruby:expr, $name:ident, i32 )     => ();
+    ( $mruby:expr, $name:ident, f64 )     => ();
+    ( $mruby:expr, $name:ident, str )     => (let $name = CStr::from_ptr($name).to_str().unwrap(););
+    ( $mruby:expr, $name:ident, $t:ty )   => (let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap(););
+    ( $mruby:expr, $name:ident : $t:tt )  => (conv!($mruby, $name, $t));
     ( $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         conv!($mruby, $name, $t);
         conv!($mruby, $( $names : $ts ),*);
     };
 }
 
+/// Not meant to be called directly.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! slf {
+    ( $slf:ident, Value ) => ();
+    ( $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
+}
 
 /// A `macro` useful for defining Rust closures for mruby.
 ///
@@ -104,7 +113,7 @@ macro_rules! conv {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf, a: i32, b: i32| {
+/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: i32, b: i32| {
 ///     mruby.fixnum(a + b)
 /// }));
 ///
@@ -124,7 +133,7 @@ macro_rules! conv {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf, a: str, b: str| {
+/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: str, b: str| {
 ///     mruby.string(&(a.to_string() + b))
 /// }));
 ///
@@ -146,10 +155,7 @@ macro_rules! conv {
 /// };
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method::<Cont, _>("gt", mrfn!(|mruby, slf, o: Value| {
-///    let slf = slf.to_obj::<Cont>().unwrap();
-///    let o = o.to_obj::<Cont>().unwrap();
-///
+/// mruby.def_method::<Cont, _>("gt", mrfn!(|mruby, slf: Cont, o: Cont| {
 ///    mruby.bool(slf.value > o.value)
 /// }));
 ///
@@ -163,10 +169,14 @@ macro_rules! conv {
 /// ```
 #[macro_export]
 macro_rules! mrfn {
-    ( |$mruby:ident, $slf:ident| $block:expr ) => {
-        |$mruby, $slf| $block
+    ( |$mruby:ident, $slf:ident : $st:tt| $block:expr ) => {
+        |$mruby, $slf| {
+            slf!($slf, $st);
+
+            $block
+        }
     };
-    ( |$mruby:ident, $slf:ident, $( $name:ident : $t:tt ),*| $block:expr ) => {
+    ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),*| $block:expr ) => {
         |$mruby, $slf| {
             use std::ffi::CStr;
             use std::ffi::CString;
@@ -174,6 +184,8 @@ macro_rules! mrfn {
             use std::os::raw::c_char;
 
             unsafe {
+                slf!($slf, $st);
+
                 init!($( $name : $t ),*);
 
                 let mrb = $mruby.borrow().mrb;
@@ -303,15 +315,13 @@ pub trait MRubyImpl {
     /// };
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf, v: i32| {
+    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
     ///     let cont = Cont { value: v };
     ///
     ///     slf.init(cont)
     /// }));
-    /// mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf| {
-    ///     let cont = slf.to_obj::<Cont>().unwrap();
-    ///
-    ///     mruby.fixnum(cont.value)
+    /// mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
+    ///     mruby.fixnum(slf.value)
     /// }));
     ///
     /// let result = mruby.run("Container.new(3).value").unwrap();
@@ -681,7 +691,7 @@ impl Value {
     /// };
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf, v: i32| {
+    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
     ///     let cont = Cont { value: v };
     ///
     ///     slf.init(cont)

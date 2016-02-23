@@ -36,21 +36,18 @@ impl Scalar {
     pub fn to_mruby(mruby: Rc<RefCell<MRuby>>) {
         mruby.def_class::<Scalar>("Scalar");
 
-        mruby.def_method::<Scalar, _>("initialize", mrfn!(|mruby, slf, v: f64| {
+        mruby.def_method::<Scalar, _>("initialize", mrfn!(|mruby, slf: Value, v: f64| {
             let scalar = Scalar::new(v as f32);
 
             slf.init(scalar)
         }));
 
-        mruby.def_method::<Scalar, _>("value", mrfn!(|mruby, slf| {
-            mruby.float(slf.to_obj::<Scalar>().unwrap().value as f64)
+        mruby.def_method::<Scalar, _>("value", mrfn!(|mruby, slf: Scalar| {
+            mruby.float(slf.value as f64)
         }));
 
-        mruby.def_method::<Scalar, _>("*", mrfn!(|mruby, slf, vector: Value| {
-            let scalar = slf.to_obj::<Scalar>().unwrap();
-            let vector = vector.to_obj::<Vector>().unwrap();
-
-            mruby.obj((*scalar).clone() * (*vector).clone())
+        mruby.def_method::<Scalar, _>("*", mrfn!(|mruby, slf: Scalar, vector: Vector| {
+            mruby.obj((*slf).clone() * (*vector).clone())
         }));
     }
 }

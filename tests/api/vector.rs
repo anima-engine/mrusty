@@ -40,31 +40,29 @@ impl Vector {
     pub fn to_mruby(mruby: Rc<RefCell<MRuby>>) {
         mruby.def_class::<Vector>("Vector");
 
-        mruby.def_method::<Vector, _>("initialize", mrfn!(|mruby, slf, x: f64, y: f64, z: f64| {
+        mruby.def_method::<Vector, _>("initialize", mrfn!(|mruby, slf: Value, x: f64, y: f64, z: f64| {
             let vector = Vector::new(x as f32, y as f32, z as f32);
 
             slf.init(vector)
         }));
 
-        mruby.def_method::<Vector, _>("x", mrfn!(|mruby, slf| {
-            mruby.float(slf.to_obj::<Vector>().unwrap().x as f64)
+        mruby.def_method::<Vector, _>("x", mrfn!(|mruby, slf: Vector| {
+            mruby.float(slf.x as f64)
         }));
 
-        mruby.def_method::<Vector, _>("y", mrfn!(|mruby, slf| {
-            mruby.float(slf.to_obj::<Vector>().unwrap().y as f64)
+        mruby.def_method::<Vector, _>("y", mrfn!(|mruby, slf: Vector| {
+            mruby.float(slf.y as f64)
         }));
 
-        mruby.def_method::<Vector, _>("z", mrfn!(|mruby, slf| {
-            mruby.float(slf.to_obj::<Vector>().unwrap().z as f64)
+        mruby.def_method::<Vector, _>("z", mrfn!(|mruby, slf: Vector| {
+            mruby.float(slf.z as f64)
         }));
 
-        mruby.def_method::<Vector, _>("to_a", mrfn!(|mruby, slf| {
-            let vector = slf.to_obj::<Vector>().unwrap();
-
+        mruby.def_method::<Vector, _>("to_a", mrfn!(|mruby, slf: Vector| {
             mruby.array(vec![
-                mruby.float(vector.x as f64),
-                mruby.float(vector.y as f64),
-                mruby.float(vector.z as f64)
+                mruby.float(slf.x as f64),
+                mruby.float(slf.y as f64),
+                mruby.float(slf.z as f64)
             ])
         }));
     }
