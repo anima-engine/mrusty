@@ -178,9 +178,13 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),*| $block:expr ) => {
         |$mruby, $slf| {
+            #[allow(unused_imports)]
             use std::ffi::CStr;
+            #[allow(unused_imports)]
             use std::ffi::CString;
+            #[allow(unused_imports)]
             use std::mem::uninitialized;
+            #[allow(unused_imports)]
             use std::os::raw::c_char;
 
             unsafe {
@@ -256,6 +260,22 @@ impl MRuby {
 }
 
 pub trait MRubyImpl {
+    /// Adds a filename to the mruby context.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    /// mruby.filename("script.rb");
+    ///
+    /// let result = mruby.run("1.nope");
+    ///
+    /// assert_eq!(result, Err("script.rb:1: undefined method \'nope\' for 1 (NoMethodError)"));
+    /// ```
+    fn filename(&self, filename: &str);
+
     /// Runs mruby `script` on a state and context and returns a `Value` in an `Ok`
     /// or an `Err` containing an mruby exception.
     ///
@@ -483,6 +503,13 @@ pub trait MRubyImpl {
 }
 
 impl MRubyImpl for Rc<RefCell<MRuby>> {
+    #[inline]
+    fn filename(&self, filename: &str) {
+        unsafe {
+            mrbc_filename(self.borrow().mrb, self.borrow().ctx, CString::new(filename).unwrap().as_ptr());
+        }
+    }
+
     #[inline]
     fn run<'a>(&'a self, script: &str) -> Result<Value, &'a str> {
         unsafe {

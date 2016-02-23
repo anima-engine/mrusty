@@ -48,92 +48,6 @@ fn test_exec_context() {
 }
 
 #[test]
-fn test_create_run_proc() {
-    unsafe {
-        let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
-
-        let code = CString::new("1 + 1").unwrap().as_ptr();
-        let parser = mrb_parse_string(mrb, code, context);
-        let prc = mrb_generate_code(mrb, parser);
-
-        let result = mrb_run(mrb, prc, mrb_top_self(mrb));
-
-        assert_eq!(result.to_i32().unwrap(), 2);
-        assert_eq!(mrb_ext_get_exc(mrb).to_bool().unwrap(), false);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn test_class_defined() {
-    unsafe {
-        let mrb = mrb_open();
-
-        let obj_class = CString::new("Object").unwrap().as_ptr();
-
-        assert_eq!(mrb_class_defined(mrb, obj_class), 1);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn test_define_class() {
-    unsafe {
-        let mrb = mrb_open();
-
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
-
-        assert_eq!(mrb_class_defined(mrb, CString::new("Mine").unwrap().as_ptr()), 1);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn test_define_module() {
-    unsafe {
-        let mrb = mrb_open();
-
-        mrb_define_module(mrb, CString::new("Mine").unwrap().as_ptr());
-        mrb_module_get(mrb, CString::new("Mine").unwrap().as_ptr());
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn test_include_module() {
-    unsafe {
-        let mrb = mrb_open();
-
-        let new_module = mrb_define_module(mrb, CString::new("Mine").unwrap().as_ptr());
-        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
-
-        mrb_include_module(mrb, kernel, new_module);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn test_prepend_module() {
-    unsafe {
-        let mrb = mrb_open();
-
-        let new_module = mrb_define_module(mrb, CString::new("Mine").unwrap().as_ptr());
-        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
-
-        mrb_prepend_module(mrb, kernel, new_module);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
 fn test_define_method() {
     unsafe {
         let mrb = mrb_open();
@@ -142,7 +56,7 @@ fn test_define_method() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn job(_mrb: *mut MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 MRValue::fixnum(2)
             }
@@ -167,7 +81,7 @@ fn test_define_class_method() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn job(_mrb: *mut MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 MRValue::fixnum(2)
             }
@@ -184,68 +98,6 @@ fn test_define_class_method() {
 }
 
 #[test]
-fn test_define_module_function() {
-    unsafe {
-        let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
-
-        let new_module = mrb_define_module(mrb, CString::new("Mine").unwrap().as_ptr());
-
-        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
-            unsafe {
-                MRValue::fixnum(2)
-            }
-        }
-
-        mrb_define_module_function(mrb, new_module, CString::new("job").unwrap().as_ptr(), job, 0);
-
-        let code = CString::new("Mine.job").unwrap().as_ptr();
-
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn test_obj_new() {
-    use std::ptr;
-
-    unsafe {
-        let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
-
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-
-        mrb_obj_new(mrb, obj_class, 0, ptr::null() as *const MRValue);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn test_proc_new_cfunc() {
-    use std::ptr;
-
-    unsafe {
-        let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
-
-        extern "C" fn job(mrb: *mut MRState, slf: MRValue) -> MRValue {
-            unsafe {
-                MRValue::fixnum(2)
-            }
-        }
-
-        let prc = MRValue::prc(mrb, mrb_proc_new_cfunc(mrb, job));
-
-        mrb_funcall_with_block(mrb, MRValue::fixnum(5), mrb_intern_cstr(mrb, CString::new("times").unwrap().as_ptr()), 0, ptr::null() as *const MRValue, prc);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
 pub fn test_args() {
     use std::mem::uninitialized;
 
@@ -253,14 +105,17 @@ pub fn test_args() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn add(mrb: *mut MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 let a = uninitialized::<MRValue>();
                 let b = uninitialized::<MRValue>();
 
                 mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MRValue, &b as *const MRValue);
 
-                mrb_funcall(mrb, a, CString::new("+").unwrap().as_ptr(), 1, b)
+                let args = &[b];
+                let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+
+                mrb_funcall_argv(mrb, a, sym, 1, args.as_ptr())
             }
         }
 
@@ -287,7 +142,7 @@ pub fn test_str_args() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn add(mrb: *mut MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 let a = uninitialized::<*const c_char>();
                 let b = uninitialized::<*const c_char>();
@@ -297,7 +152,10 @@ pub fn test_str_args() {
                 let a = CStr::from_ptr(a).to_str().unwrap();
                 let b = CStr::from_ptr(b).to_str().unwrap();
 
-                mrb_funcall(mrb, MRValue::string(mrb, a), CString::new("+").unwrap().as_ptr(), 1, MRValue::string(mrb, b))
+                let args = &[MRValue::string(mrb, b)];
+                let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+
+                mrb_funcall_argv(mrb, MRValue::string(mrb, a), sym, 1, args.as_ptr())
             }
         }
 
@@ -333,47 +191,17 @@ fn test_funcall_argv() {
 }
 
 #[test]
-fn test_yield() {
-    use std::mem::uninitialized;
-
-    unsafe {
-        let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
-
-        extern "C" fn add(mrb: *mut MRState, slf: MRValue) -> MRValue {
-            unsafe {
-                let a = uninitialized::<MRValue>();;
-                let b = MRValue::fixnum(1);
-
-                let prc = uninitialized::<MRValue>();;
-
-                mrb_get_args(mrb, CString::new("o&").unwrap().as_ptr(), &a as *const MRValue, &prc as *const MRValue);
-                let b = mrb_yield_argv(mrb, prc, 1, [b].as_ptr());
-
-                mrb_funcall(mrb, a, CString::new("+").unwrap().as_ptr(), 1, b)
-            }
-        }
-
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
-
-        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add, (2 & 0x1f) << 18);
-
-        let code = CString::new("Mine.new.add(1) { |n| n + 1 }").unwrap().as_ptr();
-
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 3);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
 fn test_nil() {
     unsafe {
         let mrb = mrb_open();
 
         let nil = MRValue::nil();
-        let result = mrb_funcall(mrb, nil, CString::new("to_s").unwrap().as_ptr(), 0);
+
+        let args: &[MRValue] = &[];
+
+        let sym = mrb_intern_cstr(mrb, CString::new("to_s").unwrap().as_ptr());
+
+        let result = mrb_funcall_argv(mrb, nil, sym, 0, args.as_ptr());
 
         assert_eq!(result.to_str(mrb).unwrap(), "");
 
@@ -430,24 +258,6 @@ fn test_string() {
 }
 
 #[test]
-fn test_proc() {
-    unsafe {
-        let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
-
-        let code = CString::new("1 + 1").unwrap().as_ptr();
-        let parser = mrb_parse_string(mrb, code, context);
-        let prc = mrb_generate_code(mrb, parser);
-
-        let result = mrb_run(mrb, MRValue::prc(mrb, prc).to_prc().unwrap(), mrb_top_self(mrb));
-
-        assert_eq!(result.to_i32().unwrap(), 2);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
 fn test_obj() {
     use std::mem;
     use std::rc::Rc;
@@ -464,7 +274,7 @@ fn test_obj() {
 
         mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
 
-        extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *mut MRState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
@@ -500,7 +310,7 @@ fn test_obj_init() {
 
         mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
 
-        extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *mut MRState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
@@ -573,7 +383,7 @@ fn test_obj_scoping() {
 
         mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
 
-        extern "C" fn free(mrb: *mut MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *mut MRState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
