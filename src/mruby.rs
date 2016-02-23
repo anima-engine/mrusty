@@ -266,6 +266,7 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(result, Err("TypeError: expected String"));
     /// ```
+    #[inline]
     fn run<'a>(&'a self, script: &str) -> Result<Value, &'a str>;
 
     /// Defines Rust type `T` as an mruby `Class` named `name`.
@@ -339,6 +340,7 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
+    #[inline]
     fn nil(&self) -> Value;
 
     /// Creates mruby `Value` containing `true` or `false`.
@@ -353,6 +355,7 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(b.to_bool().unwrap(), true);
     /// ```
+    #[inline]
     fn bool(&self, value: bool) -> Value;
 
     /// Creates mruby `Value` of `Class` `Fixnum`.
@@ -368,6 +371,7 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(fixn.to_i32().unwrap(), 2);
     /// ```
+    #[inline]
     fn fixnum(&self, value: i32) -> Value;
 
     /// Creates mruby `Value` of `Class` `Float`.
@@ -382,6 +386,7 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(fl.to_f64().unwrap(), 2.3);
     /// ```
+    #[inline]
     fn float(&self, value: f64) -> Value;
 
     /// Creates mruby `Value` of `Class` `String`.
@@ -396,6 +401,7 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(s.to_str().unwrap(), "hi");
     /// ```
+    #[inline]
     fn string(&self, value: &str) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
@@ -415,6 +421,7 @@ pub trait MRubyImpl {
     ///
     /// let value = mruby.obj(Cont { value: 3 });
     /// ```
+    #[inline]
     fn obj<T: Any>(&self, obj: T) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust `Option` of type `T`.
@@ -438,6 +445,7 @@ pub trait MRubyImpl {
     /// assert_eq!(none.call("nil?", vec![]).to_bool().unwrap(), true);
     /// assert_eq!(some.to_obj::<Cont>().unwrap().value, 3);
     /// ```
+    #[inline]
     fn option<T: Any>(&self, obj: Option<T>) -> Value;
 
     /// Creates mruby `Value` of `Class` `Array`.
@@ -460,10 +468,12 @@ pub trait MRubyImpl {
     ///     mruby.fixnum(3)
     /// ]);
     /// ```
+    #[inline]
     fn array(&self, value: Vec<Value>) -> Value;
 }
 
 impl MRubyImpl for Rc<RefCell<MRuby>> {
+    #[inline]
     fn run<'a>(&'a self, script: &str) -> Result<Value, &'a str> {
         unsafe {
             let value = mrb_load_string_cxt(self.borrow().mrb, CString::new(script).unwrap().as_ptr(), self.borrow().ctx);
@@ -565,36 +575,42 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
         }
     }
 
+    #[inline]
     fn nil(&self) -> Value {
         unsafe {
             Value::new(self.clone(), MRValue::nil())
         }
     }
 
+    #[inline]
     fn bool(&self, value: bool) -> Value {
         unsafe {
             Value::new(self.clone(), MRValue::bool(value))
         }
     }
 
+    #[inline]
     fn fixnum(&self, value: i32) -> Value {
         unsafe {
             Value::new(self.clone(), MRValue::fixnum(value))
         }
     }
 
+    #[inline]
     fn float(&self, value: f64) -> Value {
         unsafe {
             Value::new(self.clone(), MRValue::float(self.borrow().mrb, value))
         }
     }
 
+    #[inline]
     fn string(&self, value: &str) -> Value {
         unsafe {
             Value::new(self.clone(), MRValue::string(self.borrow().mrb, value))
         }
     }
 
+    #[inline]
     fn obj<T: Any>(&self, obj: T) -> Value {
         let borrow = self.borrow();
 
@@ -608,6 +624,7 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
         }
     }
 
+    #[inline]
     fn option<T: Any>(&self, obj: Option<T>) -> Value {
         match obj {
             Some(obj) => self.obj(obj),
@@ -615,6 +632,7 @@ impl MRubyImpl for Rc<RefCell<MRuby>> {
         }
     }
 
+    #[inline]
     fn array(&self, value: Vec<Value>) -> Value {
         let array: Vec<MRValue> = value.iter().map(|value| {
             value.value
@@ -740,6 +758,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
+    #[inline]
     pub fn to_bool(&self) -> Result<bool, &str> {
         unsafe {
             self.value.to_bool()
@@ -764,6 +783,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_i32().unwrap(), 120);
     /// ```
+    #[inline]
     pub fn to_i32(&self) -> Result<i32, &str> {
         unsafe {
             self.value.to_i32()
@@ -784,6 +804,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_f64().unwrap(), 1.5);
     /// ```
+    #[inline]
     pub fn to_f64(&self) -> Result<f64, &str> {
         unsafe {
             self.value.to_f64()
@@ -804,6 +825,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_str().unwrap(), "123");
     /// ```
+    #[inline]
     pub fn to_str<'b>(&self) -> Result<&'b str, &str> {
         unsafe {
             self.value.to_str(self.mruby.borrow().mrb)
@@ -830,6 +852,7 @@ impl Value {
     ///
     /// assert_eq!(cont.value, 3);
     /// ```
+    #[inline]
     pub fn to_obj<T: Any>(&self) -> Result<Rc<T>, &str> {
         unsafe {
             let borrow = self.mruby.borrow();
@@ -872,6 +895,7 @@ impl Value {
     /// assert_eq!(cont.unwrap().value, 3);
     /// assert!(mruby.nil().to_option::<Cont>().unwrap().is_none());
     /// ```
+    #[inline]
     pub fn to_option<T: Any>(&self) -> Result<Option<Rc<T>>, &str> {
         if self.value.typ == MRType::MRB_TT_DATA {
             self.to_obj::<T>().map(|obj| Some(obj))
@@ -898,6 +922,7 @@ impl Value {
     ///     mruby.string("3")
     /// ]);
     /// ```
+    #[inline]
     pub fn to_vec(&self) -> Result<Vec<Value>, &str> {
         unsafe {
             self.value.to_vec(self.mruby.borrow().mrb).map(|vec| {

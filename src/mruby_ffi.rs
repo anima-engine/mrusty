@@ -47,10 +47,12 @@ pub struct MRValue {
 }
 
 impl MRValue {
+    #[inline]
     pub unsafe fn nil() -> MRValue {
         mrb_ext_nil()
     }
 
+    #[inline]
     pub unsafe fn bool(value: bool) -> MRValue {
         if value {
             mrb_ext_true()
@@ -59,22 +61,27 @@ impl MRValue {
         }
     }
 
+    #[inline]
     pub unsafe fn fixnum(value: i32) -> MRValue {
         mrb_ext_cint_to_fixnum(value)
     }
 
+    #[inline]
     pub unsafe fn float(mrb: *mut MRState, value: f64) -> MRValue {
         mrb_ext_cdouble_to_float(mrb, value)
     }
 
+    #[inline]
     pub unsafe fn string(mrb: *mut MRState, value: &str) -> MRValue {
         mrb_str_new_cstr(mrb, CString::new(value).unwrap().as_ptr())
     }
 
+    #[inline]
     pub unsafe fn prc(mrb: *mut MRState, value: *mut MRProc) -> MRValue {
         mrb_ext_proc_to_value(mrb, value)
     }
 
+    #[inline]
     pub unsafe fn obj<T: Any>(mrb: *mut MRState, class: *mut MRClass, obj: T, typ: &MRDataType) -> MRValue {
         let rc = Rc::new(obj);
         let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
@@ -83,6 +90,7 @@ impl MRValue {
         mrb_ext_data_value(data)
     }
 
+    #[inline]
     pub unsafe fn array(mrb: *mut MRState, value: Vec<MRValue>) -> MRValue {
         let array = mrb_ary_new_capa(mrb, value.len() as i32);
 
@@ -93,6 +101,7 @@ impl MRValue {
         array
     }
 
+    #[inline]
     pub unsafe fn to_bool<'a>(&self) -> Result<bool, &str> {
         match self.typ {
             MRType::MRB_TT_FALSE => Ok(false),
@@ -101,6 +110,7 @@ impl MRValue {
         }
     }
 
+    #[inline]
     pub unsafe fn to_i32(&self) -> Result<i32, &str> {
         match self.typ {
             MRType::MRB_TT_FIXNUM => {
@@ -110,6 +120,7 @@ impl MRValue {
         }
     }
 
+    #[inline]
     pub unsafe fn to_f64(&self) -> Result<f64, &str> {
         match self.typ {
             MRType::MRB_TT_FLOAT => {
@@ -119,6 +130,7 @@ impl MRValue {
         }
     }
 
+    #[inline]
     pub unsafe fn to_str<'a>(&self, mrb: *mut MRState) -> Result<&'a str, &str> {
         match self.typ {
             MRType::MRB_TT_STRING => {
@@ -130,6 +142,7 @@ impl MRValue {
         }
     }
 
+    #[inline]
     pub unsafe fn to_prc(&self) -> Result<*mut MRProc, &str> {
         match self.typ {
             MRType::MRB_TT_PROC => {
@@ -139,6 +152,7 @@ impl MRValue {
         }
     }
 
+    #[inline]
     pub unsafe fn to_obj<T: Any>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, &str> {
         match self.typ {
             MRType::MRB_TT_DATA => {
@@ -155,6 +169,7 @@ impl MRValue {
         }
     }
 
+    #[inline]
     pub unsafe fn to_vec(&self, mrb: *mut MRState) -> Result<Vec<MRValue>, &str> {
         match self.typ {
             MRType::MRB_TT_ARRAY => {
