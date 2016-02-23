@@ -7,6 +7,7 @@
 - [mruby](https://github.com/mruby/mruby)
 
 mrusty requires mruby compiled with fPIC. To compile and install mruby 1.2.0:
+- make sure you have [Bison](https://www.gnu.org/software/bison/) & [Ruby](https://www.ruby-lang.org/) installed
 - download the [source](https://github.com/mruby/mruby/archive/1.2.0.zip)
 - unzip and `cd` to `mruby-1.2.0/`
 - add the following lines to `build_config.rb` as in the `# C compiler settings` example:
@@ -21,11 +22,11 @@ end
 A very simple example of a Container `struct` which will be passed to mruby and
 which is perfectly callable.
 ```rust
-/// mrfn!
+// mrfn!
 #[macro_use]
 extern crate mrusty;
 
-/// Needs some undocumented, hidden calls.
+// Needs some undocumented, hidden calls.
 use mrusty::*;
 
 let mruby = MRuby::new();
@@ -36,7 +37,7 @@ struct Cont {
 
 mruby.def_class::<Cont>("Container");
 
-/// Converts mruby types automatically & safely.
+// Converts mruby types automatically & safely.
 mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| { // slf is always Value in initialize().
     let cont = Cont { value: v };
 

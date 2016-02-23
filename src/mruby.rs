@@ -123,7 +123,7 @@ macro_rules! slf {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
-/// /// slf cannot be cast to Cont because it does not define initialize().
+/// // slf cannot be cast to Cont because it does not define initialize().
 /// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: i32, b: i32| {
 ///     mruby.fixnum(a + b)
 /// }));
@@ -150,10 +150,9 @@ macro_rules! slf {
 /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: str, b: str| {
 ///     mruby.string(&(a.to_string() + b))
 /// }));
-/// /// slf is a Value here. (mruby Class type)
+/// // slf is a Value here. (mruby Class type)
 /// mruby.def_class_method::<Cont, _>("class_name", mrfn!(|mruby, slf: Value| {
-///     let class = slf.call("class", vec![]);
-///     class.call("to_s", vec![])
+///     slf.call("to_s", vec![])
 /// }));
 ///
 /// let result = mruby.run("Container.hi 'a', 'b'").unwrap();
