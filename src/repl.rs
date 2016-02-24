@@ -96,6 +96,8 @@ impl Repl {
                 listmgmt::add(&trimmed).unwrap();
 
                 continue
+            } else {
+                listmgmt::add(&input).unwrap();
             }
 
             if command == "" {
