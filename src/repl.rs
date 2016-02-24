@@ -123,5 +123,7 @@ impl Repl {
         }
 
         mgmt::cleanup();
+
+        println!("");
     }
 }
