@@ -333,6 +333,20 @@ pub trait MRubyImpl {
     #[inline]
     fn run<'a>(&'a self, script: &str) -> Result<Value, &'a str>;
 
+    /// Runs mruby compiled (.mrb) `script` on a state and context and returns a `Value` in an `Ok`
+    /// or an `Err` containing an mruby `Exception`'s message.
+    ///
+    /// # Examples
+    ///
+    /// ```no-run
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    /// let result = mruby.runb(include_bytes!("script.mrb")).unwrap();
+    /// ```
+    #[inline]
+    fn runb<'a>(&'a self, script: &[u8]) -> Result<Value, &'a str>;
+
     /// Defines Rust type `T` as an mruby `Class` named `name`.
     ///
     /// # Examples
@@ -577,6 +591,19 @@ impl MRubyImpl for MRubyType {
     fn run<'a>(&'a self, script: &str) -> Result<Value, &'a str> {
         unsafe {
             let value = mrb_load_string_cxt(self.borrow().mrb, CString::new(script).unwrap().as_ptr(), self.borrow().ctx);
+            let exc = mrb_ext_get_exc(self.borrow().mrb);
+
+            match exc.typ {
+                MRType::MRB_TT_STRING => Err(exc.to_str(self.borrow().mrb).unwrap()),
+                _                     => Ok(Value::new(self.clone(), value))
+            }
+        }
+    }
+
+    #[inline]
+    fn runb<'a>(&'a self, script: &[u8]) -> Result<Value, &'a str> {
+        unsafe {
+            let value = mrb_load_irep_cxt(self.borrow().mrb, script.as_ptr(), self.borrow().ctx);
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {

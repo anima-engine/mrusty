@@ -230,6 +230,7 @@ extern "C" {
     pub fn mrbc_filename(mrb: *mut MRState, context: *mut MRContext, filename: *const c_char) -> *const c_char;
 
     pub fn mrb_load_string_cxt(mrb: *mut MRState, code: *const c_char, context: *mut MRContext) -> MRValue;
+    pub fn mrb_load_irep_cxt(mrb: *mut MRState, code: *const u8, context: *mut MRContext) -> MRValue;
 
     pub fn mrb_class_get(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
 

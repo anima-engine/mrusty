@@ -48,6 +48,27 @@ fn test_exec_context() {
 }
 
 #[test]
+fn test_exec_bin_context() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let bin = [82u8, 73u8, 84u8, 69u8, 48u8, 48u8, 48u8, 51u8, 107u8, 70u8, 0u8, 0u8, 0u8,
+                   72u8, 77u8, 65u8, 84u8, 90u8, 48u8, 48u8, 48u8, 48u8, 73u8, 82u8, 69u8, 80u8,
+                   0u8, 0u8, 0u8, 42u8, 48u8, 48u8, 48u8, 48u8, 0u8, 0u8, 0u8, 34u8, 0u8, 1u8, 0u8,
+                   2u8, 0u8, 0u8, 0u8, 0u8, 0u8, 2u8, 0u8, 192u8, 0u8, 131u8, 0u8, 0u8, 0u8, 74u8,
+                   0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 69u8, 78u8, 68u8, 0u8, 0u8, 0u8, 0u8,
+                   8u8];
+
+        let result = mrb_load_irep_cxt(mrb, bin.as_ptr(), context);
+
+        assert_eq!(result.to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn test_define_method() {
     unsafe {
         let mrb = mrb_open();
