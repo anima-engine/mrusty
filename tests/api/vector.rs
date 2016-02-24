@@ -14,9 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use mrusty::*;
 
 use api::Scalar;
@@ -37,7 +34,7 @@ impl Vector {
         }
     }
 
-    pub fn to_mruby(mruby: Rc<RefCell<MRuby>>) {
+    pub fn to_mruby(mruby: MRubyType) {
         mruby.def_class::<Vector>("Vector");
 
         mruby.def_method::<Vector, _>("initialize", mrfn!(|mruby, slf: Value, x: f64, y: f64, z: f64| {

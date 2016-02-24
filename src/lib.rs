@@ -51,6 +51,7 @@ pub use mruby_ffi::mrb_get_args;
 
 pub use mruby::MRuby;
 pub use mruby::MRubyImpl;
+pub use mruby::MRubyType;
 pub use mruby::Value;
 
 #[cfg(feature = "repl")]
