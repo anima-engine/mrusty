@@ -21,6 +21,8 @@ use std::mem;
 use std::os::raw::c_char;
 use std::rc::Rc;
 
+use super::MRubyError;
+
 pub enum MRState {}
 
 pub enum MRContext {}
@@ -102,58 +104,48 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn to_bool<'a>(&self) -> Result<bool, &str> {
+    pub unsafe fn to_bool<'a>(&self) -> Result<bool, MRubyError> {
         match self.typ {
             MRType::MRB_TT_FALSE => Ok(false),
             MRType::MRB_TT_TRUE  => Ok(true),
-            _ => Err("Value must be Fixnum.")
+            _ => Err(MRubyError::Cast("TrueClass or FalseClass"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_i32(&self) -> Result<i32, &str> {
+    pub unsafe fn to_i32(&self) -> Result<i32, MRubyError> {
         match self.typ {
             MRType::MRB_TT_FIXNUM => {
                 Ok(mrb_ext_fixnum_to_cint(*self))
             },
-            _ => Err("Value must be Fixnum.")
+            _ => Err(MRubyError::Cast("Fixnum"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_f64(&self) -> Result<f64, &str> {
+    pub unsafe fn to_f64(&self) -> Result<f64, MRubyError> {
         match self.typ {
             MRType::MRB_TT_FLOAT => {
                 Ok(mrb_ext_float_to_cdouble(*self))
             },
-            _ => Err("Value must be Float.")
+            _ => Err(MRubyError::Cast("Float"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_str<'a>(&self, mrb: *mut MRState) -> Result<&'a str, &str> {
+    pub unsafe fn to_str<'a>(&self, mrb: *mut MRState) -> Result<&'a str, MRubyError> {
         match self.typ {
             MRType::MRB_TT_STRING => {
                 let s = mrb_str_to_cstr(mrb, *self) as *const i8;
 
                 Ok(CStr::from_ptr(s).to_str().unwrap().clone())
             },
-            _ => Err("Value must be String.")
+            _ => Err(MRubyError::Cast("String"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_prc(&self) -> Result<*mut MRProc, &str> {
-        match self.typ {
-            MRType::MRB_TT_PROC => {
-                Ok(mrb_ext_value_to_proc(*self))
-            },
-            _ => Err("Value must be Proc.")
-        }
-    }
-
-    #[inline]
-    pub unsafe fn to_obj<T: Any>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, &str> {
+    pub unsafe fn to_obj<T: Any>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, MRubyError> {
         match self.typ {
             MRType::MRB_TT_DATA => {
                 let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const u8;
@@ -165,12 +157,12 @@ impl MRValue {
 
                 result
             },
-            _ => Err("Value must be Data.")
+            _ => Err(MRubyError::Cast("Data(Rust Rc)"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_vec(&self, mrb: *mut MRState) -> Result<Vec<MRValue>, &str> {
+    pub unsafe fn to_vec(&self, mrb: *mut MRState) -> Result<Vec<MRValue>, MRubyError> {
         match self.typ {
             MRType::MRB_TT_ARRAY => {
                 let len = mrb_ext_ary_len(mrb, *self) as usize;
@@ -182,7 +174,7 @@ impl MRValue {
 
                 Ok(vec)
             },
-            _ => Err("Value must be Array.")
+            _ => Err(MRubyError::Cast("Array"))
         }
     }
 }
@@ -250,7 +242,6 @@ extern "C" {
 
     pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
     pub fn mrb_ext_float_to_cdouble(value: MRValue) -> f64;
-    pub fn mrb_ext_value_to_proc(value: MRValue) -> *mut MRProc;
 
     pub fn mrb_ext_nil() -> MRValue;
     pub fn mrb_ext_false() -> MRValue;

@@ -17,8 +17,10 @@
 use std::any::{Any, TypeId};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
 use std::ffi::{CStr, CString};
 use std::fs::File;
+use std::io;
 use std::io::Read;
 use std::mem;
 use std::os::raw::{c_char, c_void};
@@ -317,27 +319,44 @@ impl MRuby {
                                 mruby.bool(true)
                             },
                             None => {
-                                if Path::new(&(name.to_string() + ".rb")).is_file() {
+                                let path = Path::new(name);
+                                let rb = name.to_string() + ".rb";
+                                let rb = Path::new(&rb);
+                                let mrb = name.to_string() + ".mrb";
+                                let mrb = Path::new(&mrb);
+
+                                if rb.is_file() {
                                     {
                                         mruby.borrow_mut().required.insert(name.to_string());
                                     }
 
-                                    mruby.execute(Path::new(&(name.to_string() + ".rb"))).unwrap();
+                                    match mruby.execute(rb) {
+                                        Err(err) => mruby.raise(&format!("{}", err)),
+                                        _ => ()
+                                    }
 
                                     mruby.bool(true)
-                                } else if Path::new(&(name.to_string() + ".mrb")).is_file() {
+                                } else if mrb.is_file() {
                                     {
                                         mruby.borrow_mut().required.insert(name.to_string());
                                     }
 
+                                    match mruby.execute(mrb) {
+                                        Err(err) => mruby.raise(&format!("{}", err)),
+                                        _ => ()
+                                    }
+
                                     mruby.bool(true)
-                                } else if Path::new(name).is_file() {
+                                } else if path.is_file() {
                                     {
-                                        let stem = Path::new(name).file_stem().unwrap().to_str().unwrap();
+                                        let stem = path.file_stem().unwrap().to_str().unwrap();
                                         mruby.borrow_mut().required.insert(stem.to_string());
                                     }
 
-                                    mruby.execute(Path::new(name)).unwrap();
+                                    match mruby.execute(path) {
+                                        Err(err) => mruby.raise(&format!("{}", err)),
+                                        _ => ()
+                                    }
 
                                     mruby.bool(true)
                                 } else {
@@ -368,6 +387,48 @@ impl MRuby {
         unsafe {
             mrb_close(self.mrb);
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum MRubyError<'a> {
+    Cast(&'a str),
+    Runtime(&'a str),
+    Filetype,
+    Io(io::Error)
+}
+
+impl<'a> fmt::Display for MRubyError<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            MRubyError::Cast(ref expected) => {
+                write!(f, "Cast error: expected {}", expected)
+            },
+            MRubyError::Runtime(ref err) => {
+                write!(f, "Runtime error: {}", err)
+            },
+            MRubyError::Filetype => {
+                write!(f, "Filetype error: script needs a compatible (.rb, .mrb) extension")
+            },
+            MRubyError::Io(ref err) => err.fmt(f)
+        }
+    }
+}
+
+impl<'a> Error for MRubyError<'a> {
+    fn description(&self) -> &str {
+        match *self {
+            MRubyError::Cast(_)     => "mruby value cast error",
+            MRubyError::Runtime(_)  => "mruby runtime error",
+            MRubyError::Filetype    => "filetype mistmatch",
+            MRubyError::Io(ref err) => err.description()
+        }
+    }
+}
+
+impl<'a> From<io::Error> for MRubyError<'a> {
+    fn from(err: io::Error) -> MRubyError<'a> {
+        MRubyError::Io(err)
     }
 }
 
@@ -417,7 +478,7 @@ pub trait MRubyImpl {
     /// assert_eq!(result, Err("TypeError: expected String"));
     /// ```
     #[inline]
-    fn run<'a>(&'a self, script: &str) -> Result<Value, &'a str>;
+    fn run(&self, script: &str) -> Result<Value, MRubyError>;
 
     /// Runs mruby compiled (.mrb) `script` on a state and context and returns a `Value` in an `Ok`
     /// or an `Err` containing an mruby `Exception`'s message.
@@ -429,7 +490,7 @@ pub trait MRubyImpl {
     /// let result = mruby.runb(include_bytes!("script.mrb")).unwrap();
     /// ```
     #[inline]
-    fn runb<'a>(&'a self, script: &[u8]) -> Result<Value, &'a str>;
+    fn runb(&self, script: &[u8]) -> Result<Value, MRubyError>;
 
     /// Runs mruby (compiled (.mrb) or not (.rb)) `script` on a state and context and returns a
     /// `Value` in an `Ok` or an `Err` containing an mruby `Exception`'s message.
@@ -441,7 +502,7 @@ pub trait MRubyImpl {
     /// let result = mruby.execute(File::open("script.rb")).unwrap();
     /// ```
     #[inline]
-    fn execute<'a>(&'a self, script: &Path) -> Result<Value, &'a str>;
+    fn execute(&self, script: &Path) -> Result<Value, MRubyError>;
 
     /// Raises an mruby `RuntimeError` with `message` message.
     ///
@@ -756,7 +817,7 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
-    fn run<'a>(&'a self, script: &str) -> Result<Value, &'a str> {
+    fn run(&self, script: &str) -> Result<Value, MRubyError> {
         unsafe {
             let (mrb, ctx) = {
                 (self.borrow().mrb, self.borrow().ctx)
@@ -766,14 +827,16 @@ impl MRubyImpl for MRubyType {
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_STRING => Err(exc.to_str(self.borrow().mrb).unwrap()),
-                _                     => Ok(Value::new(self.clone(), value))
+                MRType::MRB_TT_STRING => {
+                    Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                },
+                _ => Ok(Value::new(self.clone(), value))
             }
         }
     }
 
     #[inline]
-    fn runb<'a>(&'a self, script: &[u8]) -> Result<Value, &'a str> {
+    fn runb(&self, script: &[u8]) -> Result<Value, MRubyError> {
         unsafe {
             let (mrb, ctx) = {
                 (self.borrow().mrb, self.borrow().ctx)
@@ -783,37 +846,39 @@ impl MRubyImpl for MRubyType {
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_STRING => Err(exc.to_str(self.borrow().mrb).unwrap()),
-                _                     => Ok(Value::new(self.clone(), value))
+                MRType::MRB_TT_STRING => {
+                    Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                },
+                _ => Ok(Value::new(self.clone(), value))
             }
         }
     }
 
     #[inline]
-    fn execute<'a>(&'a self, script: &Path) -> Result<Value, &'a str> {
+    fn execute(&self, script: &Path) -> Result<Value, MRubyError> {
         match script.extension() {
             Some(ext) => {
-                let mut file = File::open(script).unwrap();
+                let mut file = try!(File::open(script));
 
                 match ext.to_str().unwrap() {
                     "rb" => {
                         let mut script = String::new();
-                        file.read_to_string(&mut script).unwrap();
+                        try!(file.read_to_string(&mut script));
 
                         self.run(&script)
                     },
                     "mrb" => {
                         let mut script = Vec::new();
-                        file.read_to_end(&mut script).unwrap();
+                        try!(file.read_to_end(&mut script));
 
                         self.runb(&script)
                     },
                     _ => {
-                        Err("Script needs a compatible (.rb, .mrb) extension.")
+                        Err(MRubyError::Filetype)
                     }
                 }
             },
-            None => Err("Script needs a compatible (.rb, .mrb) extension.")
+            None => Err(MRubyError::Filetype)
         }
     }
 
@@ -1156,7 +1221,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// ```
-    pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, &str> {
+    pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, MRubyError> {
         unsafe {
             let c_name = CString::new(name).unwrap().as_ptr();
             let sym = mrb_intern_cstr(self.mruby.borrow().mrb, c_name);
@@ -1169,8 +1234,10 @@ impl Value {
             let exc = mrb_ext_get_exc(self.mruby.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_STRING => Err(exc.to_str(self.mruby.borrow().mrb).unwrap()),
-                _                     => Ok(Value::new(self.mruby.clone(), result))
+                MRType::MRB_TT_STRING => {
+                    Err(MRubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
+                },
+                _  => Ok(Value::new(self.mruby.clone(), result))
             }
         }
     }
@@ -1194,7 +1261,7 @@ impl Value {
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
     #[inline]
-    pub fn to_bool(&self) -> Result<bool, &str> {
+    pub fn to_bool(&self) -> Result<bool, MRubyError> {
         unsafe {
             self.value.to_bool()
         }
@@ -1219,7 +1286,7 @@ impl Value {
     /// assert_eq!(result.to_i32().unwrap(), 120);
     /// ```
     #[inline]
-    pub fn to_i32(&self) -> Result<i32, &str> {
+    pub fn to_i32(&self) -> Result<i32, MRubyError> {
         unsafe {
             self.value.to_i32()
         }
@@ -1240,7 +1307,7 @@ impl Value {
     /// assert_eq!(result.to_f64().unwrap(), 1.5);
     /// ```
     #[inline]
-    pub fn to_f64(&self) -> Result<f64, &str> {
+    pub fn to_f64(&self) -> Result<f64, MRubyError> {
         unsafe {
             self.value.to_f64()
         }
@@ -1261,7 +1328,7 @@ impl Value {
     /// assert_eq!(result.to_str().unwrap(), "123");
     /// ```
     #[inline]
-    pub fn to_str<'b>(&self) -> Result<&'b str, &str> {
+    pub fn to_str<'a>(&self) -> Result<&'a str, MRubyError> {
         unsafe {
             self.value.to_str(self.mruby.borrow().mrb)
         }
@@ -1290,7 +1357,7 @@ impl Value {
     /// assert_eq!(cont.value, 3);
     /// ```
     #[inline]
-    pub fn to_obj<T: Any>(&self) -> Result<Rc<T>, &str> {
+    pub fn to_obj<T: Any>(&self) -> Result<Rc<T>, MRubyError> {
         unsafe {
             let borrow = self.mruby.borrow();
 
@@ -1335,7 +1402,7 @@ impl Value {
     /// assert!(mruby.nil().to_option::<Cont>().unwrap().is_none());
     /// ```
     #[inline]
-    pub fn to_option<T: Any>(&self) -> Result<Option<Rc<T>>, &str> {
+    pub fn to_option<T: Any>(&self) -> Result<Option<Rc<T>>, MRubyError> {
         if self.value.typ == MRType::MRB_TT_DATA {
             self.to_obj::<T>().map(|obj| Some(obj))
         } else {
@@ -1362,7 +1429,7 @@ impl Value {
     /// ]);
     /// ```
     #[inline]
-    pub fn to_vec(&self) -> Result<Vec<Value>, &str> {
+    pub fn to_vec(&self) -> Result<Vec<Value>, MRubyError> {
         unsafe {
             self.value.to_vec(self.mruby.borrow().mrb).map(|vec| {
                 vec.iter().map(|mrvalue| {
