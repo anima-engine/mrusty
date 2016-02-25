@@ -233,8 +233,10 @@ extern "C" {
     pub fn mrb_load_irep_cxt(mrb: *mut MRState, code: *const u8, context: *mut MRContext) -> MRValue;
 
     pub fn mrb_class_get(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
+    pub fn mrb_module_get(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
 
     pub fn mrb_define_class(mrb: *mut MRState, name: *const c_char, sup: *mut MRClass) -> *mut MRClass;
+    pub fn mrb_define_module_function(mrb: *mut MRState, module: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
 
     pub fn mrb_define_method(mrb: *mut MRState, class: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
     pub fn mrb_define_class_method(mrb: *mut MRState, class: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
@@ -273,6 +275,7 @@ extern "C" {
     pub fn mrb_ary_set(mrb: *mut MRState, array: MRValue, i: i32, value: MRValue);
     pub fn mrb_ext_ary_len(mrb: *mut MRState, array: MRValue) -> i32;
 
+    pub fn mrb_ext_raise(mrb: *mut MRState, msg: *const c_char);
     pub fn mrb_ext_get_exc(mrb: *mut MRState) -> MRValue;
 }
 

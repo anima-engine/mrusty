@@ -119,6 +119,59 @@ fn test_define_class_method() {
 }
 
 #[test]
+fn test_define_module_function() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let kernel_mod = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+
+        extern "C" fn hi(mrb: *mut MRState, _slf: MRValue) -> MRValue {
+            unsafe {
+                MRValue::string(mrb, "hi")
+            }
+        }
+
+        mrb_define_module_function(mrb, kernel_mod, CString::new("hi").unwrap().as_ptr(), hi, 0);
+
+        let code = CString::new("hi").unwrap().as_ptr();
+
+        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_str(mrb).unwrap(), "hi");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn test_raise_exc() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+
+        extern "C" fn job(mrb: *mut MRState, _slf: MRValue) -> MRValue {
+            unsafe {
+                mrb_ext_raise(mrb, CString::new("excepting").unwrap().as_ptr());
+
+                MRValue::nil()
+            }
+        }
+
+        mrb_define_class_method(mrb, new_class, CString::new("job").unwrap().as_ptr(), job, 0);
+
+        let code = CString::new("Mine.job").unwrap().as_ptr();
+
+        mrb_load_string_cxt(mrb, code, context);
+
+        assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(), "RuntimeError: excepting");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 pub fn test_args() {
     use std::mem::uninitialized;
 

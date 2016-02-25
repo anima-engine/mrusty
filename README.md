@@ -38,19 +38,32 @@ struct Cont {
     value: i32
 };
 
-mruby.def_class::<Cont>("Container");
+// Cont should not flood the current namespace. We will add it with require.
+impl MRubyFile for Cont {
+    fn require(mruby: MRubyType) {
+        mruby.def_class::<Cont>("Container");
 
-// Converts mruby types automatically & safely.
-mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| { // slf is always Value in initialize().
-    let cont = Cont { value: v };
+        // Converts mruby types automatically & safely.
+        // slf is always Value in initialize().
+        mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
+            let cont = Cont { value: v };
 
-    slf.init(cont)
-}));
-mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
-    mruby.fixnum(slf.value)
-}));
+            slf.init(cont)
+        }));
+        mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
+            mruby.fixnum(slf.value)
+        }));
+    }
+}
 
-let result = mruby.run("Container.new(3).value").unwrap(); // Returns Value.
+// Add file to the context, making it requirable.
+mruby.def_file::<Cont>("cont");
+
+let result = mruby.run("
+    require 'cont'
+
+    Container.new(3).value
+").unwrap(); // Returns Value.
 
 println!("{}", result.to_i32().unwrap()); // Prints "3".
 ```
