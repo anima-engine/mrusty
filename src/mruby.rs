@@ -14,16 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::any::Any;
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::ffi::CString;
-use std::ffi::CStr;
+use std::collections::{HashMap, HashSet};
+use std::ffi::{CStr, CString};
+use std::fs::File;
+use std::io::Read;
 use std::mem;
-use std::os::raw::c_void;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
+use std::path::Path;
 use std::rc::Rc;
 
 use super::mruby_ffi::*;
@@ -318,9 +317,34 @@ impl MRuby {
                                 mruby.bool(true)
                             },
                             None => {
-                                mruby.raise(&format!("cannot load {}.rb or {}.mrb", name, name));
+                                if Path::new(&(name.to_string() + ".rb")).is_file() {
+                                    {
+                                        mruby.borrow_mut().required.insert(name.to_string());
+                                    }
 
-                                mruby.nil()
+                                    mruby.execute(Path::new(&(name.to_string() + ".rb"))).unwrap();
+
+                                    mruby.bool(true)
+                                } else if Path::new(&(name.to_string() + ".mrb")).is_file() {
+                                    {
+                                        mruby.borrow_mut().required.insert(name.to_string());
+                                    }
+
+                                    mruby.bool(true)
+                                } else if Path::new(name).is_file() {
+                                    {
+                                        let stem = Path::new(name).file_stem().unwrap().to_str().unwrap();
+                                        mruby.borrow_mut().required.insert(stem.to_string());
+                                    }
+
+                                    mruby.execute(Path::new(name)).unwrap();
+
+                                    mruby.bool(true)
+                                } else {
+                                    mruby.raise(&format!("cannot load {}.rb or {}.mrb", name, name));
+
+                                    mruby.nil()
+                                }
                             }
                         }
                     };
@@ -401,13 +425,23 @@ pub trait MRubyImpl {
     /// # Examples
     ///
     /// ```no-run
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
     /// let mruby = MRuby::new();
     /// let result = mruby.runb(include_bytes!("script.mrb")).unwrap();
     /// ```
     #[inline]
     fn runb<'a>(&'a self, script: &[u8]) -> Result<Value, &'a str>;
+
+    /// Runs mruby (compiled (.mrb) or not (.rb)) `script` on a state and context and returns a
+    /// `Value` in an `Ok` or an `Err` containing an mruby `Exception`'s message.
+    ///
+    /// # Examples
+    ///
+    /// ```no-run
+    /// let mruby = MRuby::new();
+    /// let result = mruby.execute(File::open("script.rb")).unwrap();
+    /// ```
+    #[inline]
+    fn execute<'a>(&'a self, script: &Path) -> Result<Value, &'a str>;
 
     /// Raises an mruby `RuntimeError` with `message` message.
     ///
@@ -752,6 +786,34 @@ impl MRubyImpl for MRubyType {
                 MRType::MRB_TT_STRING => Err(exc.to_str(self.borrow().mrb).unwrap()),
                 _                     => Ok(Value::new(self.clone(), value))
             }
+        }
+    }
+
+    #[inline]
+    fn execute<'a>(&'a self, script: &Path) -> Result<Value, &'a str> {
+        match script.extension() {
+            Some(ext) => {
+                let mut file = File::open(script).unwrap();
+
+                match ext.to_str().unwrap() {
+                    "rb" => {
+                        let mut script = String::new();
+                        file.read_to_string(&mut script).unwrap();
+
+                        self.run(&script)
+                    },
+                    "mrb" => {
+                        let mut script = Vec::new();
+                        file.read_to_end(&mut script).unwrap();
+
+                        self.runb(&script)
+                    },
+                    _ => {
+                        Err("Script needs a compatible (.rb, .mrb) extension.")
+                    }
+                }
+            },
+            None => Err("Script needs a compatible (.rb, .mrb) extension.")
         }
     }
 
