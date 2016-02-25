@@ -116,3 +116,7 @@ mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
     return mrb_nil_value();
   }
 }
+
+mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* msg) {
+  mrb_raise(mrb, E_RUNTIME_ERROR, msg);
+}
