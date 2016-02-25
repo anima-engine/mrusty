@@ -21,7 +21,8 @@
 //!
 //! mrusty requires mruby compiled with fPIC. To compile and install mruby 1.2.0:
 //!
-//! * make sure you have [Bison](https://www.gnu.org/software/bison/) & [Ruby](https://www.ruby-lang.org/) installed
+//! * make sure you have [Bison](https://www.gnu.org/software/bison/)
+//! & [Ruby](https://www.ruby-lang.org/) installed
 //! * download the [source](https://github.com/mruby/mruby/archive/1.2.0.zip)
 //! * unzip and `cd` to `mruby-1.2.0/`
 //! * add the following lines to `build_config.rb` as in the `# C compiler settings` example:

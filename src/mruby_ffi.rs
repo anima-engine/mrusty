@@ -24,19 +24,18 @@ use std::rc::Rc;
 use super::MRubyError;
 
 pub enum MRState {}
-
 pub enum MRContext {}
 
 pub enum MRProc {}
 pub enum MRClass {}
 pub enum MRData {}
 
-type MRFunc = extern "C" fn(*mut MRState, MRValue) -> MRValue;
+type MRFunc = extern "C" fn(*const MRState, MRValue) -> MRValue;
 
 #[repr(C)]
 pub struct MRDataType {
     pub name: *const c_char,
-    pub free: extern "C" fn(*mut MRState, *const u8)
+    pub free: extern "C" fn(*const MRState, *const u8)
 }
 
 /// Not meant to be called directly.
@@ -69,22 +68,23 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn float(mrb: *mut MRState, value: f64) -> MRValue {
+    pub unsafe fn float(mrb: *const MRState, value: f64) -> MRValue {
         mrb_ext_cdouble_to_float(mrb, value)
     }
 
     #[inline]
-    pub unsafe fn string(mrb: *mut MRState, value: &str) -> MRValue {
+    pub unsafe fn string(mrb: *const MRState, value: &str) -> MRValue {
         mrb_str_new_cstr(mrb, CString::new(value).unwrap().as_ptr())
     }
 
     #[inline]
-    pub unsafe fn prc(mrb: *mut MRState, value: *mut MRProc) -> MRValue {
+    pub unsafe fn prc(mrb: *const MRState, value: *const MRProc) -> MRValue {
         mrb_ext_proc_to_value(mrb, value)
     }
 
     #[inline]
-    pub unsafe fn obj<T: Any>(mrb: *mut MRState, class: *mut MRClass, obj: T, typ: &MRDataType) -> MRValue {
+    pub unsafe fn obj<T: Any>(mrb: *const MRState, class: *const MRClass,
+                              obj: T, typ: &MRDataType) -> MRValue {
         let rc = Rc::new(obj);
         let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
         let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MRDataType);
@@ -93,7 +93,7 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn array(mrb: *mut MRState, value: Vec<MRValue>) -> MRValue {
+    pub unsafe fn array(mrb: *const MRState, value: Vec<MRValue>) -> MRValue {
         let array = mrb_ary_new_capa(mrb, value.len() as i32);
 
         for (i, value) in value.iter().enumerate() {
@@ -133,7 +133,7 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn to_str<'a>(&self, mrb: *mut MRState) -> Result<&'a str, MRubyError> {
+    pub unsafe fn to_str<'a>(&self, mrb: *const MRState) -> Result<&'a str, MRubyError> {
         match self.typ {
             MRType::MRB_TT_STRING => {
                 let s = mrb_str_to_cstr(mrb, *self) as *const i8;
@@ -145,7 +145,8 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn to_obj<T: Any>(&self, mrb: *mut MRState, typ: &MRDataType) -> Result<Rc<T>, MRubyError> {
+    pub unsafe fn to_obj<T: Any>(&self, mrb: *const MRState,
+                                 typ: &MRDataType) -> Result<Rc<T>, MRubyError> {
         match self.typ {
             MRType::MRB_TT_DATA => {
                 let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const u8;
@@ -162,7 +163,7 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn to_vec(&self, mrb: *mut MRState) -> Result<Vec<MRValue>, MRubyError> {
+    pub unsafe fn to_vec(&self, mrb: *const MRState) -> Result<Vec<MRValue>, MRubyError> {
         match self.typ {
             MRType::MRB_TT_ARRAY => {
                 let len = mrb_ext_ary_len(mrb, *self) as usize;
@@ -211,34 +212,42 @@ pub enum MRType {
 
 #[link(name = "mruby")]
 extern "C" {
-    pub fn mrb_open() -> *mut MRState;
-    pub fn mrb_close(mrb: *mut MRState);
+    pub fn mrb_open() -> *const MRState;
+    pub fn mrb_close(mrb: *const MRState);
 
-    pub fn mrb_ext_get_ud(mrb: *mut MRState) -> *const u8;
-    pub fn mrb_ext_set_ud(mrb: *mut MRState, ud: *const u8);
+    pub fn mrb_ext_get_ud(mrb: *const MRState) -> *const u8;
+    pub fn mrb_ext_set_ud(mrb: *const MRState, ud: *const u8);
 
-    pub fn mrbc_context_new(mrb: *mut MRState) -> *mut MRContext;
+    pub fn mrbc_context_new(mrb: *const MRState) -> *const MRContext;
 
-    pub fn mrbc_filename(mrb: *mut MRState, context: *mut MRContext, filename: *const c_char) -> *const c_char;
+    pub fn mrbc_filename(mrb: *const MRState, context: *const MRContext,
+                         filename: *const c_char) -> *const c_char;
 
-    pub fn mrb_load_string_cxt(mrb: *mut MRState, code: *const c_char, context: *mut MRContext) -> MRValue;
-    pub fn mrb_load_irep_cxt(mrb: *mut MRState, code: *const u8, context: *mut MRContext) -> MRValue;
+    pub fn mrb_load_string_cxt(mrb: *const MRState, code: *const c_char,
+                               context: *const MRContext) -> MRValue;
+    pub fn mrb_load_irep_cxt(mrb: *const MRState, code: *const u8,
+                             context: *const MRContext) -> MRValue;
 
-    pub fn mrb_class_get(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
-    pub fn mrb_module_get(mrb: *mut MRState, name: *const c_char) -> *mut MRClass;
+    pub fn mrb_class_get(mrb: *const MRState, name: *const c_char) -> *const MRClass;
+    pub fn mrb_module_get(mrb: *const MRState, name: *const c_char) -> *const MRClass;
 
-    pub fn mrb_define_class(mrb: *mut MRState, name: *const c_char, sup: *mut MRClass) -> *mut MRClass;
-    pub fn mrb_define_module_function(mrb: *mut MRState, module: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_class(mrb: *const MRState, name: *const c_char,
+                            sup: *const MRClass) -> *const MRClass;
+    pub fn mrb_define_module_function(mrb: *const MRState, module: *const MRClass,
+                                      name: *const c_char, fun: MRFunc, aspec: u32);
 
-    pub fn mrb_define_method(mrb: *mut MRState, class: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
-    pub fn mrb_define_class_method(mrb: *mut MRState, class: *mut MRClass, name: *const c_char, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_method(mrb: *const MRState, class: *const MRClass, name: *const c_char,
+                             fun: MRFunc, aspec: u32);
+    pub fn mrb_define_class_method(mrb: *const MRState, class: *const MRClass, name: *const c_char,
+                                   fun: MRFunc, aspec: u32);
 
-    pub fn mrb_get_args(mrb: *mut MRState, format: *const c_char, ...);
-    pub fn mrb_ext_get_mid(mrb: *mut MRState) -> u32;
+    pub fn mrb_get_args(mrb: *const MRState, format: *const c_char, ...);
+    pub fn mrb_ext_get_mid(mrb: *const MRState) -> u32;
 
-    pub fn mrb_intern_cstr(mrb: *mut MRState, string: *const c_char) -> u32;
+    pub fn mrb_intern_cstr(mrb: *const MRState, string: *const c_char) -> u32;
 
-    pub fn mrb_funcall_argv(mrb: *mut MRState, object: MRValue, sym: u32, argc: i32, argv: *const MRValue) -> MRValue;
+    pub fn mrb_funcall_argv(mrb: *const MRState, object: MRValue, sym: u32, argc: i32,
+                            argv: *const MRValue) -> MRValue;
 
     pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
     pub fn mrb_ext_float_to_cdouble(value: MRValue) -> f64;
@@ -247,27 +256,29 @@ extern "C" {
     pub fn mrb_ext_false() -> MRValue;
     pub fn mrb_ext_true() -> MRValue;
     pub fn mrb_ext_cint_to_fixnum(value: i32) -> MRValue;
-    pub fn mrb_ext_cdouble_to_float(mrb: *mut MRState, value: f64) -> MRValue;
-    pub fn mrb_str_new_cstr(mrb: *mut MRState, value: *const c_char) -> MRValue;
-    pub fn mrb_ext_proc_to_value(mrb: *mut MRState, prc: *mut MRProc) -> MRValue;
+    pub fn mrb_ext_cdouble_to_float(mrb: *const MRState, value: f64) -> MRValue;
+    pub fn mrb_str_new_cstr(mrb: *const MRState, value: *const c_char) -> MRValue;
+    pub fn mrb_ext_proc_to_value(mrb: *const MRState, prc: *const MRProc) -> MRValue;
 
-    pub fn mrb_str_to_cstr(mrb: *mut MRState, value: MRValue) -> *const c_char;
+    pub fn mrb_str_to_cstr(mrb: *const MRState, value: MRValue) -> *const c_char;
 
-    pub fn mrb_data_object_alloc(mrb: *mut MRState, class: *mut MRClass, ptr: *const u8, typ: *const MRDataType) -> *mut MRData;
-    pub fn mrb_data_get_ptr(mrb: *mut MRState, value: MRValue, typ: *const MRDataType) -> *const u8;
+    pub fn mrb_data_object_alloc(mrb: *const MRState, class: *const MRClass, ptr: *const u8,
+                                 typ: *const MRDataType) -> *const MRData;
+    pub fn mrb_data_get_ptr(mrb: *const MRState, value: MRValue,
+                            typ: *const MRDataType) -> *const u8;
     pub fn mrb_ext_data_ptr(value: MRValue) -> *const u8;
 
     pub fn mrb_ext_data_init(value: *const MRValue, ptr: *const u8, typ: *const MRDataType);
-    pub fn mrb_ext_set_instance_tt(class: *mut MRClass, typ: MRType);
-    pub fn mrb_ext_data_value(data: *mut MRData) -> MRValue;
+    pub fn mrb_ext_set_instance_tt(class: *const MRClass, typ: MRType);
+    pub fn mrb_ext_data_value(data: *const MRData) -> MRValue;
 
-    pub fn mrb_ary_new_capa(mrb: *mut MRState, size: i32) -> MRValue;
-    pub fn mrb_ary_ref(mrb: *mut MRState, array: MRValue, i: i32) -> MRValue;
-    pub fn mrb_ary_set(mrb: *mut MRState, array: MRValue, i: i32, value: MRValue);
-    pub fn mrb_ext_ary_len(mrb: *mut MRState, array: MRValue) -> i32;
+    pub fn mrb_ary_new_capa(mrb: *const MRState, size: i32) -> MRValue;
+    pub fn mrb_ary_ref(mrb: *const MRState, array: MRValue, i: i32) -> MRValue;
+    pub fn mrb_ary_set(mrb: *const MRState, array: MRValue, i: i32, value: MRValue);
+    pub fn mrb_ext_ary_len(mrb: *const MRState, array: MRValue) -> i32;
 
-    pub fn mrb_ext_raise(mrb: *mut MRState, msg: *const c_char);
-    pub fn mrb_ext_get_exc(mrb: *mut MRState) -> MRValue;
+    pub fn mrb_ext_raise(mrb: *const MRState, msg: *const c_char);
+    pub fn mrb_ext_get_exc(mrb: *const MRState) -> MRValue;
 }
 
 

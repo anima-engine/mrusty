@@ -87,7 +87,9 @@ macro_rules! conv {
     ( $mruby:expr, $name:ident, i32 )     => ();
     ( $mruby:expr, $name:ident, f64 )     => ();
     ( $mruby:expr, $name:ident, str )     => (let $name = CStr::from_ptr($name).to_str().unwrap(););
-    ( $mruby:expr, $name:ident, $t:ty )   => (let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap(););
+    ( $mruby:expr, $name:ident, $t:ty )   => {
+        let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
+    };
     ( $mruby:expr, $name:ident : $t:tt )  => (conv!($mruby, $name, $t));
     ( $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         conv!($mruby, $name, $t);
@@ -103,7 +105,9 @@ macro_rules! slf {
     ( $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
 }
 
-/// A `macro` useful for defining Rust closures for mruby. Requires `use mrusty::*;`. Types can be:
+/// A `macro` useful for defining Rust closures for mruby. Requires `use mrusty::*;`.
+///
+/// Types can be:
 ///
 /// * `bool`
 /// * `i32`
@@ -242,24 +246,25 @@ pub type MRubyType = Rc<RefCell<MRuby>>;
 ///
 /// ```
 /// use mrusty::*;
+///
 /// let mruby = MRuby::new();
 /// let result = mruby.run("2 + 2 == 5").unwrap();
 ///
 /// assert_eq!(result.to_bool().unwrap(), false);
 /// ```
 pub struct MRuby {
-    pub mrb: *mut MRState,
-    ctx: *mut MRContext,
-    filename: Option<String>,
-    classes: HashMap<TypeId, (*mut MRClass, MRDataType, String)>,
-    methods: HashMap<TypeId, HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>,
-    class_methods: HashMap<TypeId, HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>,
-    files: HashMap<String, Vec<fn(MRubyType)>>,
-    required: HashSet<String>
+    pub mrb:       *const MRState,
+    ctx:           *const MRContext,
+    filename:      Option<String>,
+    classes:       HashMap<TypeId, (*const MRClass, MRDataType, String)>,
+    methods:       HashMap<TypeId, HashMap<u32, Box<Fn(MRubyType, Value) -> Value>>>,
+    class_methods: HashMap<TypeId, HashMap<u32, Box<Fn(MRubyType, Value) -> Value>>>,
+    files:         HashMap<String, Vec<fn(MRubyType)>>,
+    required:      HashSet<String>
 }
 
 impl MRuby {
-    /// Creates an mruby state and context stored in a `Rc<RefCell<MRuby>>`.
+    /// Creates an mruby state and context stored in a `MRubyType` (`Rc<RefCell<MRuby>>`).
     ///
     /// # Example
     ///
@@ -273,27 +278,28 @@ impl MRuby {
 
             let mruby = Rc::new(RefCell::new(
                 MRuby {
-                    mrb: mrb,
-                    ctx: mrbc_context_new(mrb),
-                    filename: None,
-                    classes: HashMap::new(),
-                    methods: HashMap::new(),
+                    mrb:           mrb,
+                    ctx:           mrbc_context_new(mrb),
+                    filename:      None,
+                    classes:       HashMap::new(),
+                    methods:       HashMap::new(),
                     class_methods: HashMap::new(),
-                    files: HashMap::new(),
-                    required: HashSet::new()
+                    files:         HashMap::new(),
+                    required:      HashSet::new()
                 }
             ));
 
             let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
 
-            extern "C" fn require(mrb: *mut MRState, _slf: MRValue) -> MRValue {
+            extern "C" fn require(mrb: *const MRState, _slf: MRValue) -> MRValue {
                 unsafe {
                     let ptr = mrb_ext_get_ud(mrb);
-                    let mruby = mem::transmute::<*const u8, Rc<RefCell<MRuby>>>(ptr);
+                    let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
 
                     let name = mem::uninitialized::<*const c_char>();
 
-                    mrb_get_args(mrb, CString::new("z").unwrap().as_ptr(), &name as *const *const c_char);
+                    mrb_get_args(mrb, CString::new("z").unwrap().as_ptr(),
+                                 &name as *const *const c_char);
 
                     let name = CStr::from_ptr(name).to_str().unwrap();
 
@@ -312,9 +318,7 @@ impl MRuby {
 
                         match reqs {
                             Some(reqs) => {
-                                {
-                                    mruby.borrow_mut().required.insert(name.to_string());
-                                }
+                                { mruby.borrow_mut().required.insert(name.to_string()); }
 
                                 for req in reqs {
                                     req(mruby.clone());
@@ -325,10 +329,9 @@ impl MRuby {
                             None => {
                                 let filename = mruby.borrow().filename.clone();
 
-                                let execute = |path: &Path, name: String, filename: Option<String>| {
-                                    {
-                                        mruby.borrow_mut().required.insert(name);
-                                    }
+                                let execute = |path: &Path, name: String,
+                                               filename: Option<String>| {
+                                    { mruby.borrow_mut().required.insert(name); }
 
                                     let result = mruby.execute(path);
 
@@ -358,7 +361,8 @@ impl MRuby {
                                 } else if path.is_file() {
                                     execute(path, name.to_string(), filename)
                                 } else {
-                                    mruby.raise(&format!("cannot load {}.rb or {}.mrb", name, name));
+                                    mruby.raise(&format!("cannot load {}.rb or {}.mrb",
+                                                         name, name));
 
                                     mruby.nil()
                                 }
@@ -372,12 +376,13 @@ impl MRuby {
                 }
             }
 
-            mrb_define_module_function(mrb, kernel, CString::new("require").unwrap().as_ptr(), require, 1 << 12);
+            mrb_define_module_function(mrb, kernel, CString::new("require").unwrap().as_ptr(),
+                                       require, 1 << 12);
 
-            let ptr = mem::transmute::<Rc<RefCell<MRuby>>, *const u8>(mruby);
+            let ptr = mem::transmute::<MRubyType, *const u8>(mruby);
             mrb_ext_set_ud(mrb, ptr);
 
-            mem::transmute::<*const u8, Rc<RefCell<MRuby>>>(ptr)
+            mem::transmute::<*const u8, MRubyType>(ptr)
         }
     }
 
@@ -663,8 +668,8 @@ pub trait MRubyImpl {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// # }
     /// ```
-    fn def_method<T: Any, F>(&self, name: &str, method: F)
-        where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static;
+    fn def_method<T: Any, F>(&self, name: &str,
+                             method: F) where F: Fn(MRubyType, Value) -> Value + 'static;
 
     /// Defines an mruby class method named `name`. The closure to be run when the `name` method is
     /// called should be passed through the `mrfn!` macro.
@@ -690,8 +695,8 @@ pub trait MRubyImpl {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// # }
     /// ```
-    fn def_class_method<T: Any, F>(&self, name: &str, method: F)
-        where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static;
+    fn def_class_method<T: Any, F>(&self, name: &str,
+                                   method: F) where F: Fn(MRubyType, Value) -> Value + 'static;
 
     /// Creates mruby `Value` `nil`.
     ///
@@ -853,7 +858,8 @@ impl MRubyImpl for MRubyType {
         self.borrow_mut().filename = Some(filename.to_string());
 
         unsafe {
-            mrbc_filename(self.borrow().mrb, self.borrow().ctx, CString::new(filename).unwrap().as_ptr());
+            mrbc_filename(self.borrow().mrb, self.borrow().ctx,
+                          CString::new(filename).unwrap().as_ptr());
         }
     }
 
@@ -861,17 +867,19 @@ impl MRubyImpl for MRubyType {
     fn run(&self, script: &str) -> Result<Value, MRubyError> {
         unsafe {
             let (mrb, ctx) = {
-                (self.borrow().mrb, self.borrow().ctx)
+                let borrow = self.borrow();
+
+                (borrow.mrb, borrow.ctx)
             };
 
             let value = mrb_load_string_cxt(mrb, CString::new(script).unwrap().as_ptr(), ctx);
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_STRING => {
-                    Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                MRType::MRB_TT_FALSE => {
+                    Ok(Value::new(self.clone(), value))
                 },
-                _ => Ok(Value::new(self.clone(), value))
+                _ => Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
             }
         }
     }
@@ -880,17 +888,19 @@ impl MRubyImpl for MRubyType {
     fn runb(&self, script: &[u8]) -> Result<Value, MRubyError> {
         unsafe {
             let (mrb, ctx) = {
-                (self.borrow().mrb, self.borrow().ctx)
+                let borrow = self.borrow();
+
+                (borrow.mrb, borrow.ctx)
             };
 
             let value = mrb_load_irep_cxt(mrb, script.as_ptr(), ctx);
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_STRING => {
-                    Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                MRType::MRB_TT_FALSE => {
+                    Ok(Value::new(self.clone(), value))
                 },
-                _ => Ok(Value::new(self.clone(), value))
+                _ => Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
             }
         }
     }
@@ -957,7 +967,7 @@ impl MRubyImpl for MRubyType {
 
             mrb_ext_set_instance_tt(class, MRType::MRB_TT_DATA);
 
-            extern "C" fn free<T>(_mrb: *mut MRState, ptr: *const u8) {
+            extern "C" fn free<T>(_mrb: *const MRState, ptr: *const u8) {
                 unsafe {
                     mem::transmute::<*const u8, Rc<T>>(ptr);
                 }
@@ -975,11 +985,12 @@ impl MRubyImpl for MRubyType {
         });
     }
 
-    fn def_method<T: Any, F>(&self, name: &str, method: F)
-        where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static {
+    fn def_method<T: Any, F>(&self, name: &str,
+                             method: F) where F: Fn(MRubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
-                mrb_intern_cstr(self.borrow().mrb, CString::new(name.clone()).unwrap().as_ptr())
+                let c_name = CString::new(name.clone()).unwrap().as_ptr();
+                mrb_intern_cstr(self.borrow().mrb, c_name)
             };
 
             let mut borrow = self.borrow_mut();
@@ -992,10 +1003,10 @@ impl MRubyImpl for MRubyType {
             methods.insert(sym, Box::new(method));
         }
 
-        extern "C" fn call_method<T: Any>(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn call_method<T: Any>(mrb: *const MRState, slf: MRValue) -> MRValue {
             unsafe {
                 let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, Rc<RefCell<MRuby>>>(ptr);
+                let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
 
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
@@ -1031,15 +1042,17 @@ impl MRubyImpl for MRubyType {
         };
 
         unsafe {
-            mrb_define_method(self.borrow().mrb, class.0, CString::new(name).unwrap().as_ptr(), call_method::<T>, 1 << 12);
+            mrb_define_method(self.borrow().mrb, class.0, CString::new(name).unwrap().as_ptr(),
+                              call_method::<T>, 1 << 12);
         }
     }
 
     fn def_class_method<T: Any, F>(&self, name: &str, method: F)
-        where F: Fn(Rc<RefCell<MRuby>>, Value) -> Value + 'static {
+        where F: Fn(MRubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
-                mrb_intern_cstr(self.borrow().mrb, CString::new(name.clone()).unwrap().as_ptr())
+                let c_name = CString::new(name.clone()).unwrap().as_ptr();
+                mrb_intern_cstr(self.borrow().mrb, c_name)
             };
 
             let mut borrow = self.borrow_mut();
@@ -1052,10 +1065,10 @@ impl MRubyImpl for MRubyType {
             methods.insert(sym, Box::new(method));
         }
 
-        extern "C" fn call_class_method<T: Any>(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn call_class_method<T: Any>(mrb: *const MRState, slf: MRValue) -> MRValue {
             unsafe {
                 let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, Rc<RefCell<MRuby>>>(ptr);
+                let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
 
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
@@ -1091,7 +1104,9 @@ impl MRubyImpl for MRubyType {
         };
 
         unsafe {
-            mrb_define_class_method(self.borrow().mrb, class.0, CString::new(name).unwrap().as_ptr(), call_class_method::<T>, 1 << 12);
+            mrb_define_class_method(self.borrow().mrb, class.0,
+                                    CString::new(name).unwrap().as_ptr(),
+                                    call_class_method::<T>, 1 << 12);
         }
     }
 
@@ -1140,7 +1155,8 @@ impl MRubyImpl for MRubyType {
         };
 
         unsafe {
-            Value::new(self.clone(), MRValue::obj(self.borrow().mrb, class.0 as *mut MRClass, obj, &class.1))
+            Value::new(self.clone(), MRValue::obj(self.borrow().mrb, class.0 as *const MRClass,
+                                                  obj, &class.1))
         }
     }
 
@@ -1202,7 +1218,7 @@ pub struct Value {
 impl Value {
     /// Not meant to be called directly.
     #[doc(hidden)]
-    pub fn new(mruby: Rc<RefCell<MRuby>>, value: MRValue) -> Value {
+    pub fn new(mruby: MRubyType, value: MRValue) -> Value {
         Value {
             mruby: mruby,
             value: value
@@ -1285,10 +1301,10 @@ impl Value {
             let exc = mrb_ext_get_exc(self.mruby.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_STRING => {
-                    Err(MRubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
+                MRType::MRB_TT_FALSE => {
+                    Ok(Value::new(self.mruby.clone(), result))
                 },
-                _  => Ok(Value::new(self.mruby.clone(), result))
+                _  => Err(MRubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
             }
         }
     }

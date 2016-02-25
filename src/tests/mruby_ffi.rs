@@ -41,7 +41,8 @@ fn test_exec_context() {
 
         mrb_load_string_cxt(mrb, code, context);
 
-        assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(), "script.rb:1: expected String (TypeError)");
+        assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(),
+                   "script.rb:1: expected String (TypeError)");
 
         mrb_close(mrb);
     }
@@ -77,7 +78,7 @@ fn test_define_method() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(_mrb: *mut MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn job(_mrb: *const MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 MRValue::fixnum(2)
             }
@@ -102,7 +103,7 @@ fn test_define_class_method() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(_mrb: *mut MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn job(_mrb: *const MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 MRValue::fixnum(2)
             }
@@ -126,7 +127,7 @@ fn test_define_module_function() {
 
         let kernel_mod = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
 
-        extern "C" fn hi(mrb: *mut MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn hi(mrb: *const MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 MRValue::string(mrb, "hi")
             }
@@ -151,7 +152,7 @@ fn test_raise_exc() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(mrb: *mut MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn job(mrb: *const MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 mrb_ext_raise(mrb, CString::new("excepting").unwrap().as_ptr());
 
@@ -179,12 +180,13 @@ pub fn test_args() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        extern "C" fn add(mrb: *mut MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn add(mrb: *const MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 let a = uninitialized::<MRValue>();
                 let b = uninitialized::<MRValue>();
 
-                mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MRValue, &b as *const MRValue);
+                mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MRValue,
+                             &b as *const MRValue);
 
                 let args = &[b];
                 let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
@@ -196,7 +198,8 @@ pub fn test_args() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add, (2 & 0x1f) << 18);
+        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
+                          (2 & 0x1f) << 18);
 
         let code = CString::new("Mine.new.add 1, 1").unwrap().as_ptr();
 
@@ -216,12 +219,13 @@ pub fn test_str_args() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        extern "C" fn add(mrb: *mut MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn add(mrb: *const MRState, _slf: MRValue) -> MRValue {
             unsafe {
                 let a = uninitialized::<*const c_char>();
                 let b = uninitialized::<*const c_char>();
 
-                mrb_get_args(mrb, CString::new("zz").unwrap().as_ptr(), &a as *const *const c_char, &b as *const *const c_char);
+                mrb_get_args(mrb, CString::new("zz").unwrap().as_ptr(), &a as *const *const c_char,
+                             &b as *const *const c_char);
 
                 let a = CStr::from_ptr(a).to_str().unwrap();
                 let b = CStr::from_ptr(b).to_str().unwrap();
@@ -236,7 +240,8 @@ pub fn test_str_args() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add, (2 & 0x1f) << 18);
+        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
+                          (2 & 0x1f) << 18);
 
         let code = CString::new("Mine.new.add 'a', 'b'").unwrap().as_ptr();
 
@@ -348,7 +353,7 @@ fn test_obj() {
 
         mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
 
-        extern "C" fn free(_mrb: *mut MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *const MRState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
@@ -384,19 +389,20 @@ fn test_obj_init() {
 
         mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
 
-        extern "C" fn free(_mrb: *mut MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *const MRState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
         }
 
-        extern "C" fn init(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn init(mrb: *const MRState, slf: MRValue) -> MRValue {
             unsafe {
                 let cont = Cont { value: 3 };
                 let rc = Rc::new(cont);
                 let ptr = mem::transmute::<Rc<Cont>, *const u8>(rc);
 
-                let data_type = mem::transmute::<*const u8, *const MRDataType>(mrb_ext_get_ud(mrb));
+                let data_type = mem::transmute::<*const u8,
+                                                 *const MRDataType>(mrb_ext_get_ud(mrb));
 
                 mrb_ext_data_init(&slf as *const MRValue, ptr, data_type);
 
@@ -404,7 +410,7 @@ fn test_obj_init() {
             }
         }
 
-        extern "C" fn value(mrb: *mut MRState, slf: MRValue) -> MRValue {
+        extern "C" fn value(mrb: *const MRState, slf: MRValue) -> MRValue {
             unsafe {
                 let data_type = mem::transmute::<*const u8, &MRDataType>(mrb_ext_get_ud(mrb));
 
@@ -418,8 +424,10 @@ fn test_obj_init() {
 
         mrb_ext_set_ud(mrb, mem::transmute::<&MRDataType, *const u8>(data_type));
 
-        mrb_define_method(mrb, cont_class, CString::new("initialize").unwrap().as_ptr(), init, 1 << 12);
-        mrb_define_method(mrb, cont_class, CString::new("value").unwrap().as_ptr(), value, 1 << 12);
+        mrb_define_method(mrb, cont_class, CString::new("initialize").unwrap().as_ptr(), init,
+                          1 << 12);
+        mrb_define_method(mrb, cont_class, CString::new("value").unwrap().as_ptr(), value,
+                          1 << 12);
 
         let code = CString::new("Cont.new.value").unwrap().as_ptr();
         let val = mrb_load_string_cxt(mrb, code, context).to_i32().unwrap();
@@ -436,7 +444,7 @@ fn test_obj_scoping() {
     use std::rc::Rc;
 
     unsafe {
-        static mut dropped: bool = false;
+        static mut DROPPED: bool = false;
 
         struct Cont {
             value: i32
@@ -445,7 +453,7 @@ fn test_obj_scoping() {
         impl Drop for Cont {
             fn drop(&mut self) {
                 unsafe {
-                    dropped = true;
+                    DROPPED = true;
                 }
             }
         }
@@ -457,7 +465,7 @@ fn test_obj_scoping() {
 
         mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
 
-        extern "C" fn free(_mrb: *mut MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *const MRState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
@@ -474,17 +482,17 @@ fn test_obj_scoping() {
 
                 assert_eq!(obj.value, 3);
 
-                assert_eq!(dropped, false);
+                assert_eq!(DROPPED, false);
             }
 
-            assert_eq!(dropped, false);
+            assert_eq!(DROPPED, false);
         }
 
-        assert_eq!(dropped, false);
+        assert_eq!(DROPPED, false);
 
         mrb_close(mrb);
 
-        assert_eq!(dropped, true);
+        assert_eq!(DROPPED, true);
     }
 }
 
