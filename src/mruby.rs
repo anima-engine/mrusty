@@ -128,7 +128,7 @@ macro_rules! slf {
 ///
 /// mruby.def_class::<Cont>("Container");
 /// // slf cannot be cast to Cont because it does not define initialize().
-/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: i32, b: i32| {
+/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: i32, b: i32| {
 ///     mruby.fixnum(a + b)
 /// }));
 ///
@@ -151,11 +151,11 @@ macro_rules! slf {
 /// struct Cont;
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, a: str, b: str| {
+/// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: str, b: str| {
 ///     mruby.string(&(a.to_string() + b))
 /// }));
 /// // slf is a Value here. (mruby Class type)
-/// mruby.def_class_method::<Cont, _>("class_name", mrfn!(|mruby, slf: Value| {
+/// mruby.def_class_method::<Cont, _>("class_name", mrfn!(|_mruby, slf: Value| {
 ///     slf.call("to_s", vec![]).unwrap()
 /// }));
 ///
@@ -526,7 +526,7 @@ pub trait MRubyImpl {
     /// struct Cont;
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value| {
+    /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value| {
     ///     mruby.raise("hi");
     ///
     ///     mruby.nil()
@@ -564,7 +564,7 @@ pub trait MRubyImpl {
     /// impl MRubyFile for Cont {
     ///     fn require(mruby: MRubyType) {
     ///         mruby.def_class::<Cont>("Container");
-    ///         mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
+    ///         mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
     ///             let cont = Cont { value: v };
     ///
     ///             slf.init(cont)
@@ -623,7 +623,7 @@ pub trait MRubyImpl {
     /// };
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
+    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
     ///     let cont = Cont { value: v };
     ///
     ///     slf.init(cont)
@@ -655,7 +655,7 @@ pub trait MRubyImpl {
     /// struct Cont;
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, slf: Value, v: i32| {
+    /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, v: i32| {
     ///     mruby.fixnum(v)
     /// }));
     ///
@@ -1193,7 +1193,7 @@ impl Value {
     /// };
     ///
     /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
+    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
     ///     let cont = Cont { value: v };
     ///
     ///     slf.init(cont) // Return the same slf value.

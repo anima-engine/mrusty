@@ -45,7 +45,7 @@ impl MRubyFile for Cont {
 
         // Converts mruby types automatically & safely.
         // slf is always Value in initialize().
-        mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32| {
+        mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
             let cont = Cont { value: v };
 
             slf.init(cont)

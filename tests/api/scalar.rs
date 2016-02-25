@@ -33,7 +33,7 @@ impl Scalar {
     pub fn to_mruby(mruby: MRubyType) {
         mruby.def_class::<Scalar>("Scalar");
 
-        mruby.def_method::<Scalar, _>("initialize", mrfn!(|mruby, slf: Value, v: f64| {
+        mruby.def_method::<Scalar, _>("initialize", mrfn!(|_mruby, slf: Value, v: f64| {
             let scalar = Scalar::new(v as f32);
 
             slf.init(scalar)
