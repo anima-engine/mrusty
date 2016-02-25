@@ -33,7 +33,8 @@ use super::mruby::*;
 /// ```
 #[cfg(feature = "repl")]
 pub struct Repl {
-    mruby: MRubyType
+    mruby: MRubyType,
+    name: String
 }
 
 impl Repl {
@@ -49,8 +50,25 @@ impl Repl {
     /// ```
     pub fn new(mruby: MRubyType) -> Repl {
         Repl {
-            mruby: mruby
+            mruby: mruby,
+            name: "mrusty".to_string()
         }
+    }
+
+    /// Renames a `Repl`. The command line will start with `{name}> `.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::Repl;
+    /// let mruby = MRuby::new();
+    /// let mut repl = Repl::new(mruby);
+    ///
+    /// repl.rename("repl");
+    /// ```
+    pub fn rename(&mut self, name: &str) {
+        self.name = name.to_string();
     }
 
     /// Starts a `Repl`.
@@ -70,13 +88,16 @@ impl Repl {
     pub fn start(&self) {
         let mut command = String::new();
 
+        let single = self.name.clone() + "> ";
+        let multi  = self.name.clone() + "* ";
+
         loop {
             self.mruby.filename("repl");
 
             let head = if command.is_empty() {
-                "mrusty> "
+                &single
             } else {
-                "mrusty* "
+                &multi
             };
 
             let input = match readline::readline(head) {
