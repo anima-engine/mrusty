@@ -231,7 +231,7 @@ macro_rules! mrfn {
     };
 }
 
-///
+/// A `type` wrapper around a `Rc<RefCell<MRuby>>`. Created with `MRuby::new()`.
 pub type MRubyType = Rc<RefCell<MRuby>>;
 
 /// A safe `struct` for the mruby API. The `struct` only contains creation and desctruction
@@ -251,11 +251,11 @@ pub struct MRuby {
     pub mrb: *mut MRState,
     ctx: *mut MRContext,
     filename: Option<String>,
-    classes: Box<HashMap<TypeId, (*mut MRClass, MRDataType, String)>>,
-    methods: Box<HashMap<TypeId, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>,
-    class_methods: Box<HashMap<TypeId, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>,
-    mods: Box<HashMap<String, Rc<fn(MRubyType)>>>,
-    required: Box<HashSet<String>>
+    classes: HashMap<TypeId, (*mut MRClass, MRDataType, String)>,
+    methods: HashMap<TypeId, HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>,
+    class_methods: HashMap<TypeId, HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>,
+    files: HashMap<String, Vec<fn(MRubyType)>>,
+    required: HashSet<String>
 }
 
 impl MRuby {
@@ -276,11 +276,11 @@ impl MRuby {
                     mrb: mrb,
                     ctx: mrbc_context_new(mrb),
                     filename: None,
-                    classes: Box::new(HashMap::new()),
-                    methods: Box::new(HashMap::new()),
-                    class_methods: Box::new(HashMap::new()),
-                    mods: Box::new(HashMap::new()),
-                    required: Box::new(HashSet::new())
+                    classes: HashMap::new(),
+                    methods: HashMap::new(),
+                    class_methods: HashMap::new(),
+                    files: HashMap::new(),
+                    required: HashSet::new()
                 }
             ));
 
@@ -304,19 +304,21 @@ impl MRuby {
                     let result = if already_required {
                         mruby.bool(false)
                     } else {
-                        let req = {
+                        let reqs = {
                             let borrow = mruby.borrow();
 
-                            borrow.mods.get(name).map(|req| req.clone())
+                            borrow.files.get(name).map(|reqs| reqs.clone())
                         };
 
-                        match req {
-                            Some(req) => {
+                        match reqs {
+                            Some(reqs) => {
                                 {
                                     mruby.borrow_mut().required.insert(name.to_string());
                                 }
 
-                                req(mruby.clone());
+                                for req in reqs {
+                                    req(mruby.clone());
+                                }
 
                                 mruby.bool(true)
                             },
@@ -386,6 +388,7 @@ impl MRuby {
     }
 }
 
+/// An `enum` containing all possbile types of errors.
 #[derive(Debug)]
 pub enum MRubyError<'a> {
     Cast(&'a str),
@@ -428,11 +431,34 @@ impl<'a> From<io::Error> for MRubyError<'a> {
     }
 }
 
+/// A `trait` useful for organising Rust types into dynamic mruby files.
+///
+/// # Examples
+///
+/// ```
+/// # use mrusty::MRuby;
+/// # use mrusty::MRubyFile;
+/// # use mrusty::MRubyImpl;
+/// # use mrusty::MRubyType;
+/// struct Cont {
+///     value: i32
+/// }
+///
+/// impl MRubyFile for Cont {
+///     fn require(mruby: MRubyType) {
+///         mruby.def_class::<Cont>("Container");
+///     }
+/// }
+///
+/// let mruby = MRuby::new();
+///
+/// mruby.def_file::<Cont>("cont");
+/// ```
 pub trait MRubyFile {
     fn require(mruby: MRubyType);
 }
 
-/// A trait used on `MRubyType` which implements mruby functionality.
+/// A `trait` used on `MRubyType` which implements mruby functionality.
 pub trait MRubyImpl {
     /// Adds a filename to the mruby context.
     ///
@@ -908,7 +934,15 @@ impl MRubyImpl for MRubyType {
 
     #[inline]
     fn def_file<T: MRubyFile>(&self, name: &str) {
-        self.borrow_mut().mods.insert(name.to_string(), Rc::new(T::require));
+        let mut borrow = self.borrow_mut();
+
+        if borrow.files.contains_key(name) {
+            let mut file = borrow.files.get_mut(name).unwrap();
+
+            file.push(T::require);
+        } else {
+            borrow.files.insert(name.to_string(), vec![T::require]);
+        }
     }
 
     fn def_class<T: Any>(&self, name: &str) {
@@ -932,8 +966,8 @@ impl MRubyImpl for MRubyType {
             let data_type = MRDataType { name: c_name.as_ptr(), free: free::<T> };
 
             self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
-            self.borrow_mut().methods.insert(TypeId::of::<T>(), Box::new(HashMap::new()));
-            self.borrow_mut().class_methods.insert(TypeId::of::<T>(), Box::new(HashMap::new()));
+            self.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
+            self.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
         }
 
         self.def_method::<T, _>("dup", |_mruby, slf| {
