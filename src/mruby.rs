@@ -250,6 +250,7 @@ pub type MRubyType = Rc<RefCell<MRuby>>;
 pub struct MRuby {
     pub mrb: *mut MRState,
     ctx: *mut MRContext,
+    filename: Option<String>,
     classes: Box<HashMap<TypeId, (*mut MRClass, MRDataType, String)>>,
     methods: Box<HashMap<TypeId, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>,
     class_methods: Box<HashMap<TypeId, Box<HashMap<u32, Box<Fn(Rc<RefCell<MRuby>>, Value) -> Value>>>>>,
@@ -274,6 +275,7 @@ impl MRuby {
                 MRuby {
                     mrb: mrb,
                     ctx: mrbc_context_new(mrb),
+                    filename: None,
                     classes: Box::new(HashMap::new()),
                     methods: Box::new(HashMap::new()),
                     class_methods: Box::new(HashMap::new()),
@@ -319,6 +321,28 @@ impl MRuby {
                                 mruby.bool(true)
                             },
                             None => {
+                                let filename = mruby.borrow().filename.clone();
+
+                                let execute = |path: &Path, name: String, filename: Option<String>| {
+                                    {
+                                        mruby.borrow_mut().required.insert(name);
+                                    }
+
+                                    let result = mruby.execute(path);
+
+                                    match filename {
+                                        Some(filename) => mruby.filename(&filename),
+                                        None           => mruby.borrow_mut().filename = None
+                                    }
+
+                                    match result {
+                                        Err(err) => mruby.raise(&format!("{}", err)),
+                                        _ => ()
+                                    }
+
+                                    mruby.bool(true)
+                                };
+
                                 let path = Path::new(name);
                                 let rb = name.to_string() + ".rb";
                                 let rb = Path::new(&rb);
@@ -326,39 +350,11 @@ impl MRuby {
                                 let mrb = Path::new(&mrb);
 
                                 if rb.is_file() {
-                                    {
-                                        mruby.borrow_mut().required.insert(name.to_string());
-                                    }
-
-                                    match mruby.execute(rb) {
-                                        Err(err) => mruby.raise(&format!("{}", err)),
-                                        _ => ()
-                                    }
-
-                                    mruby.bool(true)
+                                    execute(rb, name.to_string(), filename)
                                 } else if mrb.is_file() {
-                                    {
-                                        mruby.borrow_mut().required.insert(name.to_string());
-                                    }
-
-                                    match mruby.execute(mrb) {
-                                        Err(err) => mruby.raise(&format!("{}", err)),
-                                        _ => ()
-                                    }
-
-                                    mruby.bool(true)
+                                    execute(mrb, name.to_string(), filename)
                                 } else if path.is_file() {
-                                    {
-                                        let stem = path.file_stem().unwrap().to_str().unwrap();
-                                        mruby.borrow_mut().required.insert(stem.to_string());
-                                    }
-
-                                    match mruby.execute(path) {
-                                        Err(err) => mruby.raise(&format!("{}", err)),
-                                        _ => ()
-                                    }
-
-                                    mruby.bool(true)
+                                    execute(path, name.to_string(), filename)
                                 } else {
                                     mruby.raise(&format!("cannot load {}.rb or {}.mrb", name, name));
 
@@ -444,13 +440,19 @@ pub trait MRubyImpl {
     ///
     /// ```
     /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyError;
     /// # use mrusty::MRubyImpl;
     /// let mruby = MRuby::new();
     /// mruby.filename("script.rb");
     ///
     /// let result = mruby.run("1.nope");
     ///
-    /// assert_eq!(result, Err("script.rb:1: undefined method \'nope\' for 1 (NoMethodError)"));
+    /// match result {
+    ///     Err(MRubyError::Runtime(err)) => {
+    ///         assert_eq!(err, "script.rb:1: undefined method \'nope\' for 1 (NoMethodError)");
+    /// },
+    ///     _ => assert!(false)
+    /// }
     /// ```
     #[inline]
     fn filename(&self, filename: &str);
@@ -471,11 +473,17 @@ pub trait MRubyImpl {
     ///
     /// ```
     /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyError;
     /// # use mrusty::MRubyImpl;
     /// let mruby = MRuby::new();
     /// let result = mruby.run("'' + 1");
     ///
-    /// assert_eq!(result, Err("TypeError: expected String"));
+    /// match result {
+    ///     Err(MRubyError::Runtime(err)) => {
+    ///         assert_eq!(err, "TypeError: expected String");
+    /// },
+    ///     _ => assert!(false)
+    /// }
     /// ```
     #[inline]
     fn run(&self, script: &str) -> Result<Value, MRubyError>;
@@ -526,7 +534,12 @@ pub trait MRubyImpl {
     ///
     /// let result = mruby.run("Container.hi");
     ///
-    /// assert_eq!(result, Err("RuntimeError: hi"));
+    /// match result {
+    ///     Err(MRubyError::Runtime(err)) => {
+    ///         assert_eq!(err, "RuntimeError: hi");
+    /// },
+    ///     _ => assert!(false)
+    /// }
     /// # }
     /// ```
     #[inline]
@@ -811,6 +824,8 @@ pub trait MRubyImpl {
 impl MRubyImpl for MRubyType {
     #[inline]
     fn filename(&self, filename: &str) {
+        self.borrow_mut().filename = Some(filename.to_string());
+
         unsafe {
             mrbc_filename(self.borrow().mrb, self.borrow().ctx, CString::new(filename).unwrap().as_ptr());
         }
@@ -858,6 +873,8 @@ impl MRubyImpl for MRubyType {
     fn execute(&self, script: &Path) -> Result<Value, MRubyError> {
         match script.extension() {
             Some(ext) => {
+                self.filename(script.file_name().unwrap().to_str().unwrap());
+
                 let mut file = try!(File::open(script));
 
                 match ext.to_str().unwrap() {

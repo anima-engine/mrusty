@@ -48,8 +48,6 @@ impl Repl {
     /// let repl = Repl::new(mruby);
     /// ```
     pub fn new(mruby: MRubyType) -> Repl {
-        mruby.filename("repl");
-
         Repl {
             mruby: mruby
         }
@@ -73,6 +71,8 @@ impl Repl {
         let mut command = String::new();
 
         loop {
+            self.mruby.filename("repl");
+
             let head = if command.is_empty() {
                 "mrusty> "
             } else {
