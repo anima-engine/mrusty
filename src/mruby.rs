@@ -1296,7 +1296,7 @@ impl Value {
             let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
 
             let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
-                args.len() as i32, args.as_ptr());
+                                          args.len() as i32, args.as_ptr());
 
             let exc = mrb_ext_get_exc(self.mruby.borrow().mrb);
 
@@ -1306,6 +1306,33 @@ impl Value {
                 },
                 _  => Err(MRubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
             }
+        }
+    }
+
+    /// Calls method `name` on a `Value` passing `args`. If call fails, mruby will be left to
+    /// handle the exception.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let one = mruby.string("");
+    /// one.call("+", vec![mruby.fixnum(1)]);
+    /// ```
+    pub fn call_unchecked(&self, name: &str, args: Vec<Value>) -> Value {
+        unsafe {
+            let c_name = CString::new(name).unwrap().as_ptr();
+            let sym = mrb_intern_cstr(self.mruby.borrow().mrb, c_name);
+
+            let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
+
+            let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
+                                          args.len() as i32, args.as_ptr());
+
+            Value::new(self.mruby.clone(), result)
         }
     }
 
