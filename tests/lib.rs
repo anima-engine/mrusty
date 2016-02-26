@@ -78,3 +78,15 @@ fn test_api_array() {
 
     assert_eq!(result.to_f64().unwrap(), 3.0);
 }
+
+#[test]
+fn test_api_vec() {
+    let mruby = MRuby::new();
+
+    Scalar::to_mruby(mruby.clone());
+    Vector::to_mruby(mruby.clone());
+
+    let result = mruby.run("Vector.from_a [1.0, 2.0, 3.0]").unwrap();
+
+    assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
+}
