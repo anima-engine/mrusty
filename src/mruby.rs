@@ -38,6 +38,7 @@ macro_rules! init {
     ( $name:ident, i32 )     => (let $name = uninitialized::<i32>(););
     ( $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
     ( $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
+    ( $name:ident, Vec )     => (let $name = uninitialized::<MRValue>(););
     ( $name:ident, $_t:ty )  => (let $name = uninitialized::<MRValue>(););
     ( $name:ident : $t:tt )  => (init!($name, $t));
     ( $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
@@ -55,6 +56,7 @@ macro_rules! sig {
     ( i32 )     => ("i");
     ( f64 )     => ("f");
     ( str )     => ("z");
+    ( Vec )     => ("A");
     ( $_t:ty )  => ("o");
     ( $t:tt, $( $ts:tt ),+ ) => (concat!(sig!($t), sig!($( $ts ),*)));
 }
@@ -68,6 +70,7 @@ macro_rules! args {
     ( $name:ident, i32 )     => (&$name as *const i32);
     ( $name:ident, f64 )     => (&$name as *const f64);
     ( $name:ident, str )     => (&$name as *const *const c_char);
+    ( $name:ident, Vec )     => (&$name as *const MRValue);
     ( $name:ident, $_t:ty )  => (&$name as *const MRValue);
     ( $name:ident : $t:tt )  => (args!($name, $t));
     ( $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
@@ -87,6 +90,9 @@ macro_rules! conv {
     ( $mruby:expr, $name:ident, i32 )     => ();
     ( $mruby:expr, $name:ident, f64 )     => ();
     ( $mruby:expr, $name:ident, str )     => (let $name = CStr::from_ptr($name).to_str().unwrap(););
+    ( $mruby:expr, $name:ident, Vec )     => {
+        let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
+    };
     ( $mruby:expr, $name:ident, $t:ty )   => {
         let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
     };
