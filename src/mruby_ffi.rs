@@ -26,7 +26,6 @@ use super::MRubyError;
 pub enum MRState {}
 pub enum MRContext {}
 
-pub enum MRProc {}
 pub enum MRClass {}
 pub enum MRData {}
 
@@ -75,11 +74,6 @@ impl MRValue {
     #[inline]
     pub unsafe fn string(mrb: *const MRState, value: &str) -> MRValue {
         mrb_str_new_cstr(mrb, CString::new(value).unwrap().as_ptr())
-    }
-
-    #[inline]
-    pub unsafe fn prc(mrb: *const MRState, value: *const MRProc) -> MRValue {
-        mrb_ext_proc_to_value(mrb, value)
     }
 
     #[inline]
@@ -215,7 +209,9 @@ extern "C" {
     pub fn mrb_open() -> *const MRState;
     pub fn mrb_close(mrb: *const MRState);
 
+    #[inline]
     pub fn mrb_ext_get_ud(mrb: *const MRState) -> *const u8;
+    #[inline]
     pub fn mrb_ext_set_ud(mrb: *const MRState, ud: *const u8);
 
     pub fn mrbc_context_new(mrb: *const MRState) -> *const MRContext;
@@ -249,35 +245,54 @@ extern "C" {
     pub fn mrb_funcall_argv(mrb: *const MRState, object: MRValue, sym: u32, argc: i32,
                             argv: *const MRValue) -> MRValue;
 
+    #[inline]
     pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
+    #[inline]
     pub fn mrb_ext_float_to_cdouble(value: MRValue) -> f64;
 
+    #[inline]
     pub fn mrb_ext_nil() -> MRValue;
+    #[inline]
     pub fn mrb_ext_false() -> MRValue;
+    #[inline]
     pub fn mrb_ext_true() -> MRValue;
+    #[inline]
     pub fn mrb_ext_cint_to_fixnum(value: i32) -> MRValue;
+    #[inline]
     pub fn mrb_ext_cdouble_to_float(mrb: *const MRState, value: f64) -> MRValue;
+    #[inline]
     pub fn mrb_str_new_cstr(mrb: *const MRState, value: *const c_char) -> MRValue;
-    pub fn mrb_ext_proc_to_value(mrb: *const MRState, prc: *const MRProc) -> MRValue;
 
+    #[inline]
     pub fn mrb_str_to_cstr(mrb: *const MRState, value: MRValue) -> *const c_char;
 
+    #[inline]
     pub fn mrb_data_object_alloc(mrb: *const MRState, class: *const MRClass, ptr: *const u8,
                                  typ: *const MRDataType) -> *const MRData;
+    #[inline]
     pub fn mrb_data_get_ptr(mrb: *const MRState, value: MRValue,
                             typ: *const MRDataType) -> *const u8;
+    #[inline]
     pub fn mrb_ext_data_ptr(value: MRValue) -> *const u8;
 
+    #[inline]
     pub fn mrb_ext_data_init(value: *const MRValue, ptr: *const u8, typ: *const MRDataType);
+    #[inline]
     pub fn mrb_ext_set_instance_tt(class: *const MRClass, typ: MRType);
+    #[inline]
     pub fn mrb_ext_data_value(data: *const MRData) -> MRValue;
 
     pub fn mrb_ary_new_capa(mrb: *const MRState, size: i32) -> MRValue;
+    #[inline]
     pub fn mrb_ary_ref(mrb: *const MRState, array: MRValue, i: i32) -> MRValue;
+    #[inline]
     pub fn mrb_ary_set(mrb: *const MRState, array: MRValue, i: i32, value: MRValue);
+    #[inline]
     pub fn mrb_ext_ary_len(mrb: *const MRState, array: MRValue) -> i32;
 
+    #[inline]
     pub fn mrb_ext_raise(mrb: *const MRState, msg: *const c_char);
+    #[inline]
     pub fn mrb_ext_get_exc(mrb: *const MRState) -> MRValue;
 }
 
