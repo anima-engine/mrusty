@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# install Ruby & Bison
-sudo apt-get install -y ruby bison
-
 # get mruby 1.2.0 sources
 wget https://github.com/mruby/mruby/archive/1.2.0.zip
 unzip 1.2.0.zip
@@ -14,9 +11,11 @@ sed -i "24s/.*/  conf.cc do |cc| cc.flags << \'-fPIC\' end/" mruby-1.2.0/build_c
 cd mruby-1.2.0
 ./minirake
 
-# copy headers and lib
-sudo cp -R include/* /usr/local/include
-sudo cp build/host/lib/libmruby.a /usr/local/lib
+# add headers and lib to paths
+LD_LIBRARY_PATH=$PWD/build/host/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH
+C_INCLUDE_PATH=$PWD/include:$C_INCLUDE_PATH
+export C_INCLUDE_PATH
 
 # restore dir
 cd ..
