@@ -26,6 +26,8 @@ end
 ```
 - run `./minirake`
 
+## [Documentation](http://anima-engine.github.io/mrusty/)
+
 ## Example
 A very simple example of a Container `struct` which will be passed to mruby and
 which is perfectly callable.
