@@ -43,8 +43,8 @@ pub struct MRDataType {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MRValue {
-    pub value: [u8; 8],
-    pub typ: MRType
+    pub value: u64,
+    pub typ: MRType,
 }
 
 impl MRValue {

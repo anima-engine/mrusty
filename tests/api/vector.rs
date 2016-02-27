@@ -44,10 +44,10 @@ impl Vector {
             slf.init(vector)
         }));
 
-        mruby.def_class_method::<Vector, _>("from_a", mrfn!(|_mruby, slf: Value, array: Value| {
-            _mruby.nil()//slf.call_unchecked("new", array.to_vec().unwrap())
+        mruby.def_class_method::<Vector, _>("from_a", mrfn!(|_mruby, slf: Value, array: Vec| {
+            slf.call_unchecked("new", array)
         }));
-
+        
         mruby.def_method::<Vector, _>("x", mrfn!(|mruby, slf: Vector| {
             mruby.float(slf.x as f64)
         }));
