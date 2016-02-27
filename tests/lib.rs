@@ -28,8 +28,8 @@ use api::Vector;
 fn test_api_init() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let scalar = mruby.run("Scalar.new 2.3").unwrap();
     let vector = mruby.run("Vector.new 1.0, 2.0, 3.0").unwrap();
@@ -42,8 +42,8 @@ fn test_api_init() {
 fn test_api_getters() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let scalar = mruby.run("Scalar.new 2.3").unwrap();
     let vector = mruby.run("Vector.new 1.0, 2.0, 3.0").unwrap();
@@ -59,8 +59,8 @@ fn test_api_getters() {
 fn test_api_mul() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let vector = mruby.run("Scalar.new(2.0) * Vector.new(1.0, 2.0, 3.0)").unwrap();
 
@@ -71,8 +71,8 @@ fn test_api_mul() {
 fn test_api_array() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let result = mruby.run("Vector.new(1.0, 2.0, 3.0).to_a.last").unwrap();
 
@@ -83,10 +83,25 @@ fn test_api_array() {
 fn test_api_vec() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let result = mruby.run("Vector.from_a [1.0, 2.0, 3.0]").unwrap();
+
+    assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
+}
+
+#[test]
+fn test_api_require() {
+    let mruby = MRuby::new();
+
+    mruby.def_file::<Vector>("math");
+
+    let result = mruby.run("
+        require 'math'
+
+        Vector.new(1.0, 2.0, 3.0)
+    ").unwrap();
 
     assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
 }

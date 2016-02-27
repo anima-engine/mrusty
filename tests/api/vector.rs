@@ -33,8 +33,10 @@ impl Vector {
             z: z
         }
     }
+}
 
-    pub fn to_mruby(mruby: MRubyType) {
+impl MRubyFile for Vector {
+    fn require(mruby: MRubyType) {
         mruby.def_class::<Vector>("Vector");
 
         mruby.def_method::<Vector, _>("initialize", mrfn!(|_mruby, slf: Value,
@@ -47,7 +49,7 @@ impl Vector {
         mruby.def_class_method::<Vector, _>("from_a", mrfn!(|_mruby, slf: Value, array: Vec| {
             slf.call_unchecked("new", array)
         }));
-        
+
         mruby.def_method::<Vector, _>("x", mrfn!(|mruby, slf: Vector| {
             mruby.float(slf.x as f64)
         }));
