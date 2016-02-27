@@ -4,7 +4,7 @@ description = "mruby safe bindings for Rust"
 version = "0.1.0"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>", "Robert Krody <krody.robi@gmail.com>"]
 build = "build.rs"
-repository = "https://github.com/dragostis/mrusty"
+repository = "https://github.com/anima-engine/mrusty"
 keywords = ["mruby", "ruby", "bindings", "repl"]
 license = "LGPL-3.0"
 

@@ -1,9 +1,9 @@
 # mrusty. mruby safe bindings for Rust
-[![Build Status](https://travis-ci.org/dragostis/mrusty.svg?branch=master)]
-(https://travis-ci.org/dragostis/mrusty)
+[![Build Status](https://travis-ci.org/anima-engine/mrusty.svg?branch=master)]
+(https://travis-ci.org/anima-engine/mrusty)
 [![Coverage Status]
-(https://coveralls.io/repos/github/dragostis/mrusty/badge.svg?branch=master)]
-(https://coveralls.io/github/dragostis/mrusty?branch=master)
+(https://coveralls.io/repos/github/anima-engine/mrusty/badge.svg?branch=master)]
+(https://coveralls.io/github/anima-engine/mrusty?branch=master)
 
 mrusty lets you reflect Rust `struct`s and `enum`s in mruby and run them.
 It does this in a safely neat way while also bringing a REPL to the table.
