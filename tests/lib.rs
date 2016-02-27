@@ -107,6 +107,24 @@ fn test_api_require() {
 }
 
 #[test]
+fn test_api_require_file() {
+    use std::fs::File;
+    use std::io::Write;
+
+    let mruby = MRuby::new();
+
+    let mut file = File::create("/tmp/some.rb").unwrap();
+
+    file.write_all(b"class Some; end").unwrap();
+
+    mruby.run("
+        require '/tmp/some'
+
+        Some.new
+    ").unwrap();
+}
+
+#[test]
 fn test_api_dup() {
     static mut DROPPED: bool = false;
 
