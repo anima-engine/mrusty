@@ -90,3 +90,47 @@ fn test_api_vec() {
 
     assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
 }
+
+#[test]
+fn test_api_dup() {
+    static mut DROPPED: bool = false;
+
+    struct Cont {
+        value: i32
+    }
+
+    impl Drop for Cont {
+        fn drop(&mut self) {
+            unsafe {
+                DROPPED = true;
+            }
+        }
+    }
+
+    unsafe {
+        {
+            let mruby = MRuby::new();
+
+            mruby.def_class::<Cont>("Container");
+
+            {
+                let orig = Cont { value: 3 };
+
+                {
+                    let obj = mruby.obj(orig);
+                    let dup = obj.call("dup", vec![]).unwrap().to_obj::<Cont>().unwrap();
+
+                    assert_eq!(dup.value, 3);
+
+                    assert_eq!(DROPPED, false);
+                }
+
+                assert_eq!(DROPPED, false);
+            }
+
+            assert_eq!(DROPPED, false);
+        }
+
+        assert_eq!(DROPPED, true);
+    }
+}

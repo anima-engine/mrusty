@@ -89,7 +89,9 @@ macro_rules! conv {
     ( $mruby:expr, $name:ident, bool )    => ();
     ( $mruby:expr, $name:ident, i32 )     => ();
     ( $mruby:expr, $name:ident, f64 )     => ();
-    ( $mruby:expr, $name:ident, str )     => (let $name = CStr::from_ptr($name).to_str().unwrap(););
+    ( $mruby:expr, $name:ident, str )     => {
+        let $name = CStr::from_ptr($name).to_str().unwrap();
+    };
     ( $mruby:expr, $name:ident, Vec )     => {
         let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
     };
@@ -119,6 +121,7 @@ macro_rules! slf {
 /// * `i32`
 /// * `f64`
 /// * `str` (`&str`; macro limtation)
+/// * `Vec` (`Vec<Value>`; macro limtation)
 /// * `T` (defined with `def_class`)
 /// * `Value`
 ///
