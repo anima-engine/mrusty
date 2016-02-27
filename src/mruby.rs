@@ -38,6 +38,7 @@ macro_rules! init {
     ( $name:ident, i32 )     => (let $name = uninitialized::<i32>(););
     ( $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
     ( $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
+    ( $name:ident, Vec )     => (let $name = uninitialized::<MRValue>(););
     ( $name:ident, $_t:ty )  => (let $name = uninitialized::<MRValue>(););
     ( $name:ident : $t:tt )  => (init!($name, $t));
     ( $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
@@ -55,6 +56,7 @@ macro_rules! sig {
     ( i32 )     => ("i");
     ( f64 )     => ("f");
     ( str )     => ("z");
+    ( Vec )     => ("A");
     ( $_t:ty )  => ("o");
     ( $t:tt, $( $ts:tt ),+ ) => (concat!(sig!($t), sig!($( $ts ),*)));
 }
@@ -68,6 +70,7 @@ macro_rules! args {
     ( $name:ident, i32 )     => (&$name as *const i32);
     ( $name:ident, f64 )     => (&$name as *const f64);
     ( $name:ident, str )     => (&$name as *const *const c_char);
+    ( $name:ident, Vec )     => (&$name as *const MRValue);
     ( $name:ident, $_t:ty )  => (&$name as *const MRValue);
     ( $name:ident : $t:tt )  => (args!($name, $t));
     ( $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
@@ -86,7 +89,12 @@ macro_rules! conv {
     ( $mruby:expr, $name:ident, bool )    => ();
     ( $mruby:expr, $name:ident, i32 )     => ();
     ( $mruby:expr, $name:ident, f64 )     => ();
-    ( $mruby:expr, $name:ident, str )     => (let $name = CStr::from_ptr($name).to_str().unwrap(););
+    ( $mruby:expr, $name:ident, str )     => {
+        let $name = CStr::from_ptr($name).to_str().unwrap();
+    };
+    ( $mruby:expr, $name:ident, Vec )     => {
+        let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
+    };
     ( $mruby:expr, $name:ident, $t:ty )   => {
         let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
     };
@@ -113,6 +121,7 @@ macro_rules! slf {
 /// * `i32`
 /// * `f64`
 /// * `str` (`&str`; macro limtation)
+/// * `Vec` (`Vec<Value>`; macro limtation)
 /// * `T` (defined with `def_class`)
 /// * `Value`
 ///
@@ -1296,7 +1305,7 @@ impl Value {
             let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
 
             let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
-                args.len() as i32, args.as_ptr());
+                                          args.len() as i32, args.as_ptr());
 
             let exc = mrb_ext_get_exc(self.mruby.borrow().mrb);
 
@@ -1306,6 +1315,33 @@ impl Value {
                 },
                 _  => Err(MRubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
             }
+        }
+    }
+
+    /// Calls method `name` on a `Value` passing `args`. If call fails, mruby will be left to
+    /// handle the exception.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let one = mruby.string("");
+    /// one.call("+", vec![mruby.fixnum(1)]);
+    /// ```
+    pub fn call_unchecked(&self, name: &str, args: Vec<Value>) -> Value {
+        unsafe {
+            let c_name = CString::new(name).unwrap().as_ptr();
+            let sym = mrb_intern_cstr(self.mruby.borrow().mrb, c_name);
+
+            let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
+
+            let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
+                                          args.len() as i32, args.as_ptr());
+
+            Value::new(self.mruby.clone(), result)
         }
     }
 

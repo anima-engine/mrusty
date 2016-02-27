@@ -41,10 +41,6 @@ double mrb_ext_float_to_cdouble(mrb_value value) {
   return mrb_float(value);
 }
 
-struct RProc* mrb_ext_value_to_proc(mrb_value value) {
-  return mrb_proc_ptr(value);
-}
-
 void* mrb_ext_data_ptr(mrb_value value) {
   return DATA_PTR(value);
 }

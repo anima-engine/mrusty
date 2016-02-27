@@ -28,8 +28,8 @@ use api::Vector;
 fn test_api_init() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let scalar = mruby.run("Scalar.new 2.3").unwrap();
     let vector = mruby.run("Vector.new 1.0, 2.0, 3.0").unwrap();
@@ -42,8 +42,8 @@ fn test_api_init() {
 fn test_api_getters() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let scalar = mruby.run("Scalar.new 2.3").unwrap();
     let vector = mruby.run("Vector.new 1.0, 2.0, 3.0").unwrap();
@@ -59,8 +59,8 @@ fn test_api_getters() {
 fn test_api_mul() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let vector = mruby.run("Scalar.new(2.0) * Vector.new(1.0, 2.0, 3.0)").unwrap();
 
@@ -71,10 +71,99 @@ fn test_api_mul() {
 fn test_api_array() {
     let mruby = MRuby::new();
 
-    Scalar::to_mruby(mruby.clone());
-    Vector::to_mruby(mruby.clone());
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
 
     let result = mruby.run("Vector.new(1.0, 2.0, 3.0).to_a.last").unwrap();
 
     assert_eq!(result.to_f64().unwrap(), 3.0);
+}
+
+#[test]
+fn test_api_vec() {
+    let mruby = MRuby::new();
+
+    Scalar::require(mruby.clone());
+    Vector::require(mruby.clone());
+
+    let result = mruby.run("Vector.from_a [1.0, 2.0, 3.0]").unwrap();
+
+    assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
+}
+
+#[test]
+fn test_api_require() {
+    let mruby = MRuby::new();
+
+    mruby.def_file::<Vector>("math");
+
+    let result = mruby.run("
+        require 'math'
+
+        Vector.new(1.0, 2.0, 3.0)
+    ").unwrap();
+
+    assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
+}
+
+#[test]
+fn test_api_require_file() {
+    use std::fs::File;
+    use std::io::Write;
+
+    let mruby = MRuby::new();
+
+    let mut file = File::create("/tmp/some.rb").unwrap();
+
+    file.write_all(b"class Some; end").unwrap();
+
+    mruby.run("
+        require '/tmp/some'
+
+        Some.new
+    ").unwrap();
+}
+
+#[test]
+fn test_api_dup() {
+    static mut DROPPED: bool = false;
+
+    struct Cont {
+        value: i32
+    }
+
+    impl Drop for Cont {
+        fn drop(&mut self) {
+            unsafe {
+                DROPPED = true;
+            }
+        }
+    }
+
+    unsafe {
+        {
+            let mruby = MRuby::new();
+
+            mruby.def_class::<Cont>("Container");
+
+            {
+                let orig = Cont { value: 3 };
+
+                {
+                    let obj = mruby.obj(orig);
+                    let dup = obj.call("dup", vec![]).unwrap().to_obj::<Cont>().unwrap();
+
+                    assert_eq!(dup.value, 3);
+
+                    assert_eq!(DROPPED, false);
+                }
+
+                assert_eq!(DROPPED, false);
+            }
+
+            assert_eq!(DROPPED, false);
+        }
+
+        assert_eq!(DROPPED, true);
+    }
 }

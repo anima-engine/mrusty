@@ -252,6 +252,43 @@ pub fn test_str_args() {
 }
 
 #[test]
+pub fn test_array_args() {
+    use std::mem::uninitialized;
+
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        extern "C" fn add(mrb: *const MRState, _slf: MRValue) -> MRValue {
+            unsafe {
+                let array = uninitialized::<MRValue>();
+
+                mrb_get_args(mrb, CString::new("A").unwrap().as_ptr(), &array as *const MRValue);
+
+                let vec = array.to_vec(mrb).unwrap();
+
+                let args = &[vec[1]];
+                let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+
+                mrb_funcall_argv(mrb, vec[0], sym, 1, args.as_ptr())
+            }
+        }
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+
+        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
+                          (2 & 0x1f) << 18);
+
+        let code = CString::new("Mine.new.add [1, 1]").unwrap().as_ptr();
+
+        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn test_funcall_argv() {
     unsafe {
         let mrb = mrb_open();

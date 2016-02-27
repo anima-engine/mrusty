@@ -1,5 +1,14 @@
 language: rust
 sudo: required
+addons:
+  apt:
+    packages:
+      - bison
+      - ruby
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
 os:
   - linux
   - osx
