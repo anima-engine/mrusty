@@ -39,6 +39,7 @@ extern crate rl_sys;
 
 mod mruby;
 mod mruby_ffi;
+mod spec;
 
 #[cfg(feature = "repl")]
 mod repl;
@@ -56,6 +57,7 @@ pub use mruby::MRubyFile;
 pub use mruby::MRubyImpl;
 pub use mruby::MRubyType;
 pub use mruby::Value;
+pub use spec::Spec;
 
 #[cfg(feature = "repl")]
 pub use repl::Repl;
