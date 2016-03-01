@@ -16,6 +16,8 @@
 
 use super::mruby::*;
 
+use std::any::Any;
+
 /// A `macro` useful to run mruby specs.
 ///
 /// # Examples
@@ -25,7 +27,15 @@ use super::mruby::*;
 /// use mrusty::*;
 ///
 /// # fn main() {
-/// spec!("
+/// struct Cont;
+///
+/// impl MRubyFile for Cont {
+///     fn require(mruby: MRubyType) {
+///         mruby.def_class::<Cont>("Container");
+///     }
+/// }
+///
+/// describe!(Cont, "
 ///     describe Class do
 ///       context 'when 1' do
 ///         subject { 1 }
@@ -46,25 +56,28 @@ use super::mruby::*;
 /// # }
 /// ```
 #[macro_export]
-macro_rules! spec {
-    ( $script:expr ) => {
+macro_rules! describe {
+    ( $t:ty, $spec:expr ) => {
         #[test]
         fn spec() {
-            let spec = Spec::new($script);
+            let spec = Spec::new::<$t>($spec);
 
             assert!(spec.run());
         }
     }
 }
 
-pub struct Spec<'a> {
-    script: &'a str,
+pub struct Spec {
+    script: String,
+    target: String,
     mruby: MRubyType
 }
 
-impl<'a> Spec<'a> {
-    pub fn new(script: &str) -> Spec {
+impl Spec {
+    pub fn new<T: MRubyFile + Any>(script: &str) -> Spec {
         let mruby = MRuby::new();
+
+        T::require(mruby.clone());
 
         mruby.filename("spec");
 
@@ -74,32 +87,22 @@ impl<'a> Spec<'a> {
         mruby.run(include_str!("spec/expect.rb")).unwrap();
         mruby.run(include_str!("spec/spec.rb")).unwrap();
 
+        let name = mruby.class_name::<T>().unwrap();
+
         Spec {
-            script: script,
+            script: script.to_string(),
+            target: name,
             mruby: mruby
         }
     }
 
     pub fn run(&self) -> bool {
-        self.mruby.run(self.script).unwrap().to_bool().unwrap()
+        let describe = format!("
+            describe {} do
+              {}
+            end
+        ", self.target, self.script);
+
+        self.mruby.run(&describe).unwrap().to_bool().unwrap()
     }
 }
-
-spec!("
-    describe Class do
-      context 'when 1' do
-        subject { 1 }
-
-        it { is_expected.to eql 1 }
-      end
-
-      context 'when 1' do
-        subject { 1 }
-        let(:one) { 1 }
-
-        it 'won\\'t' do
-          expect(1).to eql one
-        end
-      end
-    end
-");
