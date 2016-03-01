@@ -66,11 +66,9 @@ class Example
     end
   end
 
-  def run(depth)
-    begin
-      instance_eval(&@block)
-    rescue Exception => exception
-      exception
-    end
+  def run(_depth)
+    instance_eval(&@block)
+  rescue Exception => exception
+    exception
   end
 end

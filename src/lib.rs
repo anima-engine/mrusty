@@ -19,7 +19,7 @@
 //! ## Requirements
 //! * [mruby](https://github.com/mruby/mruby)
 //!
-//! mrusty requires mruby compiled with fPIC. To compile and install mruby 1.2.0:
+//! mrusty requires mruby compiled with `fPIC`. To compile and install mruby 1.2.0:
 //!
 //! * make sure you have [Bison](https://www.gnu.org/software/bison/)
 //! & [Ruby](https://www.ruby-lang.org/) installed

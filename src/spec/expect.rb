@@ -18,25 +18,36 @@ class Expect
   def initialize(target, is = false)
     @target = target
     @is = is
+    @failed = true
   end
 
   def to(matcher)
     @matcher = matcher
 
-    matcher.match @target
+    exc = matcher.match @target
+
+    @failed = false
+
+    exc
   end
 
   def not_to(matcher)
     @matcher = matcher
 
-    matcher.match_not @target
+    exc = matcher.match_not @target
+
+    @failed = false
+
+    exc
   end
 
   def describe
-    if @is
-      "is expected #{@matcher.describe}"
-    else
-      "expect #{@target} #{@matcher.describe}"
-    end
+    expect = if @is
+               "is expected #{@matcher.describe}"
+             else
+               "expect #{@target} #{@matcher.describe}"
+             end
+
+    expect + (@failed ? ' FAILED' : '')
   end
 end

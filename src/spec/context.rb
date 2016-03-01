@@ -60,21 +60,33 @@ class Context
   end
 
   def run(depth = 0)
-    failures = @children.map { |e| e.run depth + 1 }.flatten.compact
+    tests = @children.map { |e| e.run depth + 1 }.flatten
 
     if depth == 0
+      puts
       puts describe depth
+
+      failures = tests.compact
 
       unless failures.empty?
         puts "\nFAILURES:\n\n"
 
+        ok = tests.size - failures.size
+        failed = failures.count { |e| e.is_a? AssertError }
+        errors = tests.size - ok - failed
+
         failures = failures.each_with_index.map do |e, i|
-          backtrace = e.backtrace.map { |l| '  ' + l }.join "\n"
+          backtrace = e.backtrace.map do |l|
+            '  ' + l.split('mruby-1.2.0/').last
+          end
+          backtrace = backtrace.join "\n"
 
           "  #{i + 1}) " + e.inspect + "\n\n" + backtrace
         end
 
         puts failures.join "\n\n"
+
+        puts "\n#{ok} ok, #{failed} failed, #{errors} errors.\n\n"
 
         return false
       end
@@ -83,7 +95,7 @@ class Context
 
       true
     else
-      failures
+      tests
     end
   end
 end
