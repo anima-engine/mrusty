@@ -1,4 +1,4 @@
-# mrusty. mruby bindings for Rust
+# mrusty. mruby safe bindings for Rust
 # Copyright (C) 2016  Dragoș Tiselice
 #
 # This program is free software: you can redistribute it and/or modify
