@@ -167,3 +167,13 @@ fn test_api_dup() {
         assert_eq!(DROPPED, true);
     }
 }
+
+describe!(Scalar, "
+  context 'when zero' do
+    let(:zero) { Scalar.new 0 }
+
+    it 'returns 0 on #value' do
+      expect(zero.value).to eql 0
+    end
+  end
+");

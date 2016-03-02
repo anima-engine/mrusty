@@ -19,7 +19,7 @@
 //! ## Requirements
 //! * [mruby](https://github.com/mruby/mruby)
 //!
-//! mrusty requires mruby compiled with fPIC. To compile and install mruby 1.2.0:
+//! mrusty requires mruby compiled with `fPIC`. To compile and install mruby 1.2.0:
 //!
 //! * make sure you have [Bison](https://www.gnu.org/software/bison/)
 //! & [Ruby](https://www.ruby-lang.org/) installed
@@ -39,6 +39,7 @@ extern crate rl_sys;
 
 mod mruby;
 mod mruby_ffi;
+mod spec;
 
 #[cfg(feature = "repl")]
 mod repl;
@@ -56,6 +57,7 @@ pub use mruby::MRubyFile;
 pub use mruby::MRubyImpl;
 pub use mruby::MRubyType;
 pub use mruby::Value;
+pub use spec::Spec;
 
 #[cfg(feature = "repl")]
 pub use repl::Repl;

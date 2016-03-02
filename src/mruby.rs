@@ -406,6 +406,7 @@ impl MRuby {
 #[derive(Debug)]
 pub enum MRubyError<'a> {
     Cast(&'a str),
+    Undef,
     Runtime(&'a str),
     Filetype,
     Io(io::Error)
@@ -416,6 +417,9 @@ impl<'a> fmt::Display for MRubyError<'a> {
         match *self {
             MRubyError::Cast(ref expected) => {
                 write!(f, "Cast error: expected {}", expected)
+            },
+            MRubyError::Undef => {
+                write!(f, "Undefined error: type is not defined")
             },
             MRubyError::Runtime(ref err) => {
                 write!(f, "Runtime error: {}", err)
@@ -432,6 +436,7 @@ impl<'a> Error for MRubyError<'a> {
     fn description(&self) -> &str {
         match *self {
             MRubyError::Cast(_)     => "mruby value cast error",
+            MRubyError::Undef       => "mruby undefined error",
             MRubyError::Runtime(_)  => "mruby runtime error",
             MRubyError::Filetype    => "filetype mistmatch",
             MRubyError::Io(ref err) => err.description()
@@ -706,6 +711,23 @@ pub trait MRubyImpl {
     /// ```
     fn def_class_method<T: Any, F>(&self, name: &str,
                                    method: F) where F: Fn(MRubyType, Value) -> Value + 'static;
+
+    /// Return the mruby name of a previously defined Rust type `T` with `def_class`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::*;
+    ///
+    /// let mruby = MRuby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// mruby.def_class::<Cont>("Container");
+    ///
+    /// assert_eq!(mruby.class_name::<Cont>().unwrap(), "Container");
+    /// ```
+    fn class_name<T: Any>(&self) -> Result<String, MRubyError>;
 
     /// Creates mruby `Value` `nil`.
     ///
@@ -1120,6 +1142,16 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
+    fn class_name<T: Any>(&self) -> Result<String, MRubyError> {
+        let borrow = self.borrow();
+
+        match borrow.classes.get(&TypeId::of::<T>()) {
+            Some(class) => Ok(class.2.clone()),
+            None        => Err(MRubyError::Undef)
+        }
+    }
+
+    #[inline]
     fn nil(&self) -> Value {
         unsafe {
             Value::new(self.clone(), MRValue::nil())
@@ -1474,7 +1506,7 @@ impl Value {
             let class_name = class_name.to_str().unwrap();
 
             if class_name != class.2 {
-                panic!("Class not found.");
+                return Err(MRubyError::Undef)
             }
 
             self.value.to_obj::<T>(self.mruby.borrow().mrb, &class.1)

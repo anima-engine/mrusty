@@ -24,8 +24,6 @@ use super::mruby::*;
 /// # Examples
 ///
 /// ```no-run
-/// # use mrusty::MRuby;
-/// # use mrusty::Repl;
 /// let mruby = MRuby::new();
 /// let repl = Repl::new(mruby);
 ///
@@ -78,8 +76,6 @@ impl Repl {
     /// # Examples
     ///
     /// ```no-run
-    /// # use mrusty::MRuby;
-    /// # use mrusty::Repl;
     /// let mruby = MRuby::new();
     /// let repl = Repl::new(mruby);
     ///

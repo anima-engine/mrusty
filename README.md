@@ -43,7 +43,7 @@ let mruby = MRuby::new();
 
 struct Cont {
     value: i32
-};
+}
 
 // Cont should not flood the current namespace. We will add it with require.
 impl MRubyFile for Cont {
@@ -65,6 +65,15 @@ impl MRubyFile for Cont {
 
 // Add file to the context, making it requirable.
 mruby.def_file::<Cont>("cont");
+
+// Add spec testing.
+describe!(Cont, "
+  context 'when containing 1' do
+    it 'returns 1 when calling #value' do
+      expect(Container.new(1).value).to eql 1
+    end
+  end
+");
 
 let result = mruby.run("
     require 'cont'
