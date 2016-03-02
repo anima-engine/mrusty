@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# An example is a spec test. They can be defined with the it method.
+#
+# it 'description' do
+#   ... # some expects
+# end
 class Example
   MATCHERS = [BeAMatcher, CompareMatcher, EqMatcher, HaveMatcher, FalseyMatcher,
               RaiseMatcher, RespondMatcher, TruthyMatcher, WithinMatcher,

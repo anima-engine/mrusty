@@ -14,6 +14,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# An assert. They can be defined with the expect or is_expected methods.
+#
+# expect(something). to ...
+# is_expected.not_to ...
 class Expect
   def initialize(target, is = false)
     @target = target

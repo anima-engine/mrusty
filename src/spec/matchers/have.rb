@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing has_<something>? methods.
+#
+# it 'has the key' do
+#   expect({key: 42}).to have_key :key
+# end
 class HaveMatcher
   def initialize(name, target)
     @name = name.to_s[5..-1]

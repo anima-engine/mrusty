@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing falsey values.
+#
+# it 'knows a lie when it sees it' do
+#   expect(false).to be_falsey
+#   expect(nil).to be_falsey
+# end
 class FalseyMatcher
   def initialize(_name)
   end

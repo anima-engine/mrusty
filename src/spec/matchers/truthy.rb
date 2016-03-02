@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing truthy values.
+#
+# it 'knows a lie when it sees it' do
+#   expect(true).to be_truthy
+#   expect(0).to be_truthy
+# end
 class TruthyMatcher
   def initialize(_name)
   end

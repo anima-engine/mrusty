@@ -14,6 +14,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A context is used to separate a series of specs according to a certain
+# criteria. They can be defined with either describe or context methods.
+#
+# describe Fixnum do    # first Context
+#   context `when 1` do # second Context
+#     subject { 1 }
+#
+#     ...
+#   end
+# end
 class Context
   def initialize(target, parent = nil, &block)
     @target = target

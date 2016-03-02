@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing float values.
+#
+# it 'has to know its values' do
+#   expect(3.14).to be_within(0.01).of Math::PI
+# end
 class WithinMatcher
   def initialize(_name, within)
     @within = within

@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing exception raising.
+#
+# it 'raises something' do
+#   expect { raise Exception }.to raise_error Exception
+#   expect { raise 'hi' }.to raise_error RuntimeError, 'hi'
+# end
 class RaiseMatcher
   def initialize(_name, klass, message = nil)
     @klass = klass

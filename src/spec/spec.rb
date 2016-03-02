@@ -14,13 +14,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# An assertion exception.
 class AssertError < Exception
 end
 
+# Module containing the main describe method which runs the spec.
 module Spec
-  def describe(target, &block)
+  def self.describe(target, &block)
     Context.new(target, &block).run
   end
 end
-
-extend Spec

@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing #<name>? boolean-returning methods.
+#
+# it 'is empty' do
+#   expect([]).to be_empty
+# end
 class BeMatcher
   def initialize(name)
     @name = name.to_s[3..-1]

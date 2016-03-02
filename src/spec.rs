@@ -67,6 +67,52 @@ macro_rules! describe {
     }
 }
 
+/// A `struct` useful for mruby spec definition and running.
+///
+/// Available matchers:
+///
+/// * `be_a`, `be_an` - type testing
+/// * `be_<somehow>` - test boolean-returning <name>? methods
+/// * `be <`, `be <=`, `be >`, `be >=` - test relation
+/// * `be_eq`, `be_eql`, `be_equal` - test equality
+/// * `be_falsey` - test falsey things
+/// * `be_truthy` - test truthy things
+/// * `have_<something>` - test boolean-returning has_<name>? methods
+/// * `raise_error` - test errors
+/// * `respond_to` - test method responding
+/// * `be_within(value).of` - test value
+///
+/// # Examples
+///
+/// ```
+/// # use mrusty::*;
+/// struct Cont;
+///
+/// impl MRubyFile for Cont {
+///     fn require(mruby: MRubyType) {
+///         mruby.def_class::<Cont>("Container");
+///     }
+/// }
+///
+/// let spec = Spec::new::<Cont>("
+///     context 'when 1' do
+///       subject { 1 }
+///
+///       it { is_expected.to eql 1 }
+///     end
+///
+///     context 'when 1' do
+///       subject { 1 }
+///       let(:one) { 1 }
+///
+///       it 'won\\'t' do
+///         expect(1).to eql one
+///       end
+///     end
+/// ");
+///
+/// assert_eq!(spec.run(), true);
+/// ```
 pub struct Spec {
     script: String,
     target: String,
@@ -74,6 +120,37 @@ pub struct Spec {
 }
 
 impl Spec {
+    /// Creates an mruby spec runner.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::*;
+    /// struct Cont;
+    ///
+    /// impl MRubyFile for Cont {
+    ///     fn require(mruby: MRubyType) {
+    ///         mruby.def_class::<Cont>("Container");
+    ///     }
+    /// }
+    ///
+    /// Spec::new::<Cont>("
+    ///     context 'when 1' do
+    ///       subject { 1 }
+    ///
+    ///       it { is_expected.to eql 1 }
+    ///     end
+    ///
+    ///     context 'when 1' do
+    ///       subject { 1 }
+    ///       let(:one) { 1 }
+    ///
+    ///       it 'won\\'t' do
+    ///         expect(1).to eql one
+    ///       end
+    ///     end
+    /// ");
+    /// ```
     pub fn new<T: MRubyFile + Any>(script: &str) -> Spec {
         let mruby = MRuby::new();
 
@@ -130,9 +207,42 @@ impl Spec {
         }
     }
 
+    /// Runs mruby specs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::*;
+    /// struct Cont;
+    ///
+    /// impl MRubyFile for Cont {
+    ///     fn require(mruby: MRubyType) {
+    ///         mruby.def_class::<Cont>("Container");
+    ///     }
+    /// }
+    ///
+    /// let spec = Spec::new::<Cont>("
+    ///     context 'when 1' do
+    ///       subject { 1 }
+    ///
+    ///       it { is_expected.to eql 1 }
+    ///     end
+    ///
+    ///     context 'when 1' do
+    ///       subject { 1 }
+    ///       let(:one) { 1 }
+    ///
+    ///       it 'won\\'t' do
+    ///         expect(1).to eql one
+    ///       end
+    ///     end
+    /// ");
+    ///
+    /// assert_eq!(spec.run(), true);
+    /// ```
     pub fn run(&self) -> bool {
         let describe = format!("
-            describe {} do
+            Spec.describe {} do
               {}
             end
         ", self.target, self.script);
@@ -161,7 +271,7 @@ mod tests {
           it { is_expected.to eq 1 }
           it { is_expected.not_to eq 2 }
 
-          it { is_expected.to be_a Fixnum }
+          it { is_expected.to be_an Integer }
           it { is_expected.not_to be_a String }
 
           it { is_expected.to be_within(0).of(1) }

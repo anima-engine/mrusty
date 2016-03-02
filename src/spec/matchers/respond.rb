@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing method responding.
+#
+# it { is_expected.to respond_to :hi }
 class RespondMatcher
   def initialize(_name, target)
     @target = target

@@ -14,6 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing equality.
+#
+# it 'expects two integer to be equal' do
+#   expect(1).to eq 1
+# end
 class EqMatcher
   def initialize(_name, target)
     @target = target

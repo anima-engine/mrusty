@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# A matcher useful for testing types.
+#
+# it { is_expected.to be_an Integer }
 class BeAMatcher
   def initialize(name, target)
     @name = name.to_s
