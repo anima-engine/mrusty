@@ -14,34 +14,39 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class EqMatcher
-  def initialize(_name, target)
+class BeAMatcher
+  def initialize(name, target)
+    @name = name.to_s
     @target = target
   end
 
   def match(subject)
-    fail AssertError, "#{subject} is not equal to #{@target}" if
-      subject != @target
+    article = @name.end_with?('an') ? 'an' : 'a'
+
+    fail AssertError, "#{subject} is not #{article} #{@target}" unless
+      subject.is_a? @target
   end
 
   def match_not(subject)
     @negative = true
+    article = @name.end_with?('an') ? 'an' : 'a'
 
-    fail AssertError, "#{subject} is equal to #{@target}" if
-      subject == @target
+    fail AssertError, "#{subject} is #{article} #{@target}" if
+      subject.is_a? @target
   end
 
   def describe
+    article = @name.end_with?('an') ? 'an' : 'a'
+
     if @negative
-      "to not be equal to #{@target}"
+      "to not be #{article} #{@target}"
     else
-      "to be equal to #{@target}"
+      "to be #{article} #{@target}"
     end
   end
 
   def self.match(method)
-    method == :eq ||
-      method == :eql ||
-      method == :equal
+    method == :be_a ||
+      method == :be_an
   end
 end

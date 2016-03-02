@@ -42,6 +42,8 @@ class Expect
   end
 
   def describe
+    @target = @target.inspect if @target.is_a? Exception
+
     expect = if @is
                "is expected #{@matcher.describe}"
              else

@@ -14,34 +14,35 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class EqMatcher
-  def initialize(_name, target)
-    @target = target
+class BeMatcher
+  def initialize(name)
+    @name = name.to_s[3..-1]
   end
 
   def match(subject)
-    fail AssertError, "#{subject} is not equal to #{@target}" if
-      subject != @target
+    fail AssertError, "#{subject} is not #{@name}" unless
+      subject.send (@name + '?').to_sym
   end
 
   def match_not(subject)
     @negative = true
 
-    fail AssertError, "#{subject} is equal to #{@target}" if
-      subject == @target
+    fail AssertError, "#{subject} is #{@name}" if
+      subject.send (@name + '?').to_sym
   end
 
   def describe
     if @negative
-      "to not be equal to #{@target}"
+      "to not be #{@name}"
     else
-      "to be equal to #{@target}"
+      "to be #{@name}"
     end
   end
 
   def self.match(method)
-    method == :eq ||
-      method == :eql ||
-      method == :equal
+    method = method.to_s
+
+    method[0..2] == 'be_' &&
+      method[-1] != '?'
   end
 end

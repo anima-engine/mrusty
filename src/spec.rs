@@ -79,12 +79,46 @@ impl Spec {
 
         T::require(mruby.clone());
 
-        mruby.filename("spec");
+        mruby.filename("matchers/be.rb");
+        mruby.run(include_str!("spec/matchers/be.rb")).unwrap();
 
+        mruby.filename("matchers/be_a.rb");
+        mruby.run(include_str!("spec/matchers/be_a.rb")).unwrap();
+
+        mruby.filename("matchers/compare.rb");
+        mruby.run(include_str!("spec/matchers/compare.rb")).unwrap();
+
+        mruby.filename("matchers/eq.rb");
         mruby.run(include_str!("spec/matchers/eq.rb")).unwrap();
+
+        mruby.filename("matchers/falsey.rb");
+        mruby.run(include_str!("spec/matchers/falsey.rb")).unwrap();
+
+        mruby.filename("matchers/have.rb");
+        mruby.run(include_str!("spec/matchers/have.rb")).unwrap();
+
+        mruby.filename("matchers/raise.rb");
+        mruby.run(include_str!("spec/matchers/raise.rb")).unwrap();
+
+        mruby.filename("matchers/respond.rb");
+        mruby.run(include_str!("spec/matchers/respond.rb")).unwrap();
+
+        mruby.filename("matchers/truthy.rb");
+        mruby.run(include_str!("spec/matchers/truthy.rb")).unwrap();
+
+        mruby.filename("matchers/within.rb");
+        mruby.run(include_str!("spec/matchers/within.rb")).unwrap();
+
+        mruby.filename("context.rb");
         mruby.run(include_str!("spec/context.rb")).unwrap();
+
+        mruby.filename("example.rb");
         mruby.run(include_str!("spec/example.rb")).unwrap();
+
+        mruby.filename("expect.rb");
         mruby.run(include_str!("spec/expect.rb")).unwrap();
+
+        mruby.filename("spec.rb");
         mruby.run(include_str!("spec/spec.rb")).unwrap();
 
         let name = mruby.class_name::<T>().unwrap();
@@ -105,4 +139,67 @@ impl Spec {
 
         self.mruby.run(&describe).unwrap().to_bool().unwrap()
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::*;
+
+    struct Empty;
+
+    impl MRubyFile for Empty {
+        fn require(mruby: MRubyType) {
+            mruby.def_class::<Empty>("Empty");
+        }
+    }
+
+    describe!(Empty, "
+      context Fixnum do
+        context 'when 1' do
+          subject { 1 }
+
+          it { is_expected.to eq 1 }
+          it { is_expected.not_to eq 2 }
+
+          it { is_expected.to be_a Fixnum }
+          it { is_expected.not_to be_a String }
+
+          it { is_expected.to be_within(0).of(1) }
+          it { is_expected.not_to be_within(0.0001).of(2) }
+
+          it { is_expected.to be < 2 }
+          it { is_expected.to be <= 2 }
+          it { is_expected.not_to be > 2 }
+          it { is_expected.not_to be >= 2 }
+
+          it 'is different from 2' do
+            expect(1 == 2).to be_falsey
+            expect(1 == 2).not_to be_truthy
+            expect(1 != 2).to be_truthy
+            expect(1 != 2).not_to be_falsey
+          end
+
+          it 'does not concatenate with String' do
+            expect { '' + 1 }.to raise_error TypeError, \"expected String\"
+            expect { 1 + '' }.not_to raise_error Exception
+          end
+
+          it { is_expected.to respond_to :to_s }
+          it { is_expected.not_to respond_to :to_sym }
+        end
+      end
+
+      context Hash do
+        context 'empty' do
+          it { is_expected.to be_empty }
+        end
+
+        context 'when {a: 1}' do
+          subject { {a: 1} }
+
+          it { is_expected.to have_key :a }
+          it { is_expected.not_to be_empty }
+        end
+      end
+    ");
 }

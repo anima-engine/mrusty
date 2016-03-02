@@ -15,7 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 class Example
-  MATCHERS = [EqMatcher]
+  MATCHERS = [BeAMatcher, CompareMatcher, EqMatcher, HaveMatcher, FalseyMatcher,
+              RaiseMatcher, RespondMatcher, TruthyMatcher, WithinMatcher,
+              BeMatcher]
 
   def initialize(parent, description, &block)
     @parent = parent
@@ -24,8 +26,16 @@ class Example
     @expects = []
   end
 
-  def expect(target)
-    expect = Expect.new target
+  def expect(target = nil, &block)
+    if block
+      begin
+        expect = Expect.new instance_eval(&block)
+      rescue Exception => exception
+        expect = Expect.new exception
+      end
+    else
+      expect = Expect.new target
+    end
 
     @expects << expect
 
@@ -45,10 +55,10 @@ class Example
   end
 
   def method_missing(method, *args)
-    example = MATCHERS.inject(nil) { |_a, e| e.match(method) ? e : nil }
+    matcher = MATCHERS.find { |m| m.match method }
 
-    if example
-      example.new(*args)
+    if matcher
+      matcher.new(method, *args)
     else
       super
     end

@@ -14,34 +14,37 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class EqMatcher
-  def initialize(_name, target)
+class HaveMatcher
+  def initialize(name, target)
+    @name = name.to_s[5..-1]
     @target = target
   end
 
   def match(subject)
-    fail AssertError, "#{subject} is not equal to #{@target}" if
-      subject != @target
+    fail AssertError,
+         "#{subject} does not have #{@name} #{@target}" unless
+      subject.send(('has_' + @name + '?').to_sym, @target)
   end
 
   def match_not(subject)
     @negative = true
 
-    fail AssertError, "#{subject} is equal to #{@target}" if
-      subject == @target
+    fail AssertError, "#{subject} has #{@name} #{@target}" if
+      subject.send(('has_' + @name + '?').to_sym, @target)
   end
 
   def describe
     if @negative
-      "to not be equal to #{@target}"
+      "to not not have #{@name} #{@target}"
     else
-      "to be equal to #{@target}"
+      "to have #{@name} #{@target}"
     end
   end
 
   def self.match(method)
-    method == :eq ||
-      method == :eql ||
-      method == :equal
+    method = method.to_s
+
+    method[0..4] == 'have_' &&
+      method[-1] != '?'
   end
 end

@@ -14,34 +14,29 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class EqMatcher
-  def initialize(_name, target)
-    @target = target
+class FalseyMatcher
+  def initialize(_name)
   end
 
   def match(subject)
-    fail AssertError, "#{subject} is not equal to #{@target}" if
-      subject != @target
+    fail AssertError, "#{subject} is not falsey" if subject
   end
 
   def match_not(subject)
     @negative = true
 
-    fail AssertError, "#{subject} is equal to #{@target}" if
-      subject == @target
+    fail AssertError, "#{subject} is falsey" unless subject
   end
 
   def describe
     if @negative
-      "to not be equal to #{@target}"
+      'to not be falsey'
     else
-      "to be equal to #{@target}"
+      'to be falsey'
     end
   end
 
   def self.match(method)
-    method == :eq ||
-      method == :eql ||
-      method == :equal
+    method == :be_falsey
   end
 end

@@ -14,34 +14,42 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class EqMatcher
-  def initialize(_name, target)
-    @target = target
+class CompareMatcher
+  def initialize(_name)
   end
 
   def match(subject)
-    fail AssertError, "#{subject} is not equal to #{@target}" if
-      subject != @target
+    fail AssertError, "#{subject} is not #{@name} to #{@target}" unless
+      subject.send @name, @target
   end
 
   def match_not(subject)
     @negative = true
 
-    fail AssertError, "#{subject} is equal to #{@target}" if
-      subject == @target
+    fail AssertError, "#{subject} is #{@name} to #{@target}" if
+      subject.send @name, @target
   end
 
   def describe
     if @negative
-      "to not be equal to #{@target}"
+      "to not be #{@name} to #{@target}"
     else
-      "to be equal to #{@target}"
+      "to be #{@name} to #{@target}"
+    end
+  end
+
+  def method_missing(method, *args)
+    if [:<, :<=, :>, :>=].include? method
+      @name = method
+      @target = args[0]
+
+      self
+    else
+      super
     end
   end
 
   def self.match(method)
-    method == :eq ||
-      method == :eql ||
-      method == :equal
+    method == :be
   end
 end

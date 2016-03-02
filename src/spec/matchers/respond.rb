@@ -14,34 +14,32 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class EqMatcher
+class RespondMatcher
   def initialize(_name, target)
     @target = target
   end
 
   def match(subject)
-    fail AssertError, "#{subject} is not equal to #{@target}" if
-      subject != @target
+    fail AssertError, "#{subject} does not respond to #{@target}" unless
+      subject.respond_to? @target
   end
 
   def match_not(subject)
     @negative = true
 
-    fail AssertError, "#{subject} is equal to #{@target}" if
-      subject == @target
+    fail AssertError, "#{subject} responds to #{@target}" if
+      subject.respond_to? @target
   end
 
   def describe
     if @negative
-      "to not be equal to #{@target}"
+      "to not respond to #{@target}"
     else
-      "to be equal to #{@target}"
+      "to respond to #{@target}"
     end
   end
 
   def self.match(method)
-    method == :eq ||
-      method == :eql ||
-      method == :equal
+    method == :respond_to
   end
 end

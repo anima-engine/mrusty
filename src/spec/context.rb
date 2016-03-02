@@ -30,10 +30,10 @@ class Context
       if @subject
         @subject
       else
-        if @parent
-          @parent.subject
+        if @target.is_a? Class
+          @target.new
         else
-          target.new
+          @parent.subject
         end
       end
     end
@@ -91,7 +91,7 @@ class Context
         return false
       end
 
-      puts
+      puts "\n#{tests.size} ok, 0 failed, 0 errors.\n\n"
 
       true
     else
