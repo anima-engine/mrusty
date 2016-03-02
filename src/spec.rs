@@ -36,22 +36,20 @@ use std::any::Any;
 /// }
 ///
 /// describe!(Cont, "
-///     describe Class do
-///       context 'when 1' do
-///         subject { 1 }
+///   context 'when 1' do
+///     subject { 1 }
 ///
-///         it { is_expected.to eql 1 }
-///       end
+///     it { is_expected.to eql 1 }
+///   end
 ///
-///       context 'when 1' do
-///         subject { 1 }
-///         let(:one) { 1 }
+///   context 'when 1' do
+///     subject { 1 }
+///     let(:one) { 1 }
 ///
-///         it 'won\\'t' do
-///           expect(1).to eql one
-///         end
-///       end
+///     it 'won\\'t' do
+///       expect(1).to eql one
 ///     end
+///   end
 /// ");
 /// # }
 /// ```
