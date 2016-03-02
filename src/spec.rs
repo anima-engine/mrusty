@@ -72,12 +72,12 @@ macro_rules! describe {
 /// Available matchers:
 ///
 /// * `be_a`, `be_an` - type testing
-/// * `be_<somehow>` - test boolean-returning <name>? methods
+/// * `be_<somehow>` - test boolean-returning `<name>?` methods
 /// * `be <`, `be <=`, `be >`, `be >=` - test relation
 /// * `be_eq`, `be_eql`, `be_equal` - test equality
 /// * `be_falsey` - test falsey things
 /// * `be_truthy` - test truthy things
-/// * `have_<something>` - test boolean-returning has_<name>? methods
+/// * `have_<something>` - test boolean-returning `has_<name>?` methods
 /// * `raise_error` - test errors
 /// * `respond_to` - test method responding
 /// * `be_within(value).of` - test value
