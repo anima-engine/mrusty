@@ -265,26 +265,27 @@ mod tests {
       context Fixnum do
         context 'when 1' do
           subject { 1 }
+          let(:two) { 2 }
 
           it { is_expected.to eq 1 }
-          it { is_expected.not_to eq 2 }
+          it { is_expected.not_to eq two }
 
           it { is_expected.to be_an Integer }
           it { is_expected.not_to be_a String }
 
           it { is_expected.to be_within(0).of(1) }
-          it { is_expected.not_to be_within(0.0001).of(2) }
+          it { is_expected.not_to be_within(0.0001).of(two) }
 
-          it { is_expected.to be < 2 }
-          it { is_expected.to be <= 2 }
-          it { is_expected.not_to be > 2 }
-          it { is_expected.not_to be >= 2 }
+          it { is_expected.to be < two }
+          it { is_expected.to be <= two }
+          it { is_expected.not_to be > two }
+          it { is_expected.not_to be >= two }
 
           it 'is different from 2' do
-            expect(1 == 2).to be_falsey
-            expect(1 == 2).not_to be_truthy
-            expect(1 != 2).to be_truthy
-            expect(1 != 2).not_to be_falsey
+            expect(1 == two).to be_falsey
+            expect(1 == two).not_to be_truthy
+            expect(1 != two).to be_truthy
+            expect(1 != two).not_to be_falsey
           end
 
           it 'does not concatenate with String' do
