@@ -16,7 +16,6 @@
 
 use std::any::Any;
 use std::ffi::CStr;
-use std::ffi::CString;
 use std::mem;
 use std::os::raw::c_char;
 use std::rc::Rc;
@@ -73,7 +72,7 @@ impl MRValue {
 
     #[inline]
     pub unsafe fn string(mrb: *const MRState, value: &str) -> MRValue {
-        mrb_str_new_cstr(mrb, CString::new(value).unwrap().as_ptr())
+        mrb_str_new(mrb, value.as_ptr(), value.len())
     }
 
     #[inline]
@@ -219,8 +218,8 @@ extern "C" {
     pub fn mrbc_filename(mrb: *const MRState, context: *const MRContext,
                          filename: *const c_char) -> *const c_char;
 
-    pub fn mrb_load_string_cxt(mrb: *const MRState, code: *const c_char,
-                               context: *const MRContext) -> MRValue;
+    pub fn mrb_load_nstring_cxt(mrb: *const MRState, code: *const u8, len: i32,
+                                context: *const MRContext) -> MRValue;
     pub fn mrb_load_irep_cxt(mrb: *const MRState, code: *const u8,
                              context: *const MRContext) -> MRValue;
 
@@ -240,7 +239,7 @@ extern "C" {
     pub fn mrb_get_args(mrb: *const MRState, format: *const c_char, ...);
     pub fn mrb_ext_get_mid(mrb: *const MRState) -> u32;
 
-    pub fn mrb_intern_cstr(mrb: *const MRState, string: *const c_char) -> u32;
+    pub fn mrb_intern(mrb: *const MRState, string: *const u8, len: usize) -> u32;
 
     pub fn mrb_funcall_argv(mrb: *const MRState, object: MRValue, sym: u32, argc: i32,
                             argv: *const MRValue) -> MRValue;
@@ -261,7 +260,7 @@ extern "C" {
     #[inline]
     pub fn mrb_ext_cdouble_to_float(mrb: *const MRState, value: f64) -> MRValue;
     #[inline]
-    pub fn mrb_str_new_cstr(mrb: *const MRState, value: *const c_char) -> MRValue;
+    pub fn mrb_str_new(mrb: *const MRState, value: *const u8, len: usize) -> MRValue;
 
     #[inline]
     pub fn mrb_str_to_cstr(mrb: *const MRState, value: MRValue) -> *const c_char;

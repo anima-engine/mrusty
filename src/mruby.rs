@@ -903,7 +903,7 @@ impl MRubyImpl for MRubyType {
                 (borrow.mrb, borrow.ctx)
             };
 
-            let value = mrb_load_string_cxt(mrb, CString::new(script).unwrap().as_ptr(), ctx);
+            let value = mrb_load_nstring_cxt(mrb, script.as_ptr(), script.len() as i32, ctx);
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {
@@ -1020,8 +1020,7 @@ impl MRubyImpl for MRubyType {
                              method: F) where F: Fn(MRubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
-                let c_name = CString::new(name.clone()).unwrap().as_ptr();
-                mrb_intern_cstr(self.borrow().mrb, c_name)
+                mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
             };
 
             let mut borrow = self.borrow_mut();
@@ -1082,8 +1081,7 @@ impl MRubyImpl for MRubyType {
         where F: Fn(MRubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
-                let c_name = CString::new(name.clone()).unwrap().as_ptr();
-                mrb_intern_cstr(self.borrow().mrb, c_name)
+                mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
             };
 
             let mut borrow = self.borrow_mut();
@@ -1331,8 +1329,7 @@ impl Value {
     /// ```
     pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, MRubyError> {
         unsafe {
-            let c_name = CString::new(name).unwrap().as_ptr();
-            let sym = mrb_intern_cstr(self.mruby.borrow().mrb, c_name);
+            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
 
             let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
 
@@ -1365,8 +1362,7 @@ impl Value {
     /// ```
     pub fn call_unchecked(&self, name: &str, args: Vec<Value>) -> Value {
         unsafe {
-            let c_name = CString::new(name).unwrap().as_ptr();
-            let sym = mrb_intern_cstr(self.mruby.borrow().mrb, c_name);
+            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
 
             let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
 

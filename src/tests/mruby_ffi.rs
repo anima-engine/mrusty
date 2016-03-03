@@ -53,9 +53,9 @@ fn exec_context() {
 
         mrbc_filename(mrb, context, CString::new("script.rb").unwrap().as_ptr());
 
-        let code = CString::new("'' + 0").unwrap().as_ptr();
+        let code = "'' + 0";
 
-        mrb_load_string_cxt(mrb, code, context);
+        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32,  context);
 
         assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(),
                    "script.rb:1: expected String (TypeError)");
@@ -102,9 +102,9 @@ fn define_method() {
 
         mrb_define_method(mrb, new_class, CString::new("job").unwrap().as_ptr(), job, 0);
 
-        let code = CString::new("Mine.new.job").unwrap().as_ptr();
+        let code = "Mine.new.job";
 
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context).to_i32().unwrap(), 2);
 
         mrb_close(mrb);
     }
@@ -127,9 +127,10 @@ fn define_class_method() {
 
         mrb_define_class_method(mrb, new_class, CString::new("job").unwrap().as_ptr(), job, 0);
 
-        let code = CString::new("Mine.job").unwrap().as_ptr();
+        let code = "Mine.job";
 
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 2);
 
         mrb_close(mrb);
     }
@@ -151,9 +152,10 @@ fn define_module_function() {
 
         mrb_define_module_function(mrb, kernel_mod, CString::new("hi").unwrap().as_ptr(), hi, 0);
 
-        let code = CString::new("hi").unwrap().as_ptr();
+        let code = "hi";
 
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_str(mrb).unwrap(), "hi");
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_str(mrb).unwrap(), "hi");
 
         mrb_close(mrb);
     }
@@ -178,9 +180,9 @@ fn raise_exc() {
 
         mrb_define_class_method(mrb, new_class, CString::new("job").unwrap().as_ptr(), job, 0);
 
-        let code = CString::new("Mine.job").unwrap().as_ptr();
+        let code = "Mine.job";
 
-        mrb_load_string_cxt(mrb, code, context);
+        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
 
         assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(), "RuntimeError: excepting");
 
@@ -205,7 +207,7 @@ pub fn args() {
                              &b as *const MRValue);
 
                 let args = &[b];
-                let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+                let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
 
                 mrb_funcall_argv(mrb, a, sym, 1, args.as_ptr())
             }
@@ -217,9 +219,10 @@ pub fn args() {
         mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
                           (2 & 0x1f) << 18);
 
-        let code = CString::new("Mine.new.add 1, 1").unwrap().as_ptr();
+        let code = "Mine.new.add 1, 1";
 
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 2);
 
         mrb_close(mrb);
     }
@@ -247,7 +250,7 @@ pub fn str_args() {
                 let b = CStr::from_ptr(b).to_str().unwrap();
 
                 let args = &[MRValue::string(mrb, b)];
-                let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+                let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
 
                 mrb_funcall_argv(mrb, MRValue::string(mrb, a), sym, 1, args.as_ptr())
             }
@@ -259,9 +262,10 @@ pub fn str_args() {
         mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
                           (2 & 0x1f) << 18);
 
-        let code = CString::new("Mine.new.add 'a', 'b'").unwrap().as_ptr();
+        let code = "Mine.new.add 'a', 'b'";
 
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_str(mrb).unwrap(), "ab");
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_str(mrb).unwrap(), "ab");
 
         mrb_close(mrb);
     }
@@ -284,7 +288,7 @@ pub fn array_args() {
                 let vec = array.to_vec(mrb).unwrap();
 
                 let args = &[vec[1]];
-                let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+                let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
 
                 mrb_funcall_argv(mrb, vec[0], sym, 1, args.as_ptr())
             }
@@ -296,9 +300,10 @@ pub fn array_args() {
         mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
                           (2 & 0x1f) << 18);
 
-        let code = CString::new("Mine.new.add [1, 1]").unwrap().as_ptr();
+        let code = "Mine.new.add [1, 1]";
 
-        assert_eq!(mrb_load_string_cxt(mrb, code, context).to_i32().unwrap(), 2);
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 2);
 
         mrb_close(mrb);
     }
@@ -312,7 +317,7 @@ fn funcall_argv() {
         let one = MRValue::fixnum(1);
         let args = &[MRValue::fixnum(2)];
 
-        let sym = mrb_intern_cstr(mrb, CString::new("+").unwrap().as_ptr());
+        let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
 
         let result = mrb_funcall_argv(mrb, one, sym, 1, args.as_ptr());
 
@@ -331,7 +336,7 @@ fn nil() {
 
         let args: &[MRValue] = &[];
 
-        let sym = mrb_intern_cstr(mrb, CString::new("to_s").unwrap().as_ptr());
+        let sym = mrb_intern(mrb, "to_s".as_ptr(), 4usize);
 
         let result = mrb_funcall_argv(mrb, nil, sym, 0, args.as_ptr());
 
@@ -482,8 +487,9 @@ fn obj_init() {
         mrb_define_method(mrb, cont_class, CString::new("value").unwrap().as_ptr(), value,
                           1 << 12);
 
-        let code = CString::new("Cont.new.value").unwrap().as_ptr();
-        let val = mrb_load_string_cxt(mrb, code, context).to_i32().unwrap();
+        let code = "Cont.new.value";
+        let val = mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                  .to_i32().unwrap();
 
         assert_eq!(val, 3);
 
