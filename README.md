@@ -6,7 +6,8 @@
 (https://coveralls.io/github/anima-engine/mrusty?branch=master)
 
 mrusty lets you reflect Rust `struct`s and `enum`s in mruby and run them.
-It does this in a safely neat way while also bringing a REPL to the table.
+It does this in a safely neat way while also bringing spec testing and a REPL
+to the table.
 
 
 ## Requirements
