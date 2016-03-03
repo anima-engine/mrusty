@@ -19,7 +19,7 @@ use std::ffi::CString;
 use super::*;
 
 #[test]
-fn test_open_close() {
+fn open_close() {
     unsafe {
         let mrb = mrb_open();
 
@@ -28,7 +28,7 @@ fn test_open_close() {
 }
 
 #[test]
-fn test_ud() {
+fn ud() {
     use std::mem;
 
     unsafe {
@@ -46,7 +46,7 @@ fn test_ud() {
 }
 
 #[test]
-fn test_exec_context() {
+fn exec_context() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -65,7 +65,7 @@ fn test_exec_context() {
 }
 
 #[test]
-fn test_exec_bin_context() {
+fn exec_bin_context() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -86,7 +86,7 @@ fn test_exec_bin_context() {
 }
 
 #[test]
-fn test_define_method() {
+fn define_method() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -111,7 +111,7 @@ fn test_define_method() {
 }
 
 #[test]
-fn test_define_class_method() {
+fn define_class_method() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -136,7 +136,7 @@ fn test_define_class_method() {
 }
 
 #[test]
-fn test_define_module_function() {
+fn define_module_function() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -160,7 +160,7 @@ fn test_define_module_function() {
 }
 
 #[test]
-fn test_raise_exc() {
+fn raise_exc() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
@@ -189,7 +189,7 @@ fn test_raise_exc() {
 }
 
 #[test]
-pub fn test_args() {
+pub fn args() {
     use std::mem::uninitialized;
 
     unsafe {
@@ -226,7 +226,7 @@ pub fn test_args() {
 }
 
 #[test]
-pub fn test_str_args() {
+pub fn str_args() {
     use std::ffi::CStr;
     use std::mem::uninitialized;
     use std::os::raw::c_char;
@@ -268,7 +268,7 @@ pub fn test_str_args() {
 }
 
 #[test]
-pub fn test_array_args() {
+pub fn array_args() {
     use std::mem::uninitialized;
 
     unsafe {
@@ -305,7 +305,7 @@ pub fn test_array_args() {
 }
 
 #[test]
-fn test_funcall_argv() {
+fn funcall_argv() {
     unsafe {
         let mrb = mrb_open();
 
@@ -323,7 +323,7 @@ fn test_funcall_argv() {
 }
 
 #[test]
-fn test_nil() {
+fn nil() {
     unsafe {
         let mrb = mrb_open();
 
@@ -342,7 +342,7 @@ fn test_nil() {
 }
 
 #[test]
-fn test_bool_true() {
+fn bool_true() {
     unsafe {
         let bool_true = MRValue::bool(true);
         assert_eq!(bool_true.to_bool().unwrap(), true);
@@ -350,7 +350,7 @@ fn test_bool_true() {
 }
 
 #[test]
-fn test_bool_false() {
+fn bool_false() {
     unsafe {
         let bool_false = MRValue::bool(false);
         assert_eq!(bool_false.to_bool().unwrap(), false);
@@ -358,7 +358,7 @@ fn test_bool_false() {
 }
 
 #[test]
-fn test_fixnum() {
+fn fixnum() {
     unsafe {
         let number = MRValue::fixnum(-1291657);
         assert_eq!(number.to_i32().unwrap(), -1291657);
@@ -366,7 +366,7 @@ fn test_fixnum() {
 }
 
 #[test]
-fn test_float() {
+fn float() {
     unsafe {
         let mrb = mrb_open();
 
@@ -378,7 +378,7 @@ fn test_float() {
 }
 
 #[test]
-fn test_string() {
+fn string() {
     unsafe {
         let mrb = mrb_open();
 
@@ -390,7 +390,7 @@ fn test_string() {
 }
 
 #[test]
-fn test_obj() {
+fn obj() {
     use std::mem;
     use std::rc::Rc;
 
@@ -425,7 +425,7 @@ fn test_obj() {
 }
 
 #[test]
-fn test_obj_init() {
+fn obj_init() {
     use std::mem;
     use std::rc::Rc;
 
@@ -492,7 +492,7 @@ fn test_obj_init() {
 }
 
 #[test]
-fn test_obj_scoping() {
+fn obj_scoping() {
     use std::mem;
     use std::rc::Rc;
 
@@ -550,7 +550,7 @@ fn test_obj_scoping() {
 }
 
 #[test]
-fn test_array() {
+fn array() {
     unsafe {
         let mrb = mrb_open();
 

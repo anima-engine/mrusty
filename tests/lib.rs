@@ -25,7 +25,7 @@ use api::Scalar;
 use api::Vector;
 
 #[test]
-fn test_api_init() {
+fn api_init() {
     let mruby = MRuby::new();
 
     Scalar::require(mruby.clone());
@@ -39,7 +39,7 @@ fn test_api_init() {
 }
 
 #[test]
-fn test_api_getters() {
+fn api_getters() {
     let mruby = MRuby::new();
 
     Scalar::require(mruby.clone());
@@ -56,7 +56,7 @@ fn test_api_getters() {
 }
 
 #[test]
-fn test_api_mul() {
+fn api_mul() {
     let mruby = MRuby::new();
 
     Scalar::require(mruby.clone());
@@ -68,7 +68,7 @@ fn test_api_mul() {
 }
 
 #[test]
-fn test_api_array() {
+fn api_array() {
     let mruby = MRuby::new();
 
     Scalar::require(mruby.clone());
@@ -80,7 +80,7 @@ fn test_api_array() {
 }
 
 #[test]
-fn test_api_vec() {
+fn api_vec() {
     let mruby = MRuby::new();
 
     Scalar::require(mruby.clone());
@@ -92,7 +92,7 @@ fn test_api_vec() {
 }
 
 #[test]
-fn test_api_require() {
+fn api_require() {
     let mruby = MRuby::new();
 
     mruby.def_file::<Vector>("math");
@@ -107,7 +107,7 @@ fn test_api_require() {
 }
 
 #[test]
-fn test_api_require_file() {
+fn api_require_file() {
     use std::fs::File;
     use std::io::Write;
 
@@ -125,7 +125,7 @@ fn test_api_require_file() {
 }
 
 #[test]
-fn test_api_dup() {
+fn api_dup() {
     static mut DROPPED: bool = false;
 
     struct Cont {
