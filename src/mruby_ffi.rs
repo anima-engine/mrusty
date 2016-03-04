@@ -28,7 +28,7 @@ pub enum MRContext {}
 pub enum MRClass {}
 pub enum MRData {}
 
-type MRFunc = extern "C" fn(*const MRState, MRValue) -> MRValue;
+pub type MRFunc = extern "C" fn(*const MRState, MRValue) -> MRValue;
 
 #[repr(C)]
 pub struct MRDataType {
