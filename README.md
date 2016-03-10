@@ -19,13 +19,17 @@ mrusty requires mruby compiled with `-fPIC`. To compile and install mruby 1.2.0:
 - download the [source](https://github.com/mruby/mruby/archive/1.2.0.zip)
 - unzip and `cd` to `mruby-1.2.0/`
 - add the following lines to `build_config.rb` as in the `# C compiler settings`
-example:
+example (make sure you add it after the comment):
 ```ruby
 conf.cc do |cc|
-    cc.flags << '-fPIC'
+  cc.flags << '-fPIC'
 end
 ```
 - run `./minirake`
+- copy header files from `include` to `/usr/loca/include`
+- copy `build/host/lib/libmruby.a` to `/usr/local/lib`
+
+*Note:* On OSX you can install it from homebrew with `brew install mruby`.
 
 ## [Documentation](http://anima-engine.github.io/mrusty/)
 
