@@ -21,8 +21,7 @@ use mrusty::*;
 
 mod api;
 
-use api::Scalar;
-use api::Vector;
+use api::{Scalar, Vector};
 
 #[test]
 fn api_init() {
