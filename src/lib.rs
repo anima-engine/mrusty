@@ -38,14 +38,14 @@
 //!
 //! *Note:* On OSX you can install it from homebrew with `brew install mruby`.
 
-#[cfg(feature = "repl")]
+#[cfg(feature = "gnu-readline")]
 extern crate rl_sys;
 
 mod mruby;
 mod mruby_ffi;
+mod read_line;
 mod spec;
 
-#[cfg(feature = "repl")]
 mod repl;
 
 /// Not meant to be called directly.
@@ -61,7 +61,9 @@ pub use mruby::MRubyFile;
 pub use mruby::MRubyImpl;
 pub use mruby::MRubyType;
 pub use mruby::Value;
+pub use read_line::ReadLine;
+pub use repl::Repl;
 pub use spec::Spec;
 
-#[cfg(feature = "repl")]
-pub use repl::Repl;
+#[cfg(feature = "gnu-readline")]
+pub use read_line::GnuReadLine;

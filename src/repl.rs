@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use rl_sys::readline;
-use rl_sys::history::{listmgmt, mgmt};
+use std::fmt::Display;
 
 use super::mruby::*;
+use super::read_line::ReadLine;
 
 /// A `struct` that exposes an `MRuby` to a REPL. Requires `repl` build feature.
 ///
@@ -29,7 +29,6 @@ use super::mruby::*;
 ///
 /// repl.start();
 /// ```
-#[cfg(feature = "repl")]
 pub struct Repl {
     mruby: MRubyType,
     name: String
@@ -81,7 +80,7 @@ impl Repl {
     ///
     /// repl.start();
     /// ```
-    pub fn start(&self) {
+    pub fn start<E: Display>(&self, read_line: &ReadLine<E>) {
         let mut command = String::new();
 
         let single = self.name.clone() + "> ";
@@ -96,7 +95,7 @@ impl Repl {
                 &multi
             };
 
-            let input = match readline::readline(head) {
+            let input = match read_line.read(head) {
                 Ok(Some(s)) => s,
                 Ok(None) => break,
                 Err(e) => {
@@ -110,11 +109,11 @@ impl Repl {
                 let trimmed = input.trim_right_matches("\\");
 
                 command = command + trimmed + "\n";
-                listmgmt::add(&trimmed).unwrap();
+                read_line.add(&trimmed);
 
                 continue
             } else {
-                listmgmt::add(&input).unwrap();
+                read_line.add(&input);
             }
 
             if command == "" {
@@ -138,8 +137,6 @@ impl Repl {
                 command = String::new();
             }
         }
-
-        mgmt::cleanup();
 
         println!("");
     }
