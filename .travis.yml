@@ -18,7 +18,7 @@ cache:
     - $HOME/.cargo
 before_install: ./.travis/before_install_$TRAVIS_OS_NAME.sh
 script:
-  - cargo test
+  - cargo test --features gnu-readline
 after_success: |
   if [[ $TRAVIS_OS_NAME =~ linux ]]; then
     ./.travis/after_success.sh
