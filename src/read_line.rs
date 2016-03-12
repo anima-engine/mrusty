@@ -33,6 +33,7 @@ pub trait ReadLine<Error: Display> {
 }
 
 /// A `struct` that implements `ReadLine` with very basic gnureadline functionality.
+///  Requires `gnu-readline` build feature.
 #[cfg(feature = "gnu-readline")]
 pub struct GnuReadLine;
 

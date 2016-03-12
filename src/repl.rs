@@ -19,7 +19,7 @@ use std::fmt::Display;
 use super::mruby::*;
 use super::read_line::ReadLine;
 
-/// A `struct` that exposes an `MRuby` to a REPL. Requires `repl` build feature.
+/// A `struct` that exposes an `MRuby` to a REPL.
 ///
 /// # Examples
 ///
@@ -78,7 +78,7 @@ impl Repl {
     /// let mruby = MRuby::new();
     /// let repl = Repl::new(mruby);
     ///
-    /// repl.start();
+    /// repl.start(&GnuReadLine);
     /// ```
     pub fn start<E: Display>(&self, read_line: &ReadLine<E>) {
         let mut command = String::new();
