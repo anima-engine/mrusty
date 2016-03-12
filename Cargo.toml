@@ -13,7 +13,7 @@ license = "LGPL-3.0"
 gcc = "0.3.22"
 
 [features]
-repl = ["rl-sys"]
+gnu-readline = ["rl-sys"]
 
 [dependencies]
 rl-sys = { version = "0.4.1", optional = true }
