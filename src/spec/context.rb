@@ -76,7 +76,7 @@ class Context
       puts
       puts describe depth
 
-      failures = tests.compact
+      failures = tests.select { |t| t.is_a? Exception }
 
       unless failures.empty?
         puts "\nFAILURES:\n\n"

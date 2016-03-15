@@ -267,6 +267,10 @@ mod tests {
           subject { 1 }
           let(:two) { 2 }
 
+          it 'does irrelevant things' do
+            a = 2
+          end
+
           it { is_expected.to eq 1 }
           it { is_expected.not_to eq two }
 
