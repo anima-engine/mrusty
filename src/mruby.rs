@@ -94,6 +94,9 @@ macro_rules! conv {
     ( $mruby:expr, $name:ident, Vec )     => {
         let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
     };
+    ( $mruby:expr, $name:ident, Value )   => {
+        let $name = Value::new($mruby.clone(), $name);
+    };
     ( $mruby:expr, $name:ident, $t:ty )   => {
         let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
     };
