@@ -538,6 +538,47 @@ pub trait MRubyImpl {
     #[inline]
     fn run(&self, script: &str) -> Result<Value, MRubyError>;
 
+    /// Runs mruby `script` on a state and context and returns a `Value`. If an mruby Exception is
+    /// raised, mruby will be left to handle it.
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    /// let result = mruby.run_unchecked("true");
+    ///
+    /// assert_eq!(result.to_bool().unwrap(), true);
+    /// ```
+    ///
+    /// ```
+    /// # #[macro_use] extern crate mrusty;
+    /// use mrusty::*;
+    ///
+    /// # fn main() {
+    /// let mruby = MRuby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_class_method::<Cont, _>("raise", mrfn!(|mruby, _slf: Value| {
+    ///     mruby.run_unchecked("fail 'surprize'")
+    /// }));
+    ///
+    /// let result = mruby.run("
+    ///   begin
+    ///     Container.raise
+    ///   rescue => e
+    ///     e.message
+    ///   end
+    /// ").unwrap();
+    ///
+    /// assert_eq!(result.to_str().unwrap(), "surprize");
+    /// # }
+    /// ```
+    #[inline]
+    fn run_unchecked(&self, script: &str) -> Value;
+
     /// Runs mruby compiled (.mrb) `script` on a state and context and returns a `Value` in an `Ok`
     /// or an `Err` containing an mruby `Exception`'s message.
     ///
@@ -917,6 +958,21 @@ impl MRubyImpl for MRubyType {
                 },
                 _ => Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
             }
+        }
+    }
+
+    #[inline]
+    fn run_unchecked(&self, script: &str) -> Value {
+        unsafe {
+            let (mrb, ctx) = {
+                let borrow = self.borrow();
+
+                (borrow.mrb, borrow.ctx)
+            };
+
+            let value = mrb_load_nstring_cxt(mrb, script.as_ptr(), script.len() as i32, ctx);
+
+            Value::new(self.clone(), value)
         }
     }
 
