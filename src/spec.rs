@@ -16,9 +16,8 @@
 
 use super::mruby::*;
 
-use std::any::Any;
-
-/// A `macro` useful to run mruby specs.
+/// A `macro` useful to run mruby specs. You can pass a tuple of `MRubyFile`s dependencies
+/// as a second argument.
 ///
 /// # Examples
 ///
@@ -35,7 +34,7 @@ use std::any::Any;
 ///     }
 /// }
 ///
-/// describe!(Cont, "
+/// describe!(Cont, (Cont, Cont), "
 ///   context 'when 1' do
 ///     subject { 1 }
 ///
@@ -55,10 +54,32 @@ use std::any::Any;
 /// ```
 #[macro_export]
 macro_rules! describe {
-    ( $t:ty, $spec:expr ) => {
+    ( $t:ident, $spec:expr ) => {
         #[test]
         fn spec() {
-            let spec = Spec::new::<$t>($spec);
+            let mruby = MRuby::new();
+
+            $t::require(mruby.clone());
+
+            let name = mruby.class_name::<$t>().unwrap();
+
+            let spec = Spec::new(mruby, &name, $spec);
+
+            assert!(spec.run());
+        }
+    };
+
+    ( $t:ident, ( $( $ts:ident ),+ ), $spec:expr ) => {
+        #[test]
+        fn spec() {
+            let mruby = MRuby::new();
+
+            $t::require(mruby.clone());
+            $( $ts::require(mruby.clone()); )*
+
+            let name = mruby.class_name::<$t>().unwrap();
+
+            let spec = Spec::new(mruby, &name, $spec);
 
             assert!(spec.run());
         }
@@ -92,7 +113,10 @@ macro_rules! describe {
 ///     }
 /// }
 ///
-/// let spec = Spec::new::<Cont>("
+/// let mruby = MRuby::new();
+/// Cont::require(mruby.clone());
+///
+/// let spec = Spec::new(mruby, "Container", "
 ///     context 'when 1' do
 ///       subject { 1 }
 ///
@@ -132,7 +156,10 @@ impl Spec {
     ///     }
     /// }
     ///
-    /// Spec::new::<Cont>("
+    /// let mruby = MRuby::new();
+    /// Cont::require(mruby.clone());
+    ///
+    /// let spec = Spec::new(mruby, "Container", "
     ///     context 'when 1' do
     ///       subject { 1 }
     ///
@@ -149,11 +176,7 @@ impl Spec {
     ///     end
     /// ");
     /// ```
-    pub fn new<T: MRubyFile + Any>(script: &str) -> Spec {
-        let mruby = MRuby::new();
-
-        T::require(mruby.clone());
-
+    pub fn new(mruby: MRubyType, name: &str, script: &str) -> Spec {
         mruby.filename("matchers/be.rb");
         mruby.run(include_str!("spec/matchers/be.rb")).unwrap();
 
@@ -196,11 +219,9 @@ impl Spec {
         mruby.filename("spec.rb");
         mruby.run(include_str!("spec/spec.rb")).unwrap();
 
-        let name = mruby.class_name::<T>().unwrap();
-
         Spec {
             script: script.to_string(),
-            target: name,
+            target: name.to_string(),
             mruby: mruby
         }
     }
@@ -219,7 +240,10 @@ impl Spec {
     ///     }
     /// }
     ///
-    /// let spec = Spec::new::<Cont>("
+    /// let mruby = MRuby::new();
+    /// Cont::require(mruby.clone());
+    ///
+    /// let spec = Spec::new(mruby, "Container", "
     ///     context 'when 1' do
     ///       subject { 1 }
     ///
