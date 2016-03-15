@@ -352,7 +352,9 @@ impl MRuby {
                                     }
 
                                     match result {
-                                        Err(err) => mruby.raise(&format!("{}", err)),
+                                        Err(err) => {
+                                            mruby.raise(&format!("{}", err));
+                                        }
                                         _ => ()
                                     }
 
@@ -590,7 +592,7 @@ pub trait MRubyImpl {
     /// # }
     /// ```
     #[inline]
-    fn raise(&self, message: &str);
+    fn raise(&self, message: &str) -> Value;
 
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
     /// `MRubyFile`-inherited `require` method.
@@ -969,9 +971,11 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
-    fn raise(&self, message: &str) {
+    fn raise(&self, message: &str) -> Value {
         unsafe {
             mrb_ext_raise(self.borrow().mrb, CString::new(message).unwrap().as_ptr());
+
+            self.nil()
         }
     }
 
