@@ -112,6 +112,6 @@ mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
   }
 }
 
-mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* msg) {
-  mrb_raise(mrb, E_RUNTIME_ERROR, msg);
+mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass, const char* msg) {
+  mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
 }

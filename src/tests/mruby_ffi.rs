@@ -172,7 +172,8 @@ fn raise_exc() {
 
         extern "C" fn job(mrb: *const MRState, _slf: MRValue) -> MRValue {
             unsafe {
-                mrb_ext_raise(mrb, CString::new("excepting").unwrap().as_ptr());
+                mrb_ext_raise(mrb, CString::new("RuntimeError").unwrap().as_ptr(),
+                              CString::new("excepting").unwrap().as_ptr());
 
                 MRValue::nil()
             }

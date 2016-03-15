@@ -290,7 +290,7 @@ extern "C" {
     pub fn mrb_ext_ary_len(mrb: *const MRState, array: MRValue) -> i32;
 
     #[inline]
-    pub fn mrb_ext_raise(mrb: *const MRState, msg: *const c_char);
+    pub fn mrb_ext_raise(mrb: *const MRState, eclass: *const c_char, msg: *const c_char);
     #[inline]
     pub fn mrb_ext_get_exc(mrb: *const MRState) -> MRValue;
 }

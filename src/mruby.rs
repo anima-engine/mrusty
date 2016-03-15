@@ -353,7 +353,7 @@ impl MRuby {
 
                                     match result {
                                         Err(err) => {
-                                            mruby.raise(&format!("{}", err));
+                                            mruby.raise("RuntimeError", &format!("{}", err));
                                         }
                                         _ => ()
                                     }
@@ -374,7 +374,8 @@ impl MRuby {
                                 } else if path.is_file() {
                                     execute(path, name.to_string(), filename)
                                 } else {
-                                    mruby.raise(&format!("cannot load {}.rb or {}.mrb",
+                                    mruby.raise("RuntimeError",
+                                                &format!("cannot load {}.rb or {}.mrb",
                                                          name, name));
 
                                     mruby.nil()
@@ -561,7 +562,7 @@ pub trait MRubyImpl {
     #[inline]
     fn execute(&self, script: &Path) -> Result<Value, MRubyError>;
 
-    /// Raises an mruby `RuntimeError` with `message` message.
+    /// Raises an mruby `RuntimeError` with `message` message and `eclass` mruby Exception Class.
     ///
     /// # Examples
     ///
@@ -576,7 +577,7 @@ pub trait MRubyImpl {
     ///
     /// mruby.def_class::<Cont>("Container");
     /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value| {
-    ///     mruby.raise("hi");
+    ///     mruby.raise("RuntimeError", "hi");
     ///
     ///     mruby.nil()
     /// }));
@@ -592,7 +593,7 @@ pub trait MRubyImpl {
     /// # }
     /// ```
     #[inline]
-    fn raise(&self, message: &str) -> Value;
+    fn raise(&self, eclass: &str, message: &str) -> Value;
 
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
     /// `MRubyFile`-inherited `require` method.
@@ -971,9 +972,10 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
-    fn raise(&self, message: &str) -> Value {
+    fn raise(&self, eclass: &str, message: &str) -> Value {
         unsafe {
-            mrb_ext_raise(self.borrow().mrb, CString::new(message).unwrap().as_ptr());
+            mrb_ext_raise(self.borrow().mrb, CString::new(eclass).unwrap().as_ptr(),
+                          CString::new(message).unwrap().as_ptr());
 
             self.nil()
         }
