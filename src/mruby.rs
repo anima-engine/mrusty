@@ -1524,6 +1524,24 @@ impl Value {
         }
     }
 
+    /// Returns the name of the mruby `Class` as a `&str`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::MRuby;
+    /// # use mrusty::MRubyImpl;
+    /// let mruby = MRuby::new();
+    ///
+    /// let one = mruby.run("1").unwrap();
+    /// assert_eq!(one.type_name(), "Fixnum");
+    /// ```
+    pub fn type_name(&self) -> &str {
+        let string = self.call_unchecked("class", vec![]).call_unchecked("to_s", vec![]);
+
+        string.to_str().unwrap()
+    }
+
     /// Casts a `Value` and returns a `bool` in an `Ok` or an `Err` if the types mismatch.
     ///
     /// # Example
