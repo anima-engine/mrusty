@@ -83,6 +83,40 @@ macro_rules! args {
 /// Not meant to be called directly.
 #[doc(hidden)]
 #[macro_export]
+macro_rules! args_rest {
+    ( $mruby:expr, $sig:expr, $name:ident : $t:tt) => {
+        {
+            let mrb = $mruby.borrow().mrb;
+
+            let args = uninitialized::<*mut MRValue>();
+            let count = uninitialized::<i32>();
+
+            mrb_get_args(mrb, $sig, args!($name, $t), &args as *const *mut MRValue,
+                         &count as *const i32);
+
+            let args = Vec::from_raw_parts(args, count as usize, count as usize);
+            args.iter().map(|arg| { Value::new($mruby.clone(), *arg) }).collect::<Vec<_>>()
+         }
+    };
+    ( $mruby:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        {
+            let mrb = $mruby.borrow().mrb;
+
+            let args = uninitialized::<*mut MRValue>();
+            let count = uninitialized::<i32>();
+
+            mrb_get_args(mrb, $sig, args!($name, $t), $( args!($names : $ts) ),* ,
+                         &args as *const *mut MRValue, &count as *const i32);
+
+            let args = Vec::from_raw_parts(args, count as usize, count as usize);
+            args.iter().map(|arg| { Value::new($mruby.clone(), *arg) }).collect::<Vec<_>>()
+         }
+    };
+}
+
+/// Not meant to be called directly.
+#[doc(hidden)]
+#[macro_export]
 macro_rules! conv {
     ( $mruby:expr )                       => ();
     ( $mruby:expr, $name:ident, bool )    => ();
@@ -209,6 +243,34 @@ macro_rules! slf {
 /// assert_eq!(result.to_bool().unwrap(), true);
 /// # }
 /// ```
+/// <br/>
+///
+/// Last, optional untyped argument will match all remaining arguments, as long as it's separated
+/// by a `;`.
+///
+/// ```
+/// # #[macro_use] extern crate mrusty;
+/// use mrusty::*;
+///
+/// # fn main() {
+/// let mruby = MRuby::new();
+///
+/// struct Cont {
+///     value: i32
+/// };
+///
+/// mruby.def_class::<Cont>("Container");
+/// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32; args| {
+///    let cont = Cont { value: v + args[0].to_i32().unwrap() + args[1].to_i32().unwrap() };
+///
+///    slf.init(cont)
+/// }));
+///
+/// let result = mruby.run("Container.new 1, 2, 3").unwrap();
+///
+/// assert_eq!(result.to_obj::<Cont>().unwrap().value, 6);
+/// # }
+/// ```
 #[macro_export]
 macro_rules! mrfn {
     ( |$mruby:ident, $slf:ident : $st:tt| $block:expr ) => {
@@ -238,6 +300,31 @@ macro_rules! mrfn {
                 let sig = CString::new(sig!($( $t ),*)).unwrap().as_ptr();
 
                 args!(mrb, sig, $( $name : $t ),*);
+                conv!($mruby, $( $name : $t ),*);
+
+                $block
+            }
+        }
+    };
+    ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),* ; $args:ident| $block:expr ) => {
+        |$mruby, $slf| {
+            #[allow(unused_imports)]
+            use std::ffi::CStr;
+            #[allow(unused_imports)]
+            use std::ffi::CString;
+            #[allow(unused_imports)]
+            use std::mem::uninitialized;
+            #[allow(unused_imports)]
+            use std::os::raw::c_char;
+
+            unsafe {
+                slf!($slf, $st);
+
+                init!($( $name : $t ),*);
+
+                let sig = CString::new(concat!(sig!($( $t ),*), "*")).unwrap().as_ptr();
+
+                let $args = args_rest!($mruby, sig, $( $name : $t ),*);
                 conv!($mruby, $( $name : $t ),*);
 
                 $block
