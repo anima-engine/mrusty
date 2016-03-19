@@ -260,15 +260,15 @@ macro_rules! slf {
 /// };
 ///
 /// mruby.def_class::<Cont>("Container");
-/// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value, v: i32; args| {
-///    let cont = Cont { value: v + args[0].to_i32().unwrap() + args[1].to_i32().unwrap() };
+/// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value; args| {
+///    let cont = Cont { value: args[0].to_i32().unwrap() + args[1].to_i32().unwrap() };
 ///
 ///    slf.init(cont)
 /// }));
 ///
 /// let result = mruby.run("Container.new 1, 2, 3").unwrap();
 ///
-/// assert_eq!(result.to_obj::<Cont>().unwrap().value, 6);
+/// assert_eq!(result.to_obj::<Cont>().unwrap().value, 3);
 /// # }
 /// ```
 #[macro_export]
@@ -280,11 +280,35 @@ macro_rules! mrfn {
             $block
         }
     };
+    ( |$mruby:ident, $slf:ident : $st:tt; $args:ident| $block:expr ) => {
+        |$mruby, $slf| {
+            use std::ffi::CString;
+            use std::mem::uninitialized;
+
+            slf!($slf, $st);
+
+            unsafe {
+                let mrb = $mruby.borrow().mrb;
+
+                let $args = uninitialized::<*mut MRValue>();
+                let count = uninitialized::<i32>();
+
+                mrb_get_args(mrb, CString::new("*").unwrap().as_ptr(),
+                             &$args as *const *mut MRValue, &count as *const i32);
+
+                let $args = Vec::from_raw_parts($args, count as usize, count as usize);
+                let $args = $args.iter().map(|arg| {
+                    Value::new($mruby.clone(), *arg)
+                }).collect::<Vec<_>>();
+
+                $block
+            }
+        }
+    };
     ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),*| $block:expr ) => {
         |$mruby, $slf| {
             #[allow(unused_imports)]
             use std::ffi::CStr;
-            #[allow(unused_imports)]
             use std::ffi::CString;
             #[allow(unused_imports)]
             use std::mem::uninitialized;
@@ -310,7 +334,6 @@ macro_rules! mrfn {
         |$mruby, $slf| {
             #[allow(unused_imports)]
             use std::ffi::CStr;
-            #[allow(unused_imports)]
             use std::ffi::CString;
             #[allow(unused_imports)]
             use std::mem::uninitialized;
