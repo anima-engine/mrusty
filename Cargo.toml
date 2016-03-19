@@ -1,7 +1,7 @@
 [package]
 name = "mrusty"
 description = "mruby safe bindings for Rust"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>", "Robert Krody <krody.robi@gmail.com>"]
 build = "build.rs"
 repository = "https://github.com/anima-engine/mrusty"
