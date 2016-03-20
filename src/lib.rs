@@ -52,16 +52,16 @@ mod repl;
 
 /// Not meant to be called directly.
 #[doc(hidden)]
-pub use mruby_ffi::MRValue;
+pub use mruby_ffi::MrValue;
 /// Not meant to be called directly.
 #[doc(hidden)]
 pub use mruby_ffi::mrb_get_args;
 
-pub use mruby::MRuby;
-pub use mruby::MRubyError;
-pub use mruby::MRubyFile;
-pub use mruby::MRubyImpl;
-pub use mruby::MRubyType;
+pub use mruby::Mruby;
+pub use mruby::MrubyError;
+pub use mruby::MrubyFile;
+pub use mruby::MrubyImpl;
+pub use mruby::MrubyType;
 pub use mruby::Value;
 pub use read_line::ReadLine;
 pub use repl::Repl;

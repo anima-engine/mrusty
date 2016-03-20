@@ -38,8 +38,8 @@ macro_rules! init {
     ( $name:ident, i32 )     => (let $name = uninitialized::<i32>(););
     ( $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
     ( $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
-    ( $name:ident, Vec )     => (let $name = uninitialized::<MRValue>(););
-    ( $name:ident, $_t:ty )  => (let $name = uninitialized::<MRValue>(););
+    ( $name:ident, Vec )     => (let $name = uninitialized::<MrValue>(););
+    ( $name:ident, $_t:ty )  => (let $name = uninitialized::<MrValue>(););
     ( $name:ident : $t:tt )  => (init!($name, $t));
     ( $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         init!($name, $t);
@@ -70,8 +70,8 @@ macro_rules! args {
     ( $name:ident, i32 )     => (&$name as *const i32);
     ( $name:ident, f64 )     => (&$name as *const f64);
     ( $name:ident, str )     => (&$name as *const *const c_char);
-    ( $name:ident, Vec )     => (&$name as *const MRValue);
-    ( $name:ident, $_t:ty )  => (&$name as *const MRValue);
+    ( $name:ident, Vec )     => (&$name as *const MrValue);
+    ( $name:ident, $_t:ty )  => (&$name as *const MrValue);
     ( $name:ident : $t:tt )  => (args!($name, $t));
     ( $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
         mrb_get_args($mrb, $sig, args!($name, $t));
@@ -89,10 +89,10 @@ macro_rules! args_rest {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = uninitialized::<*mut MRValue>();
+            let args = uninitialized::<*mut MrValue>();
             let count = uninitialized::<i32>();
 
-            mrb_get_args(mrb, $sig, args!($name, $t), &args as *const *mut MRValue,
+            mrb_get_args(mrb, $sig, args!($name, $t), &args as *const *mut MrValue,
                          &count as *const i32);
 
             let args = Vec::from_raw_parts(args, count as usize, count as usize);
@@ -103,11 +103,11 @@ macro_rules! args_rest {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = uninitialized::<*mut MRValue>();
+            let args = uninitialized::<*mut MrValue>();
             let count = uninitialized::<i32>();
 
             mrb_get_args(mrb, $sig, args!($name, $t), $( args!($names : $ts) ),* ,
-                         &args as *const *mut MRValue, &count as *const i32);
+                         &args as *const *mut MrValue, &count as *const i32);
 
             let args = Vec::from_raw_parts(args, count as usize, count as usize);
             args.iter().map(|arg| { Value::new($mruby.clone(), *arg) }).collect::<Vec<_>>()
@@ -174,7 +174,7 @@ macro_rules! slf {
 /// use mrusty::*;
 ///
 /// # fn main() {
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 ///
 /// struct Cont;
 ///
@@ -198,7 +198,7 @@ macro_rules! slf {
 /// use mrusty::*;
 ///
 /// # fn main() {
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 ///
 /// struct Cont;
 ///
@@ -227,7 +227,7 @@ macro_rules! slf {
 /// use mrusty::*;
 ///
 /// # fn main() {
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 ///
 /// struct Cont {
 ///     value: i32
@@ -256,7 +256,7 @@ macro_rules! slf {
 /// use mrusty::*;
 ///
 /// # fn main() {
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 ///
 /// struct Cont {
 ///     value: i32
@@ -293,11 +293,11 @@ macro_rules! mrfn {
             unsafe {
                 let mrb = $mruby.borrow().mrb;
 
-                let $args = uninitialized::<*mut MRValue>();
+                let $args = uninitialized::<*mut MrValue>();
                 let count = uninitialized::<i32>();
 
                 mrb_get_args(mrb, CString::new("*").unwrap().as_ptr(),
-                             &$args as *const *mut MRValue, &count as *const i32);
+                             &$args as *const *mut MrValue, &count as *const i32);
 
                 let $args = Vec::from_raw_parts($args, count as usize, count as usize);
                 let $args = $args.iter().map(|arg| {
@@ -359,49 +359,49 @@ macro_rules! mrfn {
     };
 }
 
-/// A `type` wrapper around a `Rc<RefCell<MRuby>>`. Created with `MRuby::new()`.
-pub type MRubyType = Rc<RefCell<MRuby>>;
+/// A `type` wrapper around a `Rc<RefCell<Mruby>>`. Created with `Mruby::new()`.
+pub type MrubyType = Rc<RefCell<Mruby>>;
 
 /// A safe `struct` for the mruby API. The `struct` only contains creation and desctruction
-/// methods. Creating an `MRuby` returns a `MRubyType` (`Rc<RefCell<MRuby>>`) which implements
-/// `MRubyImpl` where the rest of the implemented API is found.
+/// methods. Creating an `Mruby` returns a `MrubyType` (`Rc<RefCell<Mruby>>`) which implements
+/// `MrubyImpl` where the rest of the implemented API is found.
 ///
 /// # Examples
 ///
 /// ```
 /// use mrusty::*;
 ///
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 /// let result = mruby.run("2 + 2 == 5").unwrap();
 ///
 /// assert_eq!(result.to_bool().unwrap(), false);
 /// ```
-pub struct MRuby {
-    pub mrb:       *const MRState,
-    ctx:           *const MRContext,
+pub struct Mruby {
+    pub mrb:       *const MrState,
+    ctx:           *const MrContext,
     filename:      Option<String>,
-    classes:       HashMap<TypeId, (*const MRClass, MRDataType, String)>,
-    methods:       HashMap<TypeId, HashMap<u32, Rc<Fn(MRubyType, Value) -> Value>>>,
-    class_methods: HashMap<TypeId, HashMap<u32, Rc<Fn(MRubyType, Value) -> Value>>>,
-    files:         HashMap<String, Vec<fn(MRubyType)>>,
+    classes:       HashMap<TypeId, (*const MrClass, MrDataType, String)>,
+    methods:       HashMap<TypeId, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
+    class_methods: HashMap<TypeId, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
+    files:         HashMap<String, Vec<fn(MrubyType)>>,
     required:      HashSet<String>
 }
 
-impl MRuby {
-    /// Creates an mruby state and context stored in a `MRubyType` (`Rc<RefCell<MRuby>>`).
+impl Mruby {
+    /// Creates an mruby state and context stored in a `MrubyType` (`Rc<RefCell<Mruby>>`).
     ///
     /// # Example
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// let mruby = Mruby::new();
     /// ```
-    pub fn new() -> MRubyType {
+    pub fn new() -> MrubyType {
         unsafe {
             let mrb = mrb_open();
 
             let mruby = Rc::new(RefCell::new(
-                MRuby {
+                Mruby {
                     mrb:           mrb,
                     ctx:           mrbc_context_new(mrb),
                     filename:      None,
@@ -415,10 +415,10 @@ impl MRuby {
 
             let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
 
-            extern "C" fn require(mrb: *const MRState, _slf: MRValue) -> MRValue {
+            extern "C" fn require(mrb: *const MrState, _slf: MrValue) -> MrValue {
                 unsafe {
                     let ptr = mrb_ext_get_ud(mrb);
-                    let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
+                    let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
 
                     let name = mem::uninitialized::<*const c_char>();
 
@@ -506,10 +506,10 @@ impl MRuby {
             mrb_define_module_function(mrb, kernel, CString::new("require").unwrap().as_ptr(),
                                        require, 1 << 12);
 
-            let ptr = mem::transmute::<MRubyType, *const u8>(mruby);
+            let ptr = mem::transmute::<MrubyType, *const u8>(mruby);
             mrb_ext_set_ud(mrb, ptr);
 
-            let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
+            let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
 
             mruby.run_unchecked("
               class RustPanic < Exception
@@ -532,7 +532,7 @@ impl MRuby {
 
 /// An `enum` containing all possbile types of errors.
 #[derive(Debug)]
-pub enum MRubyError<'a> {
+pub enum MrubyError<'a> {
     Cast(&'a str),
     Undef,
     Runtime(&'a str),
@@ -540,41 +540,41 @@ pub enum MRubyError<'a> {
     Io(io::Error)
 }
 
-impl<'a> fmt::Display for MRubyError<'a> {
+impl<'a> fmt::Display for MrubyError<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            MRubyError::Cast(ref expected) => {
+            MrubyError::Cast(ref expected) => {
                 write!(f, "Cast error: expected {}", expected)
             },
-            MRubyError::Undef => {
+            MrubyError::Undef => {
                 write!(f, "Undefined error: type is not defined")
             },
-            MRubyError::Runtime(ref err) => {
+            MrubyError::Runtime(ref err) => {
                 write!(f, "Runtime error: {}", err)
             },
-            MRubyError::Filetype => {
+            MrubyError::Filetype => {
                 write!(f, "Filetype error: script needs a compatible (.rb, .mrb) extension")
             },
-            MRubyError::Io(ref err) => err.fmt(f)
+            MrubyError::Io(ref err) => err.fmt(f)
         }
     }
 }
 
-impl<'a> Error for MRubyError<'a> {
+impl<'a> Error for MrubyError<'a> {
     fn description(&self) -> &str {
         match *self {
-            MRubyError::Cast(_)     => "mruby value cast error",
-            MRubyError::Undef       => "mruby undefined error",
-            MRubyError::Runtime(_)  => "mruby runtime error",
-            MRubyError::Filetype    => "filetype mistmatch",
-            MRubyError::Io(ref err) => err.description()
+            MrubyError::Cast(_)     => "mruby value cast error",
+            MrubyError::Undef       => "mruby undefined error",
+            MrubyError::Runtime(_)  => "mruby runtime error",
+            MrubyError::Filetype    => "filetype mistmatch",
+            MrubyError::Io(ref err) => err.description()
         }
     }
 }
 
-impl<'a> From<io::Error> for MRubyError<'a> {
-    fn from(err: io::Error) -> MRubyError<'a> {
-        MRubyError::Io(err)
+impl<'a> From<io::Error> for MrubyError<'a> {
+    fn from(err: io::Error) -> MrubyError<'a> {
+        MrubyError::Io(err)
     }
 }
 
@@ -583,45 +583,45 @@ impl<'a> From<io::Error> for MRubyError<'a> {
 /// # Examples
 ///
 /// ```
-/// # use mrusty::MRuby;
-/// # use mrusty::MRubyFile;
-/// # use mrusty::MRubyImpl;
-/// # use mrusty::MRubyType;
+/// # use mrusty::Mruby;
+/// # use mrusty::MrubyFile;
+/// # use mrusty::MrubyImpl;
+/// # use mrusty::MrubyType;
 /// struct Cont {
 ///     value: i32
 /// }
 ///
-/// impl MRubyFile for Cont {
-///     fn require(mruby: MRubyType) {
+/// impl MrubyFile for Cont {
+///     fn require(mruby: MrubyType) {
 ///         mruby.def_class::<Cont>("Container");
 ///     }
 /// }
 ///
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 ///
 /// mruby.def_file::<Cont>("cont");
 /// ```
-pub trait MRubyFile {
-    fn require(mruby: MRubyType);
+pub trait MrubyFile {
+    fn require(mruby: MrubyType);
 }
 
-/// A `trait` used on `MRubyType` which implements mruby functionality.
-pub trait MRubyImpl {
+/// A `trait` used on `MrubyType` which implements mruby functionality.
+pub trait MrubyImpl {
     /// Adds a filename to the mruby context.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyError;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyError;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// mruby.filename("script.rb");
     ///
     /// let result = mruby.run("1.nope");
     ///
     /// match result {
-    ///     Err(MRubyError::Runtime(err)) => {
+    ///     Err(MrubyError::Runtime(err)) => {
     ///         assert_eq!(err, "script.rb:1: undefined method \'nope\' for 1 (NoMethodError)");
     /// },
     ///     _ => assert!(false)
@@ -636,39 +636,39 @@ pub trait MRubyImpl {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run("true").unwrap();
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyError;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyError;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run("'' + 1");
     ///
     /// match result {
-    ///     Err(MRubyError::Runtime(err)) => {
+    ///     Err(MrubyError::Runtime(err)) => {
     ///         assert_eq!(err, "TypeError: expected String");
     /// },
     ///     _ => assert!(false)
     /// }
     /// ```
     #[inline]
-    fn run(&self, script: &str) -> Result<Value, MRubyError>;
+    fn run(&self, script: &str) -> Result<Value, MrubyError>;
 
     /// Runs mruby `script` on a state and context and returns a `Value`. If an mruby Exception is
     /// raised, mruby will be left to handle it.
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run_unchecked("true");
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
@@ -679,7 +679,7 @@ pub trait MRubyImpl {
     /// use mrusty::*;
     ///
     /// # fn main() {
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont;
     ///
@@ -708,11 +708,11 @@ pub trait MRubyImpl {
     /// # Examples
     ///
     /// ```no-run
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     /// let result = mruby.runb(include_bytes!("script.mrb")).unwrap();
     /// ```
     #[inline]
-    fn runb(&self, script: &[u8]) -> Result<Value, MRubyError>;
+    fn runb(&self, script: &[u8]) -> Result<Value, MrubyError>;
 
     /// Runs mruby (compiled (.mrb) or not (.rb)) `script` on a state and context and returns a
     /// `Value` in an `Ok` or an `Err` containing an mruby `Exception`'s message.
@@ -720,11 +720,11 @@ pub trait MRubyImpl {
     /// # Examples
     ///
     /// ```no-run
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     /// let result = mruby.execute(File::open("script.rb")).unwrap();
     /// ```
     #[inline]
-    fn execute(&self, script: &Path) -> Result<Value, MRubyError>;
+    fn execute(&self, script: &Path) -> Result<Value, MrubyError>;
 
     /// Raises an mruby `RuntimeError` with `message` message and `eclass` mruby Exception Class.
     ///
@@ -735,7 +735,7 @@ pub trait MRubyImpl {
     /// use mrusty::*;
     ///
     /// # fn main() {
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont;
     ///
@@ -749,7 +749,7 @@ pub trait MRubyImpl {
     /// let result = mruby.run("Container.hi");
     ///
     /// match result {
-    ///     Err(MRubyError::Runtime(err)) => {
+    ///     Err(MrubyError::Runtime(err)) => {
     ///         assert_eq!(err, "RuntimeError: hi");
     /// },
     ///     _ => assert!(false)
@@ -760,7 +760,7 @@ pub trait MRubyImpl {
     fn raise(&self, eclass: &str, message: &str) -> Value;
 
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
-    /// `MRubyFile`-inherited `require` method.
+    /// `MrubyFile`-inherited `require` method.
     ///
     /// # Examples
     ///
@@ -769,14 +769,14 @@ pub trait MRubyImpl {
     /// use mrusty::*;
     ///
     /// # fn main() {
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
     /// };
     ///
-    /// impl MRubyFile for Cont {
-    ///     fn require(mruby: MRubyType) {
+    /// impl MrubyFile for Cont {
+    ///     fn require(mruby: MrubyType) {
     ///         mruby.def_class::<Cont>("Container");
     ///         mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
     ///             let cont = Cont { value: v };
@@ -801,16 +801,16 @@ pub trait MRubyImpl {
     /// # }
     /// ```
     #[inline]
-    fn def_file<T: MRubyFile>(&self, name: &str);
+    fn def_file<T: MrubyFile>(&self, name: &str);
 
     /// Defines Rust type `T` as an mruby `Class` named `name`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
@@ -830,7 +830,7 @@ pub trait MRubyImpl {
     /// use mrusty::*;
     ///
     /// # fn main() {
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
@@ -852,7 +852,7 @@ pub trait MRubyImpl {
     /// # }
     /// ```
     fn def_method<T: Any, F>(&self, name: &str,
-                             method: F) where F: Fn(MRubyType, Value) -> Value + 'static;
+                             method: F) where F: Fn(MrubyType, Value) -> Value + 'static;
 
     /// Defines an mruby class method named `name`. The closure to be run when the `name` method is
     /// called should be passed through the `mrfn!` macro.
@@ -864,7 +864,7 @@ pub trait MRubyImpl {
     /// use mrusty::*;
     ///
     /// # fn main() {
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont;
     ///
@@ -879,7 +879,7 @@ pub trait MRubyImpl {
     /// # }
     /// ```
     fn def_class_method<T: Any, F>(&self, name: &str,
-                                   method: F) where F: Fn(MRubyType, Value) -> Value + 'static;
+                                   method: F) where F: Fn(MrubyType, Value) -> Value + 'static;
 
     /// Return the mruby name of a previously defined Rust type `T` with `def_class`.
     ///
@@ -888,7 +888,7 @@ pub trait MRubyImpl {
     /// ```
     /// # use mrusty::*;
     ///
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont;
     ///
@@ -896,16 +896,16 @@ pub trait MRubyImpl {
     ///
     /// assert_eq!(mruby.class_name::<Cont>().unwrap(), "Container");
     /// ```
-    fn class_name<T: Any>(&self) -> Result<String, MRubyError>;
+    fn class_name<T: Any>(&self) -> Result<String, MrubyError>;
 
     /// Creates mruby `Value` `nil`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont;
     ///
@@ -923,9 +923,9 @@ pub trait MRubyImpl {
     ///
     /// # Examples
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let b = mruby.bool(true);
     ///
@@ -939,9 +939,9 @@ pub trait MRubyImpl {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let fixn = mruby.fixnum(2);
     ///
@@ -954,9 +954,9 @@ pub trait MRubyImpl {
     ///
     /// # Examples
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let fl = mruby.float(2.3);
     ///
@@ -969,9 +969,9 @@ pub trait MRubyImpl {
     ///
     /// # Examples
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let s = mruby.string("hi");
     ///
@@ -982,14 +982,14 @@ pub trait MRubyImpl {
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
     ///
-    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
@@ -1004,14 +1004,14 @@ pub trait MRubyImpl {
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust `Option` of type `T`.
     ///
-    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
@@ -1032,9 +1032,9 @@ pub trait MRubyImpl {
     ///
     /// # Examples
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let array = mruby.array(vec![
     ///     mruby.fixnum(1),
@@ -1052,7 +1052,7 @@ pub trait MRubyImpl {
     fn array(&self, value: Vec<Value>) -> Value;
 }
 
-impl MRubyImpl for MRubyType {
+impl MrubyImpl for MrubyType {
     #[inline]
     fn filename(&self, filename: &str) {
         self.borrow_mut().filename = Some(filename.to_owned());
@@ -1064,7 +1064,7 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
-    fn run(&self, script: &str) -> Result<Value, MRubyError> {
+    fn run(&self, script: &str) -> Result<Value, MrubyError> {
         unsafe {
             let (mrb, ctx) = {
                 let borrow = self.borrow();
@@ -1076,10 +1076,10 @@ impl MRubyImpl for MRubyType {
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_FALSE => {
+                MrType::MRB_TT_FALSE => {
                     Ok(Value::new(self.clone(), value))
                 },
-                _ => Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
             }
         }
     }
@@ -1100,7 +1100,7 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
-    fn runb(&self, script: &[u8]) -> Result<Value, MRubyError> {
+    fn runb(&self, script: &[u8]) -> Result<Value, MrubyError> {
         unsafe {
             let (mrb, ctx) = {
                 let borrow = self.borrow();
@@ -1112,16 +1112,16 @@ impl MRubyImpl for MRubyType {
             let exc = mrb_ext_get_exc(self.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_FALSE => {
+                MrType::MRB_TT_FALSE => {
                     Ok(Value::new(self.clone(), value))
                 },
-                _ => Err(MRubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
             }
         }
     }
 
     #[inline]
-    fn execute(&self, script: &Path) -> Result<Value, MRubyError> {
+    fn execute(&self, script: &Path) -> Result<Value, MrubyError> {
         match script.extension() {
             Some(ext) => {
                 self.filename(script.file_name().unwrap().to_str().unwrap());
@@ -1142,11 +1142,11 @@ impl MRubyImpl for MRubyType {
                         self.runb(&script)
                     },
                     _ => {
-                        Err(MRubyError::Filetype)
+                        Err(MrubyError::Filetype)
                     }
                 }
             },
-            None => Err(MRubyError::Filetype)
+            None => Err(MrubyError::Filetype)
         }
     }
 
@@ -1161,7 +1161,7 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
-    fn def_file<T: MRubyFile>(&self, name: &str) {
+    fn def_file<T: MrubyFile>(&self, name: &str) {
         let mut borrow = self.borrow_mut();
 
         if borrow.files.contains_key(name) {
@@ -1183,15 +1183,15 @@ impl MRubyImpl for MRubyType {
 
             let class = mrb_define_class(self.borrow().mrb, c_name.as_ptr(), object);
 
-            mrb_ext_set_instance_tt(class, MRType::MRB_TT_DATA);
+            mrb_ext_set_instance_tt(class, MrType::MRB_TT_DATA);
 
-            extern "C" fn free<T>(_mrb: *const MRState, ptr: *const u8) {
+            extern "C" fn free<T>(_mrb: *const MrState, ptr: *const u8) {
                 unsafe {
                     mem::transmute::<*const u8, Rc<T>>(ptr);
                 }
             }
 
-            let data_type = MRDataType { name: c_name.as_ptr(), free: free::<T> };
+            let data_type = MrDataType { name: c_name.as_ptr(), free: free::<T> };
 
             self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
             self.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
@@ -1204,7 +1204,7 @@ impl MRubyImpl for MRubyType {
     }
 
     fn def_method<T: Any, F>(&self, name: &str,
-                             method: F) where F: Fn(MRubyType, Value) -> Value + 'static {
+                             method: F) where F: Fn(MrubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
                 mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
@@ -1220,10 +1220,10 @@ impl MRubyImpl for MRubyType {
             methods.insert(sym, Rc::new(method));
         }
 
-        extern "C" fn call_method<T: Any>(mrb: *const MRState, slf: MRValue) -> MRValue {
+        extern "C" fn call_method<T: Any>(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
                 let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
+                let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
 
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
@@ -1280,7 +1280,7 @@ impl MRubyImpl for MRubyType {
     }
 
     fn def_class_method<T: Any, F>(&self, name: &str, method: F)
-        where F: Fn(MRubyType, Value) -> Value + 'static {
+        where F: Fn(MrubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
                 mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
@@ -1296,10 +1296,10 @@ impl MRubyImpl for MRubyType {
             methods.insert(sym, Rc::new(method));
         }
 
-        extern "C" fn call_class_method<T: Any>(mrb: *const MRState, slf: MRValue) -> MRValue {
+        extern "C" fn call_class_method<T: Any>(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
                 let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
+                let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
 
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
@@ -1356,47 +1356,47 @@ impl MRubyImpl for MRubyType {
     }
 
     #[inline]
-    fn class_name<T: Any>(&self) -> Result<String, MRubyError> {
+    fn class_name<T: Any>(&self) -> Result<String, MrubyError> {
         let borrow = self.borrow();
 
         match borrow.classes.get(&TypeId::of::<T>()) {
             Some(class) => Ok(class.2.clone()),
-            None        => Err(MRubyError::Undef)
+            None        => Err(MrubyError::Undef)
         }
     }
 
     #[inline]
     fn nil(&self) -> Value {
         unsafe {
-            Value::new(self.clone(), MRValue::nil())
+            Value::new(self.clone(), MrValue::nil())
         }
     }
 
     #[inline]
     fn bool(&self, value: bool) -> Value {
         unsafe {
-            Value::new(self.clone(), MRValue::bool(value))
+            Value::new(self.clone(), MrValue::bool(value))
         }
     }
 
     #[inline]
     fn fixnum(&self, value: i32) -> Value {
         unsafe {
-            Value::new(self.clone(), MRValue::fixnum(value))
+            Value::new(self.clone(), MrValue::fixnum(value))
         }
     }
 
     #[inline]
     fn float(&self, value: f64) -> Value {
         unsafe {
-            Value::new(self.clone(), MRValue::float(self.borrow().mrb, value))
+            Value::new(self.clone(), MrValue::float(self.borrow().mrb, value))
         }
     }
 
     #[inline]
     fn string(&self, value: &str) -> Value {
         unsafe {
-            Value::new(self.clone(), MRValue::string(self.borrow().mrb, value))
+            Value::new(self.clone(), MrValue::string(self.borrow().mrb, value))
         }
     }
 
@@ -1410,7 +1410,7 @@ impl MRubyImpl for MRubyType {
         };
 
         unsafe {
-            Value::new(self.clone(), MRValue::obj(borrow.mrb, class.0 as *const MRClass, obj,
+            Value::new(self.clone(), MrValue::obj(borrow.mrb, class.0 as *const MrClass, obj,
                                                   &class.1))
         }
     }
@@ -1425,17 +1425,17 @@ impl MRubyImpl for MRubyType {
 
     #[inline]
     fn array(&self, value: Vec<Value>) -> Value {
-        let array: Vec<MRValue> = value.iter().map(|value| {
+        let array: Vec<MrValue> = value.iter().map(|value| {
             value.value
         }).collect();
 
         unsafe {
-            Value::new(self.clone(), MRValue::array(self.borrow().mrb, array))
+            Value::new(self.clone(), MrValue::array(self.borrow().mrb, array))
         }
     }
 }
 
-impl Drop for MRuby {
+impl Drop for Mruby {
     fn drop(&mut self) {
         self.close();
     }
@@ -1443,37 +1443,37 @@ impl Drop for MRuby {
 
 /// A `struct` that wraps around any mruby variable.
 ///
-/// `Values` are created from the `MRuby` instance:
+/// `Values` are created from the `Mruby` instance:
 ///
-/// * [`nil`](../mrusty/trait.MRubyImpl.html#tymethod.nil)
-/// * [`bool`](../mrusty/trait.MRubyImpl.html#tymethod.bool)
-/// * [`fixnum`](../mrusty/trait.MRubyImpl.html#tymethod.fixnum)
-/// * [`float`](../mrusty/trait.MRubyImpl.html#tymethod.float)
-/// * [`string`](../mrusty/trait.MRubyImpl.html#tymethod.string)
-/// * [`obj`](../mrusty/trait.MRubyImpl.html#tymethod.obj)
-/// * [`option`](../mrusty/trait.MRubyImpl.html#tymethod.option)
-/// * [`array`](../mrusty/trait.MRubyImpl.html#tymethod.array)
+/// * [`nil`](../mrusty/trait.MrubyImpl.html#tymethod.nil)
+/// * [`bool`](../mrusty/trait.MrubyImpl.html#tymethod.bool)
+/// * [`fixnum`](../mrusty/trait.MrubyImpl.html#tymethod.fixnum)
+/// * [`float`](../mrusty/trait.MrubyImpl.html#tymethod.float)
+/// * [`string`](../mrusty/trait.MrubyImpl.html#tymethod.string)
+/// * [`obj`](../mrusty/trait.MrubyImpl.html#tymethod.obj)
+/// * [`option`](../mrusty/trait.MrubyImpl.html#tymethod.option)
+/// * [`array`](../mrusty/trait.MrubyImpl.html#tymethod.array)
 ///
 /// # Examples
 ///
 /// ```
-/// # use mrusty::MRuby;
-/// # use mrusty::MRubyImpl;
-/// let mruby = MRuby::new();
+/// # use mrusty::Mruby;
+/// # use mrusty::MrubyImpl;
+/// let mruby = Mruby::new();
 /// let result = mruby.run("true").unwrap(); // Value
 ///
 /// // Values need to be unwrapped in order to make sure they have the right mruby type.
 /// assert_eq!(result.to_bool().unwrap(), true);
 /// ```
 pub struct Value {
-    mruby: MRubyType,
-    value: MRValue
+    mruby: MrubyType,
+    value: MrValue
 }
 
 impl Value {
     /// Not meant to be called directly.
     #[doc(hidden)]
-    pub fn new(mruby: MRubyType, value: MRValue) -> Value {
+    pub fn new(mruby: MrubyType, value: MrValue) -> Value {
         Value {
             mruby: mruby,
             value: value
@@ -1482,7 +1482,7 @@ impl Value {
 
     /// Initializes the `self` mruby object passed to `initialize` with a Rust object of type `T`.
     ///
-    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
@@ -1491,7 +1491,7 @@ impl Value {
     /// use mrusty::*;
     ///
     /// # fn main() {
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
@@ -1523,7 +1523,7 @@ impl Value {
 
             let data_type = &class.1;
 
-            mrb_ext_data_init(&self.value as *const MRValue, ptr, data_type as *const MRDataType);
+            mrb_ext_data_init(&self.value as *const MrValue, ptr, data_type as *const MrDataType);
         }
 
         self
@@ -1534,20 +1534,20 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let one = mruby.fixnum(1);
     /// let result = one.call("+", vec![mruby.fixnum(2)]).unwrap();
     ///
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// ```
-    pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, MRubyError> {
+    pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, MrubyError> {
         unsafe {
             let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
 
-            let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
+            let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
             let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
                                           args.len() as i32, args.as_ptr());
@@ -1555,10 +1555,10 @@ impl Value {
             let exc = mrb_ext_get_exc(self.mruby.borrow().mrb);
 
             match exc.typ {
-                MRType::MRB_TT_FALSE => {
+                MrType::MRB_TT_FALSE => {
                     Ok(Value::new(self.mruby.clone(), result))
                 },
-                _  => Err(MRubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
+                _  => Err(MrubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
             }
         }
     }
@@ -1569,9 +1569,9 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let one = mruby.string("");
     /// one.call("+", vec![mruby.fixnum(1)]);
@@ -1580,7 +1580,7 @@ impl Value {
         unsafe {
             let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
 
-            let args: Vec<MRValue> = args.iter().map(|value| value.value).collect();
+            let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
             let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
                                           args.len() as i32, args.as_ptr());
@@ -1594,9 +1594,9 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// let one = mruby.run("1").unwrap();
     /// assert_eq!(one.type_name(), "Fixnum");
@@ -1612,9 +1612,9 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run("
     ///   def pos(n)
     ///     n > 0
@@ -1626,7 +1626,7 @@ impl Value {
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
     #[inline]
-    pub fn to_bool(&self) -> Result<bool, MRubyError> {
+    pub fn to_bool(&self) -> Result<bool, MrubyError> {
         unsafe {
             self.value.to_bool()
         }
@@ -1637,9 +1637,9 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run("
     ///   def fact(n)
     ///     n > 1 ? fact(n - 1) * n : 1
@@ -1651,7 +1651,7 @@ impl Value {
     /// assert_eq!(result.to_i32().unwrap(), 120);
     /// ```
     #[inline]
-    pub fn to_i32(&self) -> Result<i32, MRubyError> {
+    pub fn to_i32(&self) -> Result<i32, MrubyError> {
         unsafe {
             self.value.to_i32()
         }
@@ -1662,9 +1662,9 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run("
     ///   3 / 2.0
     /// ").unwrap();
@@ -1672,7 +1672,7 @@ impl Value {
     /// assert_eq!(result.to_f64().unwrap(), 1.5);
     /// ```
     #[inline]
-    pub fn to_f64(&self) -> Result<f64, MRubyError> {
+    pub fn to_f64(&self) -> Result<f64, MrubyError> {
         unsafe {
             self.value.to_f64()
         }
@@ -1683,9 +1683,9 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run("
     ///   [1, 2, 3].map(&:to_s).join
     /// ").unwrap();
@@ -1693,7 +1693,7 @@ impl Value {
     /// assert_eq!(result.to_str().unwrap(), "123");
     /// ```
     #[inline]
-    pub fn to_str<'a>(&self) -> Result<&'a str, MRubyError> {
+    pub fn to_str<'a>(&self) -> Result<&'a str, MrubyError> {
         unsafe {
             self.value.to_str(self.mruby.borrow().mrb)
         }
@@ -1701,14 +1701,14 @@ impl Value {
 
     /// Casts mruby `Value` of `Class` `name` to Rust type `Rc<T>`.
     ///
-    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
@@ -1722,7 +1722,7 @@ impl Value {
     /// assert_eq!(cont.value, 3);
     /// ```
     #[inline]
-    pub fn to_obj<T: Any>(&self) -> Result<Rc<T>, MRubyError> {
+    pub fn to_obj<T: Any>(&self) -> Result<Rc<T>, MrubyError> {
         unsafe {
             let borrow = self.mruby.borrow();
 
@@ -1736,7 +1736,7 @@ impl Value {
             let class_name = class_name.to_str().unwrap();
 
             if class_name != class.2 {
-                return Err(MRubyError::Undef)
+                return Err(MrubyError::Undef)
             }
 
             self.value.to_obj::<T>(borrow.mrb, &class.1)
@@ -1745,14 +1745,14 @@ impl Value {
 
     /// Casts mruby `Value` of `Class` `name` to Rust `Option` of `Rc<T>`.
     ///
-    /// **Note:** `T` must be defined on the current `MRuby` with `def_class`.
+    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     ///
     /// struct Cont {
     ///     value: i32
@@ -1767,8 +1767,8 @@ impl Value {
     /// assert!(mruby.nil().to_option::<Cont>().unwrap().is_none());
     /// ```
     #[inline]
-    pub fn to_option<T: Any>(&self) -> Result<Option<Rc<T>>, MRubyError> {
-        if self.value.typ == MRType::MRB_TT_DATA {
+    pub fn to_option<T: Any>(&self) -> Result<Option<Rc<T>>, MrubyError> {
+        if self.value.typ == MrType::MRB_TT_DATA {
             self.to_obj::<T>().map(|obj| Some(obj))
         } else {
             Ok(None)
@@ -1780,9 +1780,9 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
-    /// # use mrusty::MRubyImpl;
-    /// let mruby = MRuby::new();
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
     /// let result = mruby.run("
     ///   [1, 2, 3].map(&:to_s)
     /// ").unwrap();
@@ -1794,7 +1794,7 @@ impl Value {
     /// ]);
     /// ```
     #[inline]
-    pub fn to_vec(&self) -> Result<Vec<Value>, MRubyError> {
+    pub fn to_vec(&self) -> Result<Vec<Value>, MrubyError> {
         unsafe {
             self.value.to_vec(self.mruby.borrow().mrb).map(|vec| {
                 vec.iter().map(|mrvalue| {
@@ -1809,7 +1809,7 @@ use std::fmt;
 
 impl Clone for Value {
     fn clone(&self) -> Value {
-        if self.value.typ == MRType::MRB_TT_DATA {
+        if self.value.typ == MrType::MRB_TT_DATA {
             unsafe {
                 let ptr = mrb_ext_data_ptr(self.value);
                 let rc = mem::transmute::<*const u8, Rc<c_void>>(ptr);

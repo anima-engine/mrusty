@@ -35,8 +35,8 @@ impl Vector {
     }
 }
 
-impl MRubyFile for Vector {
-    fn require(mruby: MRubyType) {
+impl MrubyFile for Vector {
+    fn require(mruby: MrubyType) {
         mruby.def_class::<Vector>("Vector");
 
         mruby.def_method::<Vector, _>("initialize", mrfn!(|_mruby, slf: Value,

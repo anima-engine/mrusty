@@ -19,18 +19,18 @@ use std::fmt::Display;
 use super::mruby::*;
 use super::read_line::ReadLine;
 
-/// A `struct` that exposes an `MRuby` to a REPL.
+/// A `struct` that exposes an `Mruby` to a REPL.
 ///
 /// # Examples
 ///
 /// ```no-run
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 /// let repl = Repl::new(mruby);
 ///
 /// repl.start();
 /// ```
 pub struct Repl {
-    mruby: MRubyType,
+    mruby: MrubyType,
     name: String
 }
 
@@ -40,12 +40,12 @@ impl Repl {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
+    /// # use mrusty::Mruby;
     /// # use mrusty::Repl;
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     /// let repl = Repl::new(mruby);
     /// ```
-    pub fn new(mruby: MRubyType) -> Repl {
+    pub fn new(mruby: MrubyType) -> Repl {
         Repl {
             mruby: mruby,
             name: "mrusty".to_owned()
@@ -57,9 +57,9 @@ impl Repl {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::MRuby;
+    /// # use mrusty::Mruby;
     /// # use mrusty::Repl;
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     /// let mut repl = Repl::new(mruby);
     ///
     /// repl.rename("repl");
@@ -75,7 +75,7 @@ impl Repl {
     /// # Examples
     ///
     /// ```no-run
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     /// let repl = Repl::new(mruby);
     ///
     /// repl.start(&GnuReadLine);

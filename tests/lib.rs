@@ -25,7 +25,7 @@ use api::{Scalar, Vector};
 
 #[test]
 fn api_init() {
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     Scalar::require(mruby.clone());
     Vector::require(mruby.clone());
@@ -39,7 +39,7 @@ fn api_init() {
 
 #[test]
 fn api_getters() {
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     Scalar::require(mruby.clone());
     Vector::require(mruby.clone());
@@ -56,7 +56,7 @@ fn api_getters() {
 
 #[test]
 fn api_mul() {
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     Scalar::require(mruby.clone());
     Vector::require(mruby.clone());
@@ -68,7 +68,7 @@ fn api_mul() {
 
 #[test]
 fn api_array() {
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     Scalar::require(mruby.clone());
     Vector::require(mruby.clone());
@@ -80,7 +80,7 @@ fn api_array() {
 
 #[test]
 fn api_vec() {
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     Scalar::require(mruby.clone());
     Vector::require(mruby.clone());
@@ -92,7 +92,7 @@ fn api_vec() {
 
 #[test]
 fn api_require() {
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     mruby.def_file::<Vector>("math");
 
@@ -110,7 +110,7 @@ fn api_require_file() {
     use std::fs::File;
     use std::io::Write;
 
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     let mut file = File::create("/tmp/some.rb").unwrap();
 
@@ -141,7 +141,7 @@ fn api_dup() {
 
     unsafe {
         {
-            let mruby = MRuby::new();
+            let mruby = Mruby::new();
 
             mruby.def_class::<Cont>("Container");
 

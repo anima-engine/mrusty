@@ -31,8 +31,8 @@ impl Scalar {
     }
 }
 
-impl MRubyFile for Scalar {
-    fn require(mruby: MRubyType) {
+impl MrubyFile for Scalar {
+    fn require(mruby: MrubyType) {
         mruby.def_class::<Scalar>("Scalar");
 
         mruby.def_method::<Scalar, _>("initialize", mrfn!(|_mruby, slf: Value, v: f64| {

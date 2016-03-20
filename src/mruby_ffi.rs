@@ -20,39 +20,39 @@ use std::mem;
 use std::os::raw::c_char;
 use std::rc::Rc;
 
-use super::MRubyError;
+use super::MrubyError;
 
-pub enum MRState {}
-pub enum MRContext {}
+pub enum MrState {}
+pub enum MrContext {}
 
-pub enum MRClass {}
-pub enum MRData {}
+pub enum MrClass {}
+pub enum MrData {}
 
-pub type MRFunc = extern "C" fn(*const MRState, MRValue) -> MRValue;
+pub type MrFunc = extern "C" fn(*const MrState, MrValue) -> MrValue;
 
 #[repr(C)]
-pub struct MRDataType {
+pub struct MrDataType {
     pub name: *const c_char,
-    pub free: extern "C" fn(*const MRState, *const u8)
+    pub free: extern "C" fn(*const MrState, *const u8)
 }
 
 /// Not meant to be called directly.
 #[doc(hidden)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct MRValue {
+pub struct MrValue {
     pub value: u64,
-    pub typ: MRType,
+    pub typ: MrType,
 }
 
-impl MRValue {
+impl MrValue {
     #[inline]
-    pub unsafe fn nil() -> MRValue {
+    pub unsafe fn nil() -> MrValue {
         mrb_ext_nil()
     }
 
     #[inline]
-    pub unsafe fn bool(value: bool) -> MRValue {
+    pub unsafe fn bool(value: bool) -> MrValue {
         if value {
             mrb_ext_true()
         } else {
@@ -61,32 +61,32 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn fixnum(value: i32) -> MRValue {
+    pub unsafe fn fixnum(value: i32) -> MrValue {
         mrb_ext_cint_to_fixnum(value)
     }
 
     #[inline]
-    pub unsafe fn float(mrb: *const MRState, value: f64) -> MRValue {
+    pub unsafe fn float(mrb: *const MrState, value: f64) -> MrValue {
         mrb_ext_cdouble_to_float(mrb, value)
     }
 
     #[inline]
-    pub unsafe fn string(mrb: *const MRState, value: &str) -> MRValue {
+    pub unsafe fn string(mrb: *const MrState, value: &str) -> MrValue {
         mrb_str_new(mrb, value.as_ptr(), value.len())
     }
 
     #[inline]
-    pub unsafe fn obj<T: Any>(mrb: *const MRState, class: *const MRClass,
-                              obj: T, typ: &MRDataType) -> MRValue {
+    pub unsafe fn obj<T: Any>(mrb: *const MrState, class: *const MrClass,
+                              obj: T, typ: &MrDataType) -> MrValue {
         let rc = Rc::new(obj);
         let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
-        let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MRDataType);
+        let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MrDataType);
 
         mrb_ext_data_value(data)
     }
 
     #[inline]
-    pub unsafe fn array(mrb: *const MRState, value: Vec<MRValue>) -> MRValue {
+    pub unsafe fn array(mrb: *const MrState, value: Vec<MrValue>) -> MrValue {
         let array = mrb_ary_new_capa(mrb, value.len() as i32);
 
         for (i, value) in value.iter().enumerate() {
@@ -97,52 +97,52 @@ impl MRValue {
     }
 
     #[inline]
-    pub unsafe fn to_bool<'a>(&self) -> Result<bool, MRubyError> {
+    pub unsafe fn to_bool<'a>(&self) -> Result<bool, MrubyError> {
         match self.typ {
-            MRType::MRB_TT_FALSE => Ok(false),
-            MRType::MRB_TT_TRUE  => Ok(true),
-            _ => Err(MRubyError::Cast("TrueClass or FalseClass"))
+            MrType::MRB_TT_FALSE => Ok(false),
+            MrType::MRB_TT_TRUE  => Ok(true),
+            _ => Err(MrubyError::Cast("TrueClass or FalseClass"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_i32(&self) -> Result<i32, MRubyError> {
+    pub unsafe fn to_i32(&self) -> Result<i32, MrubyError> {
         match self.typ {
-            MRType::MRB_TT_FIXNUM => {
+            MrType::MRB_TT_FIXNUM => {
                 Ok(mrb_ext_fixnum_to_cint(*self))
             },
-            _ => Err(MRubyError::Cast("Fixnum"))
+            _ => Err(MrubyError::Cast("Fixnum"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_f64(&self) -> Result<f64, MRubyError> {
+    pub unsafe fn to_f64(&self) -> Result<f64, MrubyError> {
         match self.typ {
-            MRType::MRB_TT_FLOAT => {
+            MrType::MRB_TT_FLOAT => {
                 Ok(mrb_ext_float_to_cdouble(*self))
             },
-            _ => Err(MRubyError::Cast("Float"))
+            _ => Err(MrubyError::Cast("Float"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_str<'a>(&self, mrb: *const MRState) -> Result<&'a str, MRubyError> {
+    pub unsafe fn to_str<'a>(&self, mrb: *const MrState) -> Result<&'a str, MrubyError> {
         match self.typ {
-            MRType::MRB_TT_STRING => {
+            MrType::MRB_TT_STRING => {
                 let s = mrb_str_to_cstr(mrb, *self) as *const i8;
 
                 Ok(CStr::from_ptr(s).to_str().unwrap().clone())
             },
-            _ => Err(MRubyError::Cast("String"))
+            _ => Err(MrubyError::Cast("String"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_obj<T: Any>(&self, mrb: *const MRState,
-                                 typ: &MRDataType) -> Result<Rc<T>, MRubyError> {
+    pub unsafe fn to_obj<T: Any>(&self, mrb: *const MrState,
+                                 typ: &MrDataType) -> Result<Rc<T>, MrubyError> {
         match self.typ {
-            MRType::MRB_TT_DATA => {
-                let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MRDataType) as *const u8;
+            MrType::MRB_TT_DATA => {
+                let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MrDataType) as *const u8;
                 let rc = mem::transmute::<*const u8, Rc<T>>(ptr);
 
                 let result = Ok(rc.clone());
@@ -151,14 +151,14 @@ impl MRValue {
 
                 result
             },
-            _ => Err(MRubyError::Cast("Data(Rust Rc)"))
+            _ => Err(MrubyError::Cast("Data(Rust Rc)"))
         }
     }
 
     #[inline]
-    pub unsafe fn to_vec(&self, mrb: *const MRState) -> Result<Vec<MRValue>, MRubyError> {
+    pub unsafe fn to_vec(&self, mrb: *const MrState) -> Result<Vec<MrValue>, MrubyError> {
         match self.typ {
-            MRType::MRB_TT_ARRAY => {
+            MrType::MRB_TT_ARRAY => {
                 let len = mrb_ext_ary_len(mrb, *self) as usize;
                 let mut vec = Vec::with_capacity(len);
 
@@ -168,7 +168,7 @@ impl MRValue {
 
                 Ok(vec)
             },
-            _ => Err(MRubyError::Cast("Array"))
+            _ => Err(MrubyError::Cast("Array"))
         }
     }
 }
@@ -176,7 +176,7 @@ impl MRValue {
 #[allow(dead_code)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum MRType {
+pub enum MrType {
     MRB_TT_FALSE,
     MRB_TT_FREE,
     MRB_TT_TRUE,
@@ -205,94 +205,94 @@ pub enum MRType {
 
 #[link(name = "mruby")]
 extern "C" {
-    pub fn mrb_open() -> *const MRState;
-    pub fn mrb_close(mrb: *const MRState);
+    pub fn mrb_open() -> *const MrState;
+    pub fn mrb_close(mrb: *const MrState);
 
     #[inline]
-    pub fn mrb_ext_get_ud(mrb: *const MRState) -> *const u8;
+    pub fn mrb_ext_get_ud(mrb: *const MrState) -> *const u8;
     #[inline]
-    pub fn mrb_ext_set_ud(mrb: *const MRState, ud: *const u8);
+    pub fn mrb_ext_set_ud(mrb: *const MrState, ud: *const u8);
 
-    pub fn mrbc_context_new(mrb: *const MRState) -> *const MRContext;
+    pub fn mrbc_context_new(mrb: *const MrState) -> *const MrContext;
 
-    pub fn mrbc_filename(mrb: *const MRState, context: *const MRContext,
+    pub fn mrbc_filename(mrb: *const MrState, context: *const MrContext,
                          filename: *const c_char) -> *const c_char;
 
-    pub fn mrb_load_nstring_cxt(mrb: *const MRState, code: *const u8, len: i32,
-                                context: *const MRContext) -> MRValue;
-    pub fn mrb_load_irep_cxt(mrb: *const MRState, code: *const u8,
-                             context: *const MRContext) -> MRValue;
+    pub fn mrb_load_nstring_cxt(mrb: *const MrState, code: *const u8, len: i32,
+                                context: *const MrContext) -> MrValue;
+    pub fn mrb_load_irep_cxt(mrb: *const MrState, code: *const u8,
+                             context: *const MrContext) -> MrValue;
 
-    pub fn mrb_class_get(mrb: *const MRState, name: *const c_char) -> *const MRClass;
-    pub fn mrb_module_get(mrb: *const MRState, name: *const c_char) -> *const MRClass;
+    pub fn mrb_class_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
+    pub fn mrb_module_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
 
-    pub fn mrb_define_class(mrb: *const MRState, name: *const c_char,
-                            sup: *const MRClass) -> *const MRClass;
-    pub fn mrb_define_module_function(mrb: *const MRState, module: *const MRClass,
-                                      name: *const c_char, fun: MRFunc, aspec: u32);
+    pub fn mrb_define_class(mrb: *const MrState, name: *const c_char,
+                            sup: *const MrClass) -> *const MrClass;
+    pub fn mrb_define_module_function(mrb: *const MrState, module: *const MrClass,
+                                      name: *const c_char, fun: MrFunc, aspec: u32);
 
-    pub fn mrb_define_method(mrb: *const MRState, class: *const MRClass, name: *const c_char,
-                             fun: MRFunc, aspec: u32);
-    pub fn mrb_define_class_method(mrb: *const MRState, class: *const MRClass, name: *const c_char,
-                                   fun: MRFunc, aspec: u32);
+    pub fn mrb_define_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
+                             fun: MrFunc, aspec: u32);
+    pub fn mrb_define_class_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
+                                   fun: MrFunc, aspec: u32);
 
-    pub fn mrb_get_args(mrb: *const MRState, format: *const c_char, ...);
-    pub fn mrb_ext_get_mid(mrb: *const MRState) -> u32;
+    pub fn mrb_get_args(mrb: *const MrState, format: *const c_char, ...);
+    pub fn mrb_ext_get_mid(mrb: *const MrState) -> u32;
 
-    pub fn mrb_intern(mrb: *const MRState, string: *const u8, len: usize) -> u32;
+    pub fn mrb_intern(mrb: *const MrState, string: *const u8, len: usize) -> u32;
 
-    pub fn mrb_funcall_argv(mrb: *const MRState, object: MRValue, sym: u32, argc: i32,
-                            argv: *const MRValue) -> MRValue;
-
-    #[inline]
-    pub fn mrb_ext_fixnum_to_cint(value: MRValue) -> i32;
-    #[inline]
-    pub fn mrb_ext_float_to_cdouble(value: MRValue) -> f64;
+    pub fn mrb_funcall_argv(mrb: *const MrState, object: MrValue, sym: u32, argc: i32,
+                            argv: *const MrValue) -> MrValue;
 
     #[inline]
-    pub fn mrb_ext_nil() -> MRValue;
+    pub fn mrb_ext_fixnum_to_cint(value: MrValue) -> i32;
     #[inline]
-    pub fn mrb_ext_false() -> MRValue;
-    #[inline]
-    pub fn mrb_ext_true() -> MRValue;
-    #[inline]
-    pub fn mrb_ext_cint_to_fixnum(value: i32) -> MRValue;
-    #[inline]
-    pub fn mrb_ext_cdouble_to_float(mrb: *const MRState, value: f64) -> MRValue;
-    #[inline]
-    pub fn mrb_str_new(mrb: *const MRState, value: *const u8, len: usize) -> MRValue;
+    pub fn mrb_ext_float_to_cdouble(value: MrValue) -> f64;
 
     #[inline]
-    pub fn mrb_str_to_cstr(mrb: *const MRState, value: MRValue) -> *const c_char;
+    pub fn mrb_ext_nil() -> MrValue;
+    #[inline]
+    pub fn mrb_ext_false() -> MrValue;
+    #[inline]
+    pub fn mrb_ext_true() -> MrValue;
+    #[inline]
+    pub fn mrb_ext_cint_to_fixnum(value: i32) -> MrValue;
+    #[inline]
+    pub fn mrb_ext_cdouble_to_float(mrb: *const MrState, value: f64) -> MrValue;
+    #[inline]
+    pub fn mrb_str_new(mrb: *const MrState, value: *const u8, len: usize) -> MrValue;
 
     #[inline]
-    pub fn mrb_data_object_alloc(mrb: *const MRState, class: *const MRClass, ptr: *const u8,
-                                 typ: *const MRDataType) -> *const MRData;
-    #[inline]
-    pub fn mrb_data_get_ptr(mrb: *const MRState, value: MRValue,
-                            typ: *const MRDataType) -> *const u8;
-    #[inline]
-    pub fn mrb_ext_data_ptr(value: MRValue) -> *const u8;
+    pub fn mrb_str_to_cstr(mrb: *const MrState, value: MrValue) -> *const c_char;
 
     #[inline]
-    pub fn mrb_ext_data_init(value: *const MRValue, ptr: *const u8, typ: *const MRDataType);
+    pub fn mrb_data_object_alloc(mrb: *const MrState, class: *const MrClass, ptr: *const u8,
+                                 typ: *const MrDataType) -> *const MrData;
     #[inline]
-    pub fn mrb_ext_set_instance_tt(class: *const MRClass, typ: MRType);
+    pub fn mrb_data_get_ptr(mrb: *const MrState, value: MrValue,
+                            typ: *const MrDataType) -> *const u8;
     #[inline]
-    pub fn mrb_ext_data_value(data: *const MRData) -> MRValue;
-
-    pub fn mrb_ary_new_capa(mrb: *const MRState, size: i32) -> MRValue;
-    #[inline]
-    pub fn mrb_ary_ref(mrb: *const MRState, array: MRValue, i: i32) -> MRValue;
-    #[inline]
-    pub fn mrb_ary_set(mrb: *const MRState, array: MRValue, i: i32, value: MRValue);
-    #[inline]
-    pub fn mrb_ext_ary_len(mrb: *const MRState, array: MRValue) -> i32;
+    pub fn mrb_ext_data_ptr(value: MrValue) -> *const u8;
 
     #[inline]
-    pub fn mrb_ext_raise(mrb: *const MRState, eclass: *const c_char, msg: *const c_char);
+    pub fn mrb_ext_data_init(value: *const MrValue, ptr: *const u8, typ: *const MrDataType);
     #[inline]
-    pub fn mrb_ext_get_exc(mrb: *const MRState) -> MRValue;
+    pub fn mrb_ext_set_instance_tt(class: *const MrClass, typ: MrType);
+    #[inline]
+    pub fn mrb_ext_data_value(data: *const MrData) -> MrValue;
+
+    pub fn mrb_ary_new_capa(mrb: *const MrState, size: i32) -> MrValue;
+    #[inline]
+    pub fn mrb_ary_ref(mrb: *const MrState, array: MrValue, i: i32) -> MrValue;
+    #[inline]
+    pub fn mrb_ary_set(mrb: *const MrState, array: MrValue, i: i32, value: MrValue);
+    #[inline]
+    pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> i32;
+
+    #[inline]
+    pub fn mrb_ext_raise(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
+    #[inline]
+    pub fn mrb_ext_get_exc(mrb: *const MrState) -> MrValue;
 }
 
 

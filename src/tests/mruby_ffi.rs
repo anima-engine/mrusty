@@ -94,9 +94,9 @@ fn define_method() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(_mrb: *const MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn job(_mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                MRValue::fixnum(2)
+                MrValue::fixnum(2)
             }
         }
 
@@ -119,9 +119,9 @@ fn define_class_method() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(_mrb: *const MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn job(_mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                MRValue::fixnum(2)
+                MrValue::fixnum(2)
             }
         }
 
@@ -144,9 +144,9 @@ fn define_module_function() {
 
         let kernel_mod = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
 
-        extern "C" fn hi(mrb: *const MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn hi(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                MRValue::string(mrb, "hi")
+                MrValue::string(mrb, "hi")
             }
         }
 
@@ -170,12 +170,12 @@ fn raise_exc() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
-        extern "C" fn job(mrb: *const MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn job(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
                 mrb_ext_raise(mrb, CString::new("RuntimeError").unwrap().as_ptr(),
                               CString::new("excepting").unwrap().as_ptr());
 
-                MRValue::nil()
+                MrValue::nil()
             }
         }
 
@@ -199,13 +199,13 @@ pub fn args() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        extern "C" fn add(mrb: *const MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let a = uninitialized::<MRValue>();
-                let b = uninitialized::<MRValue>();
+                let a = uninitialized::<MrValue>();
+                let b = uninitialized::<MrValue>();
 
-                mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MRValue,
-                             &b as *const MRValue);
+                mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MrValue,
+                             &b as *const MrValue);
 
                 let args = &[b];
                 let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
@@ -239,7 +239,7 @@ pub fn str_args() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        extern "C" fn add(mrb: *const MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
                 let a = uninitialized::<*const c_char>();
                 let b = uninitialized::<*const c_char>();
@@ -250,10 +250,10 @@ pub fn str_args() {
                 let a = CStr::from_ptr(a).to_str().unwrap();
                 let b = CStr::from_ptr(b).to_str().unwrap();
 
-                let args = &[MRValue::string(mrb, b)];
+                let args = &[MrValue::string(mrb, b)];
                 let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
 
-                mrb_funcall_argv(mrb, MRValue::string(mrb, a), sym, 1, args.as_ptr())
+                mrb_funcall_argv(mrb, MrValue::string(mrb, a), sym, 1, args.as_ptr())
             }
         }
 
@@ -280,11 +280,11 @@ pub fn array_args() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        extern "C" fn add(mrb: *const MRState, _slf: MRValue) -> MRValue {
+        extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let array = uninitialized::<MRValue>();
+                let array = uninitialized::<MrValue>();
 
-                mrb_get_args(mrb, CString::new("A").unwrap().as_ptr(), &array as *const MRValue);
+                mrb_get_args(mrb, CString::new("A").unwrap().as_ptr(), &array as *const MrValue);
 
                 let vec = array.to_vec(mrb).unwrap();
 
@@ -315,8 +315,8 @@ fn funcall_argv() {
     unsafe {
         let mrb = mrb_open();
 
-        let one = MRValue::fixnum(1);
-        let args = &[MRValue::fixnum(2)];
+        let one = MrValue::fixnum(1);
+        let args = &[MrValue::fixnum(2)];
 
         let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
 
@@ -333,9 +333,9 @@ fn nil() {
     unsafe {
         let mrb = mrb_open();
 
-        let nil = MRValue::nil();
+        let nil = MrValue::nil();
 
-        let args: &[MRValue] = &[];
+        let args: &[MrValue] = &[];
 
         let sym = mrb_intern(mrb, "to_s".as_ptr(), 4usize);
 
@@ -350,7 +350,7 @@ fn nil() {
 #[test]
 fn bool_true() {
     unsafe {
-        let bool_true = MRValue::bool(true);
+        let bool_true = MrValue::bool(true);
         assert_eq!(bool_true.to_bool().unwrap(), true);
     }
 }
@@ -358,7 +358,7 @@ fn bool_true() {
 #[test]
 fn bool_false() {
     unsafe {
-        let bool_false = MRValue::bool(false);
+        let bool_false = MrValue::bool(false);
         assert_eq!(bool_false.to_bool().unwrap(), false);
     }
 }
@@ -366,7 +366,7 @@ fn bool_false() {
 #[test]
 fn fixnum() {
     unsafe {
-        let number = MRValue::fixnum(-1291657);
+        let number = MrValue::fixnum(-1291657);
         assert_eq!(number.to_i32().unwrap(), -1291657);
     }
 }
@@ -376,7 +376,7 @@ fn float() {
     unsafe {
         let mrb = mrb_open();
 
-        let number = MRValue::float(mrb, -1291657.37);
+        let number = MrValue::float(mrb, -1291657.37);
         assert_eq!(number.to_f64().unwrap(), -1291657.37);
 
         mrb_close(mrb);
@@ -388,7 +388,7 @@ fn string() {
     unsafe {
         let mrb = mrb_open();
 
-        let string_value = MRValue::string(mrb, "qwerty");
+        let string_value = MrValue::string(mrb, "qwerty");
         assert_eq!(string_value.to_str(mrb).unwrap(), "qwerty");
 
         mrb_close(mrb);
@@ -410,18 +410,18 @@ fn obj() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
 
-        mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
+        mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
 
-        extern "C" fn free(_mrb: *const MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *const MrState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
         }
 
-        let data_type = MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+        let data_type = MrDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
 
         let obj = Cont { value: 3 };
-        let obj = MRValue::obj(mrb, cont_class, obj, &data_type);
+        let obj = MrValue::obj(mrb, cont_class, obj, &data_type);
         let obj: Rc<Cont> = obj.to_obj(mrb, &data_type).unwrap();
 
         assert_eq!(obj.value, 3);
@@ -446,42 +446,42 @@ fn obj_init() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
 
-        mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
+        mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
 
-        extern "C" fn free(_mrb: *const MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *const MrState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
         }
 
-        extern "C" fn init(mrb: *const MRState, slf: MRValue) -> MRValue {
+        extern "C" fn init(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
                 let cont = Cont { value: 3 };
                 let rc = Rc::new(cont);
                 let ptr = mem::transmute::<Rc<Cont>, *const u8>(rc);
 
                 let data_type = mem::transmute::<*const u8,
-                                                 *const MRDataType>(mrb_ext_get_ud(mrb));
+                                                 *const MrDataType>(mrb_ext_get_ud(mrb));
 
-                mrb_ext_data_init(&slf as *const MRValue, ptr, data_type);
+                mrb_ext_data_init(&slf as *const MrValue, ptr, data_type);
 
                 slf
             }
         }
 
-        extern "C" fn value(mrb: *const MRState, slf: MRValue) -> MRValue {
+        extern "C" fn value(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
-                let data_type = mem::transmute::<*const u8, &MRDataType>(mrb_ext_get_ud(mrb));
+                let data_type = mem::transmute::<*const u8, &MrDataType>(mrb_ext_get_ud(mrb));
 
                 let cont = slf.to_obj::<Cont>(mrb, data_type);
 
-                MRValue::fixnum(cont.unwrap().value)
+                MrValue::fixnum(cont.unwrap().value)
             }
         }
 
-        let data_type = &MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+        let data_type = &MrDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
 
-        mrb_ext_set_ud(mrb, mem::transmute::<&MRDataType, *const u8>(data_type));
+        mrb_ext_set_ud(mrb, mem::transmute::<&MrDataType, *const u8>(data_type));
 
         mrb_define_method(mrb, cont_class, CString::new("initialize").unwrap().as_ptr(), init,
                           1 << 12);
@@ -523,21 +523,21 @@ fn obj_scoping() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
 
-        mrb_ext_set_instance_tt(cont_class, MRType::MRB_TT_DATA);
+        mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
 
-        extern "C" fn free(_mrb: *const MRState, ptr: *const u8) {
+        extern "C" fn free(_mrb: *const MrState, ptr: *const u8) {
             unsafe {
                 mem::transmute::<*const u8, Rc<Cont>>(ptr);
             }
         }
 
-        let data_type = MRDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+        let data_type = MrDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
 
         {
             let orig = Cont { value: 3 };
 
             {
-                let obj = MRValue::obj(mrb, cont_class, orig, &data_type);
+                let obj = MrValue::obj(mrb, cont_class, orig, &data_type);
                 let obj: Rc<Cont> = obj.to_obj(mrb, &data_type).unwrap();
 
                 assert_eq!(obj.value, 3);
@@ -561,9 +561,9 @@ fn array() {
     unsafe {
         let mrb = mrb_open();
 
-        let vec: Vec<MRValue> = [1, 2, 3].iter().map(|v| MRValue::fixnum(*v)).collect();
+        let vec: Vec<MrValue> = [1, 2, 3].iter().map(|v| MrValue::fixnum(*v)).collect();
 
-        let array = MRValue::array(mrb, vec.clone());
+        let array = MrValue::array(mrb, vec.clone());
 
         assert_eq!(array.to_vec(mrb).unwrap(), vec);
 

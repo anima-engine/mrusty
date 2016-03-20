@@ -6,15 +6,15 @@ extern crate mrusty;
 use mrusty::*;
 
 fn main() {
-    let mruby = MRuby::new();
+    let mruby = Mruby::new();
 
     struct Cont {
         value: i32
     }
 
     // Cont should not flood the current namespace. We will add it with require.
-    impl MRubyFile for Cont {
-        fn require(mruby: MRubyType) {
+    impl MrubyFile for Cont {
+        fn require(mruby: MrubyType) {
             mruby.def_class::<Cont>("Container");
 
             // Converts mruby types automatically & safely.

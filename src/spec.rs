@@ -16,7 +16,7 @@
 
 use super::mruby::*;
 
-/// A `macro` useful to run mruby specs. You can pass a tuple of `MRubyFile`s dependencies
+/// A `macro` useful to run mruby specs. You can pass a tuple of `MrubyFile`s dependencies
 /// as a second argument.
 ///
 /// # Examples
@@ -28,8 +28,8 @@ use super::mruby::*;
 /// # fn main() {
 /// struct Cont;
 ///
-/// impl MRubyFile for Cont {
-///     fn require(mruby: MRubyType) {
+/// impl MrubyFile for Cont {
+///     fn require(mruby: MrubyType) {
 ///         mruby.def_class::<Cont>("Container");
 ///     }
 /// }
@@ -57,7 +57,7 @@ macro_rules! describe {
     ( $t:ident, $spec:expr ) => {
         #[test]
         fn spec() {
-            let mruby = MRuby::new();
+            let mruby = Mruby::new();
 
             $t::require(mruby.clone());
 
@@ -72,7 +72,7 @@ macro_rules! describe {
     ( $t:ident, ( $( $ts:ident ),+ ), $spec:expr ) => {
         #[test]
         fn spec() {
-            let mruby = MRuby::new();
+            let mruby = Mruby::new();
 
             $t::require(mruby.clone());
             $( $ts::require(mruby.clone()); )*
@@ -107,13 +107,13 @@ macro_rules! describe {
 /// # use mrusty::*;
 /// struct Cont;
 ///
-/// impl MRubyFile for Cont {
-///     fn require(mruby: MRubyType) {
+/// impl MrubyFile for Cont {
+///     fn require(mruby: MrubyType) {
 ///         mruby.def_class::<Cont>("Container");
 ///     }
 /// }
 ///
-/// let mruby = MRuby::new();
+/// let mruby = Mruby::new();
 /// Cont::require(mruby.clone());
 ///
 /// let spec = Spec::new(mruby, "Container", "
@@ -138,7 +138,7 @@ macro_rules! describe {
 pub struct Spec {
     script: String,
     target: String,
-    mruby: MRubyType
+    mruby: MrubyType
 }
 
 impl Spec {
@@ -150,13 +150,13 @@ impl Spec {
     /// # use mrusty::*;
     /// struct Cont;
     ///
-    /// impl MRubyFile for Cont {
-    ///     fn require(mruby: MRubyType) {
+    /// impl MrubyFile for Cont {
+    ///     fn require(mruby: MrubyType) {
     ///         mruby.def_class::<Cont>("Container");
     ///     }
     /// }
     ///
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     /// Cont::require(mruby.clone());
     ///
     /// let spec = Spec::new(mruby, "Container", "
@@ -176,7 +176,7 @@ impl Spec {
     ///     end
     /// ");
     /// ```
-    pub fn new(mruby: MRubyType, name: &str, script: &str) -> Spec {
+    pub fn new(mruby: MrubyType, name: &str, script: &str) -> Spec {
         mruby.filename("matchers/be.rb");
         mruby.run(include_str!("spec/matchers/be.rb")).unwrap();
 
@@ -234,13 +234,13 @@ impl Spec {
     /// # use mrusty::*;
     /// struct Cont;
     ///
-    /// impl MRubyFile for Cont {
-    ///     fn require(mruby: MRubyType) {
+    /// impl MrubyFile for Cont {
+    ///     fn require(mruby: MrubyType) {
     ///         mruby.def_class::<Cont>("Container");
     ///     }
     /// }
     ///
-    /// let mruby = MRuby::new();
+    /// let mruby = Mruby::new();
     /// Cont::require(mruby.clone());
     ///
     /// let spec = Spec::new(mruby, "Container", "
@@ -279,8 +279,8 @@ mod tests {
 
     struct Empty;
 
-    impl MRubyFile for Empty {
-        fn require(mruby: MRubyType) {
+    impl MrubyFile for Empty {
+        fn require(mruby: MrubyType) {
             mruby.def_class::<Empty>("Empty");
         }
     }
