@@ -52,5 +52,9 @@ impl MrubyFile for Scalar {
         mruby.def_method::<Scalar, _>("panic", mrfn!(|_mruby, _slf: Scalar| {
             panic!("I always panic.");
         }));
+
+        mruby.def_method::<Scalar, _>("raise", mrfn!(|mruby, _slf: Scalar| {
+            mruby.raise("RuntimeError", "Except me.")
+        }));
     }
 }

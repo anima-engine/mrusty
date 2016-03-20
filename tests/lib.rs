@@ -178,5 +178,9 @@ describe!(Scalar, "
     it 'raises exception on #panic' do
       expect { zero.panic }.to raise_error RustPanic, 'I always panic.'
     end
+
+    it 'raises exception on #raise' do
+      expect { zero.raise }.to raise_error RuntimeError, 'Except me.'
+    end
   end
 ");
