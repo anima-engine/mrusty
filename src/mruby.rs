@@ -1248,7 +1248,7 @@ impl MRubyImpl for MRubyType {
         };
 
         unsafe {
-            mrb_define_method(self.borrow().mrb, class.0, CString::new(name).unwrap().as_ptr(),
+            mrb_define_method(borrow.mrb, class.0, CString::new(name).unwrap().as_ptr(),
                               call_method::<T>, 1 << 12);
         }
     }
@@ -1311,8 +1311,7 @@ impl MRubyImpl for MRubyType {
         };
 
         unsafe {
-            mrb_define_class_method(self.borrow().mrb, class.0,
-                                    CString::new(name).unwrap().as_ptr(),
+            mrb_define_class_method(borrow.mrb, class.0, CString::new(name).unwrap().as_ptr(),
                                     call_class_method::<T>, 1 << 12);
         }
     }
@@ -1372,8 +1371,8 @@ impl MRubyImpl for MRubyType {
         };
 
         unsafe {
-            Value::new(self.clone(), MRValue::obj(self.borrow().mrb, class.0 as *const MRClass,
-                                                  obj, &class.1))
+            Value::new(self.clone(), MRValue::obj(borrow.mrb, class.0 as *const MRClass, obj,
+                                                  &class.1))
         }
     }
 
@@ -1701,7 +1700,7 @@ impl Value {
                 return Err(MRubyError::Undef)
             }
 
-            self.value.to_obj::<T>(self.mruby.borrow().mrb, &class.1)
+            self.value.to_obj::<T>(borrow.mrb, &class.1)
         }
     }
 
