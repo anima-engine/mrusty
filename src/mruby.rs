@@ -378,8 +378,8 @@ pub struct MRuby {
     ctx:           *const MRContext,
     filename:      Option<String>,
     classes:       HashMap<TypeId, (*const MRClass, MRDataType, String)>,
-    methods:       HashMap<TypeId, HashMap<u32, Box<Fn(MRubyType, Value) -> Value>>>,
-    class_methods: HashMap<TypeId, HashMap<u32, Box<Fn(MRubyType, Value) -> Value>>>,
+    methods:       HashMap<TypeId, HashMap<u32, Rc<Fn(MRubyType, Value) -> Value>>>,
+    class_methods: HashMap<TypeId, HashMap<u32, Rc<Fn(MRubyType, Value) -> Value>>>,
     files:         HashMap<String, Vec<fn(MRubyType)>>,
     required:      HashSet<String>
 }
@@ -1204,7 +1204,7 @@ impl MRubyImpl for MRubyType {
                 None          => panic!("Class not found.")
             };
 
-            methods.insert(sym, Box::new(method));
+            methods.insert(sym, Rc::new(method));
         }
 
         extern "C" fn call_method<T: Any>(mrb: *const MRState, slf: MRValue) -> MRValue {
@@ -1215,18 +1215,20 @@ impl MRubyImpl for MRubyType {
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
 
-                    let borrow = mruby.borrow();
+                    let method = {
+                        let borrow = mruby.borrow();
 
-                    let methods = match borrow.methods.get(&TypeId::of::<T>()) {
-                        Some(methods) => methods,
-                        None          => panic!("Class not found.")
-                    };
+                        let methods = match borrow.methods.get(&TypeId::of::<T>()) {
+                            Some(methods) => methods,
+                            None          => panic!("Class not found.")
+                        };
 
-                    let sym = mrb_ext_get_mid(mrb);
+                        let sym = mrb_ext_get_mid(mrb);
 
-                    let method = match methods.get(&sym) {
-                        Some(method) => method,
-                        None         => panic!("Method not found.")
+                        match methods.get(&sym) {
+                            Some(method) => method.clone(),
+                            None         => panic!("Method not found.")
+                        }
                     };
 
                     method(mruby.clone(), value).value
@@ -1265,7 +1267,7 @@ impl MRubyImpl for MRubyType {
                 None          => panic!("Class not found.")
             };
 
-            methods.insert(sym, Box::new(method));
+            methods.insert(sym, Rc::new(method));
         }
 
         extern "C" fn call_class_method<T: Any>(mrb: *const MRState, slf: MRValue) -> MRValue {
@@ -1276,18 +1278,20 @@ impl MRubyImpl for MRubyType {
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
 
-                    let borrow = mruby.borrow();
+                    let method = {
+                        let borrow = mruby.borrow();
 
-                    let methods = match borrow.class_methods.get(&TypeId::of::<T>()) {
-                        Some(methods) => methods,
-                        None          => panic!("Class not found.")
-                    };
+                        let methods = match borrow.class_methods.get(&TypeId::of::<T>()) {
+                            Some(methods) => methods,
+                            None          => panic!("Class not found.")
+                        };
 
-                    let sym = mrb_ext_get_mid(mrb);
+                        let sym = mrb_ext_get_mid(mrb);
 
-                    let method = match methods.get(&sym) {
-                        Some(method) => method,
-                        None         => panic!("Method not found.")
+                        match methods.get(&sym) {
+                            Some(method) => method.clone(),
+                            None         => panic!("Method not found.")
+                        }
                     };
 
                     method(mruby.clone(), value).value
