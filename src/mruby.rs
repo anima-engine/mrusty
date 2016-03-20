@@ -204,7 +204,7 @@ macro_rules! slf {
 ///
 /// mruby.def_class::<Cont>("Container");
 /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: str, b: str| {
-///     mruby.string(&(a.to_string() + b))
+///     mruby.string(&(a.to_owned() + b))
 /// }));
 /// // slf is a Value here. (mruby Class type)
 /// mruby.def_class_method::<Cont, _>("class_name", mrfn!(|_mruby, slf: Value| {
@@ -442,7 +442,7 @@ impl MRuby {
 
                         match reqs {
                             Some(reqs) => {
-                                { mruby.borrow_mut().required.insert(name.to_string()); }
+                                { mruby.borrow_mut().required.insert(name.to_owned()); }
 
                                 for req in reqs {
                                     req(mruby.clone());
@@ -475,17 +475,17 @@ impl MRuby {
                                 };
 
                                 let path = Path::new(name);
-                                let rb = name.to_string() + ".rb";
+                                let rb = name.to_owned() + ".rb";
                                 let rb = Path::new(&rb);
-                                let mrb = name.to_string() + ".mrb";
+                                let mrb = name.to_owned() + ".mrb";
                                 let mrb = Path::new(&mrb);
 
                                 if rb.is_file() {
-                                    execute(rb, name.to_string(), filename)
+                                    execute(rb, name.to_owned(), filename)
                                 } else if mrb.is_file() {
-                                    execute(mrb, name.to_string(), filename)
+                                    execute(mrb, name.to_owned(), filename)
                                 } else if path.is_file() {
-                                    execute(path, name.to_string(), filename)
+                                    execute(path, name.to_owned(), filename)
                                 } else {
                                     mruby.raise("RuntimeError",
                                                 &format!("cannot load {}.rb or {}.mrb",
@@ -1055,7 +1055,7 @@ pub trait MRubyImpl {
 impl MRubyImpl for MRubyType {
     #[inline]
     fn filename(&self, filename: &str) {
-        self.borrow_mut().filename = Some(filename.to_string());
+        self.borrow_mut().filename = Some(filename.to_owned());
 
         unsafe {
             mrbc_filename(self.borrow().mrb, self.borrow().ctx,
@@ -1169,13 +1169,13 @@ impl MRubyImpl for MRubyType {
 
             file.push(T::require);
         } else {
-            borrow.files.insert(name.to_string(), vec![T::require]);
+            borrow.files.insert(name.to_owned(), vec![T::require]);
         }
     }
 
     fn def_class<T: Any>(&self, name: &str) {
         unsafe {
-            let name = name.to_string();
+            let name = name.to_owned();
 
             let c_name = CString::new(name.clone()).unwrap();
             let object = CString::new("Object").unwrap();

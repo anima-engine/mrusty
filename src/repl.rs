@@ -48,7 +48,7 @@ impl Repl {
     pub fn new(mruby: MRubyType) -> Repl {
         Repl {
             mruby: mruby,
-            name: "mrusty".to_string()
+            name: "mrusty".to_owned()
         }
     }
 
@@ -65,7 +65,7 @@ impl Repl {
     /// repl.rename("repl");
     /// ```
     pub fn rename(&mut self, name: &str) {
-        self.name = name.to_string();
+        self.name = name.to_owned();
     }
 
     /// Starts a `Repl`.

@@ -220,8 +220,8 @@ impl Spec {
         mruby.run(include_str!("spec/spec.rb")).unwrap();
 
         Spec {
-            script: script.to_string(),
-            target: name.to_string(),
+            script: script.to_owned(),
+            target: name.to_owned(),
             mruby: mruby
         }
     }
