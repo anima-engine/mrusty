@@ -95,8 +95,8 @@ macro_rules! args_rest {
             mrb_get_args(mrb, $sig, args!($name, $t), &args as *const *mut MrValue,
                          &count as *const i32);
 
-            let args = Vec::from_raw_parts(args, count as usize, count as usize);
-            args.iter().map(|arg| { Value::new($mruby.clone(), *arg) }).collect::<Vec<_>>()
+            let args = slice::from_raw_parts(args, count as usize);
+            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
          }
     };
     ( $mruby:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
@@ -109,8 +109,8 @@ macro_rules! args_rest {
             mrb_get_args(mrb, $sig, args!($name, $t), $( args!($names : $ts) ),* ,
                          &args as *const *mut MrValue, &count as *const i32);
 
-            let args = Vec::from_raw_parts(args, count as usize, count as usize);
-            args.iter().map(|arg| { Value::new($mruby.clone(), *arg) }).collect::<Vec<_>>()
+            let args = slice::from_raw_parts(args, count as usize);
+            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
          }
     };
 }
@@ -287,6 +287,7 @@ macro_rules! mrfn {
         |$mruby, $slf| {
             use std::ffi::CString;
             use std::mem::uninitialized;
+            use std::slice;
 
             slf!($slf, $st);
 
@@ -299,9 +300,9 @@ macro_rules! mrfn {
                 mrb_get_args(mrb, CString::new("*").unwrap().as_ptr(),
                              &$args as *const *mut MrValue, &count as *const i32);
 
-                let $args = Vec::from_raw_parts($args, count as usize, count as usize);
+                let $args = slice::from_raw_parts($args, count as usize);
                 let $args = $args.iter().map(|arg| {
-                    Value::new($mruby.clone(), *arg)
+                    Value::new($mruby.clone(), arg.clone())
                 }).collect::<Vec<_>>();
 
                 $block
@@ -342,6 +343,7 @@ macro_rules! mrfn {
             use std::mem::uninitialized;
             #[allow(unused_imports)]
             use std::os::raw::c_char;
+            use std::slice;
 
             unsafe {
                 slf!($slf, $st);
