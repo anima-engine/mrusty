@@ -174,5 +174,9 @@ describe!(Scalar, "
     it 'returns 0 on #value' do
       expect(zero.value).to eql 0
     end
+
+    it 'raises exception on #panic' do
+      expect { zero.panic }.to raise_error RustPanic, 'I always panic.'
+    end
   end
 ");

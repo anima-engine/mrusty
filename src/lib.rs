@@ -38,6 +38,8 @@
 //!
 //! *Note:* On OSX you can install it from homebrew with `brew install mruby`.
 
+#![feature(recover, std_panic)]
+
 #[cfg(feature = "gnu-readline")]
 extern crate rl_sys;
 

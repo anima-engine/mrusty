@@ -23,6 +23,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::mem;
 use std::os::raw::{c_char, c_void};
+use std::panic::{self, AssertRecoverSafe};
 use std::path::Path;
 use std::rc::Rc;
 
@@ -160,6 +161,8 @@ macro_rules! slf {
 /// * `Vec` (`Vec<Value>`; macro limtation)
 /// * `T` (defined with `def_class`)
 /// * `Value`
+///
+/// Any `panic!` call within the closure will get rescued in a `RustPanic` mruby `Exception`.
 ///
 /// # Examples
 ///
@@ -506,7 +509,17 @@ impl MRuby {
             let ptr = mem::transmute::<MRubyType, *const u8>(mruby);
             mrb_ext_set_ud(mrb, ptr);
 
-            mem::transmute::<*const u8, MRubyType>(ptr)
+            let mruby = mem::transmute::<*const u8, MRubyType>(ptr);
+
+            mruby.run_unchecked("
+              class RustPanic < Exception
+                def initialize(message)
+                  super message
+                end
+              end
+            ");
+
+            mruby
         }
     }
 
@@ -1231,7 +1244,20 @@ impl MRubyImpl for MRubyType {
                         }
                     };
 
-                    method(mruby.clone(), value).value
+                    match panic::recover(AssertRecoverSafe::new(|| method(mruby.clone(), value).value)) {
+                        Ok(value)  => value,
+                        Err(error) => {
+                            let message = match error.downcast_ref::<&'static str>() {
+                                Some(s) => *s,
+                                None    => match error.downcast_ref::<String>() {
+                                    Some(s) => &s[..],
+                                    None    => ""
+                                }
+                            };
+
+                            mruby.raise("RustPanic", message).value
+                        }
+                    }
                 };
 
                 mem::forget(mruby);
@@ -1294,7 +1320,20 @@ impl MRubyImpl for MRubyType {
                         }
                     };
 
-                    method(mruby.clone(), value).value
+                    match panic::recover(AssertRecoverSafe::new(|| method(mruby.clone(), value).value)) {
+                        Ok(value)  => value,
+                        Err(error) => {
+                            let message = match error.downcast_ref::<&'static str>() {
+                                Some(s) => *s,
+                                None    => match error.downcast_ref::<String>() {
+                                    Some(s) => &s[..],
+                                    None    => ""
+                                }
+                            };
+
+                            mruby.raise("RustPanic", message).value
+                        }
+                    }
                 };
 
                 mem::forget(mruby);

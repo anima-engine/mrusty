@@ -48,5 +48,9 @@ impl MRubyFile for Scalar {
         mruby.def_method::<Scalar, _>("*", mrfn!(|mruby, slf: Scalar, vector: Vector| {
             mruby.obj((*slf).clone() * (*vector).clone())
         }));
+
+        mruby.def_method::<Scalar, _>("panic", mrfn!(|_mruby, _slf: Scalar| {
+            panic!("I always panic.");
+        }));
     }
 }
