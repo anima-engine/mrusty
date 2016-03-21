@@ -534,7 +534,7 @@ macro_rules! defines {
     };
 }
 
-/// A 'macro' that comes in handy when defining class in order to remove a large part of the
+/// A `macro` that comes in handy when defining class in order to remove a large part of the
 /// clutter and ensure correction. It automates and simplifies the implementation of the
 /// `MrubyFile` `trait`. Thus, any type provided to `mrclass!` will get an `MrubyFile`
 /// implementation.
@@ -550,7 +550,7 @@ macro_rules! defines {
 /// you to return a `Value`. Apart from that, `"initialize"` is the only method that doesn't
 /// take itself as an argument.
 ///
-/// *Note:* mruby argument is optional.
+/// *Note:* `mruby` argument is optional.
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
