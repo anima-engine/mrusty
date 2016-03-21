@@ -43,6 +43,7 @@
 #[cfg(feature = "gnu-readline")]
 extern crate rl_sys;
 
+mod macros;
 mod mruby;
 mod mruby_ffi;
 mod read_line;
