@@ -35,42 +35,35 @@ impl Vector {
     }
 }
 
-impl MrubyFile for Vector {
-    fn require(mruby: MrubyType) {
-        mruby.def_class::<Vector>("Vector");
+mrclass!(Vector, {
+    def!("initialize", |x: f64, y: f64, z: f64| {
+        Vector::new(x as f32, y as f32, z as f32)
+    });
 
-        mruby.def_method::<Vector, _>("initialize", mrfn!(|_mruby, slf: Value,
-                                                           x: f64, y: f64, z: f64| {
-            let vector = Vector::new(x as f32, y as f32, z as f32);
+    def_self!("from_a", |slf: Value, array: Vec| {
+        slf.call_unchecked("new", array)
+    });
 
-            slf.init(vector)
-        }));
+    def!("x", |mruby, slf: Vector| {
+        mruby.float(slf.x as f64)
+    });
 
-        mruby.def_class_method::<Vector, _>("from_a", mrfn!(|_mruby, slf: Value, array: Vec| {
-            slf.call_unchecked("new", array)
-        }));
+    def!("y", |mruby, slf: Vector| {
+        mruby.float(slf.y as f64)
+    });
 
-        mruby.def_method::<Vector, _>("x", mrfn!(|mruby, slf: Vector| {
-            mruby.float(slf.x as f64)
-        }));
+    def!("z", |mruby, slf: Vector| {
+        mruby.float(slf.z as f64)
+    });
 
-        mruby.def_method::<Vector, _>("y", mrfn!(|mruby, slf: Vector| {
-            mruby.float(slf.y as f64)
-        }));
-
-        mruby.def_method::<Vector, _>("z", mrfn!(|mruby, slf: Vector| {
+    def!("to_a", |mruby, slf: Vector| {
+        mruby.array(vec![
+            mruby.float(slf.x as f64),
+            mruby.float(slf.y as f64),
             mruby.float(slf.z as f64)
-        }));
-
-        mruby.def_method::<Vector, _>("to_a", mrfn!(|mruby, slf: Vector| {
-            mruby.array(vec![
-                mruby.float(slf.x as f64),
-                mruby.float(slf.y as f64),
-                mruby.float(slf.z as f64)
-            ])
-        }));
-    }
-}
+        ])
+    });
+});
 
 use std::ops::Mul;
 

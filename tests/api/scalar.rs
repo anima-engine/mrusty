@@ -31,30 +31,24 @@ impl Scalar {
     }
 }
 
-impl MrubyFile for Scalar {
-    fn require(mruby: MrubyType) {
-        mruby.def_class::<Scalar>("Scalar");
+mrclass!(Scalar, {
+    def!("initialize", |v: f64| {
+        Scalar::new(v as f32)
+    });
 
-        mruby.def_method::<Scalar, _>("initialize", mrfn!(|_mruby, slf: Value, v: f64| {
-            let scalar = Scalar::new(v as f32);
+    def!("value", |mruby, slf: Scalar| {
+        mruby.float(slf.value as f64)
+    });
 
-            slf.init(scalar)
-        }));
+    def!("*", |mruby, slf: Scalar, vector: Vector| {
+        mruby.obj((*slf).clone() * (*vector).clone())
+    });
 
-        mruby.def_method::<Scalar, _>("value", mrfn!(|mruby, slf: Scalar| {
-            mruby.float(slf.value as f64)
-        }));
+    def!("panic", |_slf: Scalar| {
+        panic!("I always panic.");
+    });
 
-        mruby.def_method::<Scalar, _>("*", mrfn!(|mruby, slf: Scalar, vector: Vector| {
-            mruby.obj((*slf).clone() * (*vector).clone())
-        }));
-
-        mruby.def_method::<Scalar, _>("panic", mrfn!(|_mruby, _slf: Scalar| {
-            panic!("I always panic.");
-        }));
-
-        mruby.def_method::<Scalar, _>("raise", mrfn!(|mruby, _slf: Scalar| {
-            mruby.raise("RuntimeError", "Except me.")
-        }));
-    }
-}
+    def!("raise", |mruby, _slf: Scalar| {
+        mruby.raise("RuntimeError", "Except me.")
+    });
+});

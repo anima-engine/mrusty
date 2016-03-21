@@ -652,7 +652,7 @@ pub trait MrubyImpl {
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
     ///
-    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
+    /// *Note:* `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
@@ -674,7 +674,7 @@ pub trait MrubyImpl {
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust `Option` of type `T`.
     ///
-    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
+    /// *Note:* `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
@@ -1152,7 +1152,7 @@ impl Value {
 
     /// Initializes the `self` mruby object passed to `initialize` with a Rust object of type `T`.
     ///
-    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
+    /// *Note:* `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
@@ -1371,7 +1371,7 @@ impl Value {
 
     /// Casts mruby `Value` of `Class` `name` to Rust type `Rc<T>`.
     ///
-    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
+    /// *Note:* `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
@@ -1415,7 +1415,7 @@ impl Value {
 
     /// Casts mruby `Value` of `Class` `name` to Rust `Option` of `Rc<T>`.
     ///
-    /// **Note:** `T` must be defined on the current `Mruby` with `def_class`.
+    /// *Note:* `T` must be defined on the current `Mruby` with `def_class`.
     ///
     /// # Examples
     ///
