@@ -41,7 +41,7 @@ end
 A very simple example of a Container `struct` which will be passed to mruby and
 which is perfectly callable.
 ```rust
-// mrfn!
+// mrclass!
 #[macro_use]
 extern crate mrusty;
 
