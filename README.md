@@ -51,22 +51,17 @@ struct Cont {
 }
 
 // Cont should not flood the current namespace. We will add it with require.
-impl MrubyFile for Cont {
-    fn require(mruby: MrubyType) {
-        mruby.def_class::<Cont>("Container");
+mrclass!(Cont, "Container", {
+    // Converts mruby types automatically & safely.
+    def!("initialize", |v: i32| {
+        Cont { value: v }
+    });
 
-        // Converts mruby types automatically & safely.
-        // slf is always Value in initialize().
-        mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
-            let cont = Cont { value: v };
-
-            slf.init(cont)
-        }));
-        mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
-            mruby.fixnum(slf.value)
-        }));
-    }
-}
+    // Converts slf to Cont.
+    def!("value", |mruby, slf: Cont| {
+        mruby.fixnum(slf.value)
+    });
+});
 
 // Add file to the context, making it requirable.
 mruby.def_file::<Cont>("cont");
