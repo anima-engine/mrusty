@@ -86,6 +86,19 @@ fn exec_bin_context() {
 }
 
 #[test]
+fn symbol_to_string() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let result = MrValue::symbol(mrb, "symbol");
+
+        assert_eq!(result.to_str(mrb).unwrap(), "symbol");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn define_method() {
     unsafe {
         let mrb = mrb_open();

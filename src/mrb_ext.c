@@ -72,6 +72,21 @@ mrb_value mrb_ext_proc_to_value(struct mrb_state* mrb, struct RProc* proc) {
   return value;
 }
 
+const char* mrb_ext_sym2name(struct mrb_state* mrb, mrb_value value) {
+  return mrb_sym2name(mrb, mrb_symbol(value));
+}
+
+mrb_value mrb_ext_sym_new(struct mrb_state* mrb, const char* string,
+                          size_t len) {
+  mrb_value value;
+
+  mrb_symbol(value) = mrb_intern(mrb, string, len);
+
+  value.tt = MRB_TT_SYMBOL;
+
+  return value;
+}
+
 void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
   mrb_data_init(*value, ptr, type);
 }

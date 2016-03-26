@@ -650,6 +650,21 @@ pub trait MrubyImpl {
     #[inline]
     fn string(&self, value: &str) -> Value;
 
+    /// Creates mruby `Value` of `Class` `Symbol`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let s = mruby.symbol("hi");
+    ///
+    /// assert_eq!(s.to_str().unwrap(), "hi");
+    /// ```
+    #[inline]
+    fn symbol(&self, value: &str) -> Value;
+
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
     ///
     /// *Note:* `T` must be defined on the current `Mruby` with `def_class`.
@@ -1071,6 +1086,13 @@ impl MrubyImpl for MrubyType {
     }
 
     #[inline]
+    fn symbol(&self, value: &str) -> Value {
+        unsafe {
+            Value::new(self.clone(), MrValue::symbol(self.borrow().mrb, value))
+        }
+    }
+
+    #[inline]
     fn obj<T: Any>(&self, obj: T) -> Value {
         let borrow = self.borrow();
 
@@ -1361,6 +1383,15 @@ impl Value {
     /// ").unwrap();
     ///
     /// assert_eq!(result.to_str().unwrap(), "123");
+    /// ```
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    /// let result = mruby.run(":symbol").unwrap();
+    ///
+    /// assert_eq!(result.to_str().unwrap(), "symbol");
     /// ```
     #[inline]
     pub fn to_str<'a>(&self) -> Result<&'a str, MrubyError> {

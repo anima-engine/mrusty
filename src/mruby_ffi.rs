@@ -76,6 +76,11 @@ impl MrValue {
     }
 
     #[inline]
+    pub unsafe fn symbol(mrb: *const MrState, value: &str) -> MrValue {
+        mrb_ext_sym_new(mrb, value.as_ptr(), value.len())
+    }
+
+    #[inline]
     pub unsafe fn obj<T: Any>(mrb: *const MrState, class: *const MrClass,
                               obj: T, typ: &MrDataType) -> MrValue {
         let rc = Rc::new(obj);
@@ -130,6 +135,11 @@ impl MrValue {
         match self.typ {
             MrType::MRB_TT_STRING => {
                 let s = mrb_str_to_cstr(mrb, *self) as *const i8;
+
+                Ok(CStr::from_ptr(s).to_str().unwrap().clone())
+            },
+            MrType::MRB_TT_SYMBOL => {
+                let s = mrb_ext_sym2name(mrb, *self) as *const i8;
 
                 Ok(CStr::from_ptr(s).to_str().unwrap().clone())
             },
@@ -260,6 +270,10 @@ extern "C" {
     pub fn mrb_ext_cdouble_to_float(mrb: *const MrState, value: f64) -> MrValue;
     #[inline]
     pub fn mrb_str_new(mrb: *const MrState, value: *const u8, len: usize) -> MrValue;
+    #[inline]
+    pub fn mrb_ext_sym2name(mrb: *const MrState, value: MrValue) -> *const u8;
+    #[inline]
+    pub fn mrb_ext_sym_new(mrb: *const MrState, value: *const u8, len: usize) -> MrValue;
 
     #[inline]
     pub fn mrb_str_to_cstr(mrb: *const MrState, value: MrValue) -> *const c_char;
