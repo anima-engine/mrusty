@@ -444,7 +444,7 @@ macro_rules! defines {
     };
 
     // initialize args
-    ( $mruby:expr, $name:ty, def!("initialize", | $args:ident | $block:expr ); $( $rest:tt )* ) => {
+    ( $mruby:expr, $name:ty, def!("initialize", | ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
         $mruby.def_method::<$name, _>("initialize", mrfn!(|_mruby, slf: Value; $args:ident| {
             slf.init($block)
         }));
