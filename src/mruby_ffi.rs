@@ -203,7 +203,6 @@ pub enum MrType {
     MRB_TT_MAXDEFINE
 }
 
-#[link(name = "mruby")]
 extern "C" {
     pub fn mrb_open() -> *const MrState;
     pub fn mrb_close(mrb: *const MrState);
