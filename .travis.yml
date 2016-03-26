@@ -1,10 +1,16 @@
 language: rust
-sudo: required
 os:
   - linux
   - osx
 rust:
   - nightly
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
 git:
   depth: 1
 branches:
@@ -16,10 +22,24 @@ cache:
   directories:
     - $TRAVIS_BUILD_DIR/target
     - $HOME/.cargo
-before_install: ./.travis/before_install_$TRAVIS_OS_NAME.sh
+before_script:
+  - |
+      if [[ $TRAVIS_OS_NAME =~ linux ]]; then
+        pip install 'travis-cargo<0.2' --user &&
+        export PATH=$HOME/.local/bin:$PATH
+      fi
 script:
-  - cargo test
+  - |
+      if [[ $TRAVIS_OS_NAME =~ linux ]]; then
+        travis-cargo test
+      else
+        cargo test
+      fi
 after_success: |
   if [[ $TRAVIS_OS_NAME =~ linux ]]; then
-    ./.travis/after_success.sh
+    travis-cargo coveralls --no-sudo --verify \
+    --kcov-options="--exclude-path=./target/mruby-out"
   fi
+env:
+  global:
+    - TRAVIS_CARGO_NIGHTLY_FEATURE=""
