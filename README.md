@@ -5,35 +5,17 @@
 (https://coveralls.io/repos/github/anima-engine/mrusty/badge.svg?branch=master)]
 (https://coveralls.io/github/anima-engine/mrusty?branch=master)
 
-mrusty lets you reflect Rust `struct`s and `enum`s in mruby and run them.
-It does this in a safely neat way while also bringing spec testing and a REPL
-to the table.
+mrusty lets you:
+
+* run Ruby 1.9 files with a very restricted API (without having to install Ruby)
+* reflect Rust `struct`s and `enum`s in mruby and run them
+
+It does all this in a safely neat way while also bringing spec testing and a
+REPL to the table.
 
 *Note:* Starting with *v0.3.0*, mrusty will only work with Rust nightly. This
 is caused by a need to capture `panic`s in mruby. Once this features stabilizes
 (and it will in Rust 1.9.0), mrusty will return to stable Rust.
-
-
-## Requirements
-- [mruby](https://github.com/mruby/mruby)
-
-mrusty requires mruby compiled with `-fPIC`. To compile and install mruby 1.2.0:
-- make sure you have [Bison](https://www.gnu.org/software/bison/)
-& [Ruby](https://www.ruby-lang.org/) installed
-- download the [source](https://github.com/mruby/mruby/archive/1.2.0.zip)
-- unzip and `cd` to `mruby-1.2.0/`
-- add the following lines to `build_config.rb` as in the `# C compiler settings`
-example (make sure you add it after the comment):
-```ruby
-conf.cc do |cc|
-  cc.flags << '-fPIC'
-end
-```
-- run `./minirake`
-- copy header files from `include` to `/usr/loca/include`
-- copy `build/host/lib/libmruby.a` to `/usr/local/lib`
-
-*Note:* On OSX you can install it from homebrew with `brew install mruby`.
 
 ## [Documentation](http://anima-engine.github.io/mrusty/)
 
