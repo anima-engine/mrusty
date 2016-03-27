@@ -584,7 +584,7 @@ macro_rules! defines {
 ///
 /// Use `def_self!` to define mruby class methods.
 ///
-/// *Note:* mruby argument is optional.
+/// *Note:* `mruby` argument is optional.
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
