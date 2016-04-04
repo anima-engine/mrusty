@@ -918,14 +918,18 @@ impl MrubyImpl for MrubyType {
 
                         let methods = match borrow.methods.get(&TypeId::of::<T>()) {
                             Some(methods) => methods,
-                            None          => panic!("Class not found.")
+                            None          => {
+                                return mruby.raise("TypeError", "Class not found.").value
+                            }
                         };
 
                         let sym = mrb_ext_get_mid(mrb);
 
                         match methods.get(&sym) {
                             Some(method) => method.clone(),
-                            None         => panic!("Method not found.")
+                            None         => {
+                                return mruby.raise("TypeError", "Method not found.").value
+                            }
                         }
                     };
 
@@ -994,14 +998,18 @@ impl MrubyImpl for MrubyType {
 
                         let methods = match borrow.class_methods.get(&TypeId::of::<T>()) {
                             Some(methods) => methods,
-                            None          => panic!("Class not found.")
+                            None          => {
+                                return mruby.raise("TypeError", "Class not found.").value
+                            }
                         };
 
                         let sym = mrb_ext_get_mid(mrb);
 
                         match methods.get(&sym) {
                             Some(method) => method.clone(),
-                            None         => panic!("Method not found.")
+                            None         => {
+                                return mruby.raise("TypeError", "Method not found.").value
+                            }
                         }
                     };
 
@@ -1430,12 +1438,12 @@ impl Value {
 
             let class = match borrow.classes.get(&TypeId::of::<T>()) {
                 Some(class) => class,
-                None       => panic!("Class not found.")
+                None        => {
+                    return Err(MrubyError::Undef)
+                }
             };
 
-            let class_name = self.call("class", vec![]).unwrap();
-            let class_name = class_name.call("to_s", vec![]).unwrap();
-            let class_name = class_name.to_str().unwrap();
+            let class_name = self.type_name();
 
             if class_name != class.2 {
                 return Err(MrubyError::Undef)
