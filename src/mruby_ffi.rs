@@ -106,7 +106,7 @@ impl MrValue {
         match self.typ {
             MrType::MRB_TT_FALSE => Ok(false),
             MrType::MRB_TT_TRUE  => Ok(true),
-            _ => Err(MrubyError::Cast("TrueClass or FalseClass"))
+            _ => Err(MrubyError::Cast("TrueClass or FalseClass".to_owned()))
         }
     }
 
@@ -116,7 +116,7 @@ impl MrValue {
             MrType::MRB_TT_FIXNUM => {
                 Ok(mrb_ext_fixnum_to_cint(*self))
             },
-            _ => Err(MrubyError::Cast("Fixnum"))
+            _ => Err(MrubyError::Cast("Fixnum".to_owned()))
         }
     }
 
@@ -126,7 +126,7 @@ impl MrValue {
             MrType::MRB_TT_FLOAT => {
                 Ok(mrb_ext_float_to_cdouble(*self))
             },
-            _ => Err(MrubyError::Cast("Float"))
+            _ => Err(MrubyError::Cast("Float".to_owned()))
         }
     }
 
@@ -143,7 +143,7 @@ impl MrValue {
 
                 Ok(CStr::from_ptr(s).to_str().unwrap().clone())
             },
-            _ => Err(MrubyError::Cast("String"))
+            _ => Err(MrubyError::Cast("String".to_owned()))
         }
     }
 
@@ -161,7 +161,7 @@ impl MrValue {
 
                 result
             },
-            _ => Err(MrubyError::Cast("Data(Rust Rc)"))
+            _ => Err(MrubyError::Cast("Data(Rust Rc)".to_owned()))
         }
     }
 
@@ -178,7 +178,7 @@ impl MrValue {
 
                 Ok(vec)
             },
-            _ => Err(MrubyError::Cast("Array"))
+            _ => Err(MrubyError::Cast("Array".to_owned()))
         }
     }
 }

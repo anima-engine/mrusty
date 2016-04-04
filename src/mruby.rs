@@ -202,15 +202,15 @@ impl Mruby {
 
 /// An `enum` containing all possbile types of errors.
 #[derive(Debug)]
-pub enum MrubyError<'a> {
-    Cast(&'a str),
+pub enum MrubyError {
+    Cast(String),
     Undef,
-    Runtime(&'a str),
+    Runtime(String),
     Filetype,
     Io(io::Error)
 }
 
-impl<'a> fmt::Display for MrubyError<'a> {
+impl fmt::Display for MrubyError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             MrubyError::Cast(ref expected) => {
@@ -230,7 +230,7 @@ impl<'a> fmt::Display for MrubyError<'a> {
     }
 }
 
-impl<'a> Error for MrubyError<'a> {
+impl Error for MrubyError {
     fn description(&self) -> &str {
         match *self {
             MrubyError::Cast(_)     => "mruby value cast error",
@@ -242,8 +242,8 @@ impl<'a> Error for MrubyError<'a> {
     }
 }
 
-impl<'a> From<io::Error> for MrubyError<'a> {
-    fn from(err: io::Error) -> MrubyError<'a> {
+impl From<io::Error> for MrubyError {
+    fn from(err: io::Error) -> MrubyError {
         MrubyError::Io(err)
     }
 }
@@ -764,7 +764,7 @@ impl MrubyImpl for MrubyType {
                 MrType::MRB_TT_FALSE => {
                     Ok(Value::new(self.clone(), value))
                 },
-                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap().to_owned()))
             }
         }
     }
@@ -800,7 +800,7 @@ impl MrubyImpl for MrubyType {
                 MrType::MRB_TT_FALSE => {
                     Ok(Value::new(self.clone(), value))
                 },
-                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap()))
+                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap().to_owned()))
             }
         }
     }
@@ -1250,7 +1250,8 @@ impl Value {
                 MrType::MRB_TT_FALSE => {
                     Ok(Value::new(self.mruby.clone(), result))
                 },
-                _  => Err(MrubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()))
+                _  => Err(MrubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()
+                                                 .to_owned()))
             }
         }
     }
