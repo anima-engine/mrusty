@@ -17,6 +17,8 @@
 #[macro_use]
 extern crate mrusty;
 
+use std::path::Path;
+
 use mrusty::*;
 
 mod api;
@@ -165,6 +167,17 @@ fn api_dup() {
 
         assert_eq!(DROPPED, true);
     }
+}
+
+#[test]
+fn api_execute_binary() {
+    let mruby = Mruby::new();
+
+    Scalar::require(mruby.clone());
+
+    let result = mruby.execute(Path::new("tests/compiled.mrb")).unwrap();
+
+    assert_eq!(*result.to_obj::<Scalar>().unwrap(), Scalar::new(2.0));
 }
 
 describe!(Scalar, "
