@@ -211,7 +211,7 @@ pub enum MrubyError {
     Runtime(String),
     /// unrecognized file type error
     Filetype,
-    /// Rust Io error
+    /// Rust `Io` error
     Io(io::Error)
 }
 
