@@ -159,9 +159,7 @@ impl Mruby {
                                 } else {
                                     mruby.raise("RuntimeError",
                                                 &format!("cannot load {}.rb or {}.mrb",
-                                                         name, name));
-
-                                    mruby.nil()
+                                                         name, name))
                                 }
                             }
                         }
