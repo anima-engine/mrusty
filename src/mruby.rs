@@ -203,10 +203,15 @@ impl Mruby {
 /// An `enum` containing all possbile types of errors.
 #[derive(Debug)]
 pub enum MrubyError {
+    /// type cast error
     Cast(String),
+    /// undefined type error
     Undef,
+    /// mruby runtime error
     Runtime(String),
+    /// unrecognized file type error
     Filetype,
+    /// Rust Io error
     Io(io::Error)
 }
 
