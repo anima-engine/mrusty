@@ -38,8 +38,7 @@ script:
 after_success: |
   if [[ $TRAVIS_OS_NAME =~ linux ]]; then
     travis-cargo coveralls --no-sudo --verify \
-    --kcov-options="--exclude-path=./target/mruby-out \
-    --exclude-path=./src/tests --exclude-path=./tests"
+    --kcov-options="--exclude-path=target/,tests/"
   fi
 env:
   global:
