@@ -23,11 +23,13 @@ use super::read_line::ReadLine;
 ///
 /// # Examples
 ///
+/// Using `GnuReadLine`, which requires the `gnu-readline` feature:
+///
 /// ```no-run
 /// let mruby = Mruby::new();
 /// let repl = Repl::new(mruby);
 ///
-/// repl.start();
+/// repl.start(&GnuReadLine);
 /// ```
 pub struct Repl {
     mruby: MrubyType,
@@ -73,6 +75,8 @@ impl Repl {
     /// Use `'\'` for multiline statements.
     ///
     /// # Examples
+    ///
+    /// Using `GnuReadLine`, which requires the `gnu-readline` feature:
     ///
     /// ```no-run
     /// let mruby = Mruby::new();
