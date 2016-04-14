@@ -241,6 +241,8 @@ extern "C" {
     pub fn mrb_define_class(mrb: *const MrState, name: *const c_char,
                             sup: *const MrClass) -> *const MrClass;
     pub fn mrb_define_module(mrb: *const MrState, name: *const c_char) -> *const MrClass;
+    pub fn mrb_include_module(mrb: *const MrState, class: *const MrClass, module: *const MrClass);
+
     pub fn mrb_define_module_function(mrb: *const MrState, module: *const MrClass,
                                       name: *const c_char, fun: MrFunc, aspec: u32);
 

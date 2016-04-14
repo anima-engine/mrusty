@@ -211,6 +211,30 @@ fn define_module() {
 }
 
 #[test]
+fn include_module() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let code = "module Increment; def inc; self + 1; end; end";
+
+        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+
+        let fixnum_class = mrb_class_get(mrb, CString::new("Fixnum").unwrap().as_ptr());
+        let increment = mrb_module_get(mrb, CString::new("Increment").unwrap().as_ptr());
+
+        mrb_include_module(mrb, fixnum_class, increment);
+
+        let code = "1.inc";
+
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn define_class_method() {
     unsafe {
         let mrb = mrb_open();

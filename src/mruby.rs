@@ -1710,6 +1710,38 @@ impl Class {
         }
     }
 
+    /// Includes a `Module` in a `Class`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.run("
+    ///   module Increment
+    ///     def inc
+    ///       self + 1
+    ///     end
+    ///   end
+    /// ").unwrap();
+    ///
+    /// let fixnum = mruby.get_class("Fixnum").unwrap();
+    /// let increment = mruby.get_module("Increment").unwrap();
+    ///
+    /// fixnum.include(increment);
+    ///
+    /// let result = mruby.run("1.inc").unwrap();
+    ///
+    /// assert_eq!(result.to_i32().unwrap(), 2);
+    /// ```
+    pub fn include(&self, module: Module) {
+        unsafe {
+            mrb_include_module(self.mruby.borrow().mrb, self.class, module.module);
+        }
+    }
+
     /// Returns a `&str` with the mruby `Class` name.
     ///
     /// # Examples
@@ -1807,6 +1839,42 @@ impl Module {
         Module {
             mruby:  mruby,
             module:  module
+        }
+    }
+
+    /// Includes a `Module` in a `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.run("
+    ///   module Increment
+    ///     def inc
+    ///       self + 1
+    ///     end
+    ///   end
+    ///
+    ///   module Increment2; end
+    /// ").unwrap();
+    ///
+    /// let fixnum = mruby.get_class("Fixnum").unwrap();
+    /// let increment = mruby.get_module("Increment").unwrap();
+    /// let increment2 = mruby.get_module("Increment2").unwrap();
+    ///
+    /// increment2.include(increment);
+    /// fixnum.include(increment2);
+    ///
+    /// let result = mruby.run("1.inc").unwrap();
+    ///
+    /// assert_eq!(result.to_i32().unwrap(), 2);
+    /// ```
+    pub fn include(&self, module: Module) {
+        unsafe {
+            mrb_include_module(self.mruby.borrow().mrb, self.module, module.module);
         }
     }
 
