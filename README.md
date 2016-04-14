@@ -62,9 +62,9 @@ describe!(Cont, "
 ");
 
 let result = mruby.run("
-    require 'cont'
+  require 'cont'
 
-    Container.new(3).value
+  Container.new(3).value
 ").unwrap(); // Returns Value.
 
 println!("{}", result.to_i32().unwrap()); // Prints "3".
