@@ -1742,6 +1742,34 @@ impl Class {
         }
     }
 
+    /// Defines constant with name `name` and value `value` on a `Class`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.run("
+    ///   class Container; end
+    /// ").unwrap();
+    ///
+    /// let cont = mruby.get_class("Container").unwrap();
+    ///
+    /// cont.def_const("ONE", mruby.fixnum(1));
+    ///
+    /// let result = mruby.run("Container::ONE").unwrap();
+    ///
+    /// assert_eq!(result.to_i32().unwrap(), 1);
+    /// ```
+    pub fn def_const(&self, name: &str, value: Value) {
+        unsafe {
+            mrb_define_const(self.mruby.borrow().mrb, self.class,
+                             CString::new(name).unwrap().as_ptr(), value.value);
+        }
+    }
+
     /// Returns a `&str` with the mruby `Class` name.
     ///
     /// # Examples
@@ -1875,6 +1903,34 @@ impl Module {
     pub fn include(&self, module: Module) {
         unsafe {
             mrb_include_module(self.mruby.borrow().mrb, self.module, module.module);
+        }
+    }
+
+    /// Defines constant with name `name` and value `value` on a `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.run("
+    ///   module Container; end
+    /// ").unwrap();
+    ///
+    /// let cont = mruby.get_module("Container").unwrap();
+    ///
+    /// cont.def_const("ONE", mruby.fixnum(1));
+    ///
+    /// let result = mruby.run("Container::ONE").unwrap();
+    ///
+    /// assert_eq!(result.to_i32().unwrap(), 1);
+    /// ```
+    pub fn def_const(&self, name: &str, value: Value) {
+        unsafe {
+            mrb_define_const(self.mruby.borrow().mrb, self.module,
+                             CString::new(name).unwrap().as_ptr(), value.value);
         }
     }
 

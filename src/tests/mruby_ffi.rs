@@ -261,6 +261,34 @@ fn define_class_method() {
 }
 
 #[test]
+fn define_constant() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+
+        let one = MrValue::fixnum(1);
+
+        mrb_define_const(mrb, obj_class, CString::new("ONE").unwrap().as_ptr(), one);
+        mrb_define_const(mrb, kernel, CString::new("ONE").unwrap().as_ptr(), one);
+
+        let code = "Object::ONE";
+
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 1);
+
+       let code = "Kernel::ONE";
+
+       assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                  .to_i32().unwrap(), 1);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn define_module_function() {
     unsafe {
         let mrb = mrb_open();
