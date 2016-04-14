@@ -131,6 +131,25 @@ fn class_name() {
 }
 
 #[test]
+fn class_value() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let obj_class = mrb_ext_class_value(obj_class);
+        let args = &[];
+
+        let sym = mrb_intern(mrb, "to_s".as_ptr(), 4usize);
+
+        let result = mrb_funcall_argv(mrb, obj_class, sym, 0, args.as_ptr());
+
+        assert_eq!(result.to_str(mrb).unwrap(), "Object");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn define_class_method() {
     unsafe {
         let mrb = mrb_open();

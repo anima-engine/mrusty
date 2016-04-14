@@ -1598,4 +1598,30 @@ impl Class {
             CStr::from_ptr(name).to_str().unwrap()
         }
     }
+
+    /// Casts `Class` to `Value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// let class = mruby.def_class::<Cont>("Container");
+    /// let value = class.to_value();
+    ///
+    /// let name = value.call("to_s", vec![]).unwrap();
+    ///
+    /// assert_eq!(name.to_str().unwrap(), "Container");
+    /// ```
+    pub fn to_value(&self) -> Value {
+        unsafe {
+            let value = mrb_ext_class_value(self.class);
+
+            Value::new(self.mruby.clone(), value)
+        }
+    }
 }

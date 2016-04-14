@@ -82,6 +82,15 @@ void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
   mrb_data_init(*value, ptr, type);
 }
 
+mrb_value mrb_ext_class_value(struct RClass* klass) {
+  mrb_value value;
+
+  value.value.p = klass;
+  value.tt = MRB_TT_CLASS;
+
+  return value;
+}
+
 mrb_value mrb_ext_data_value(struct RData* data) {
   mrb_value value;
 

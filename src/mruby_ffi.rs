@@ -232,6 +232,7 @@ extern "C" {
                                       name: *const c_char, fun: MrFunc, aspec: u32);
 
     pub fn mrb_class_name(mrb: *const MrState, class: *const MrClass) -> *const c_char;
+    pub fn mrb_ext_class_value(class: *const MrClass) -> MrValue;
 
     pub fn mrb_define_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
                              fun: MrFunc, aspec: u32);
