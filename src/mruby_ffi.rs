@@ -172,6 +172,16 @@ impl MrValue {
             _ => Err(MrubyError::Cast("Array".to_owned()))
         }
     }
+
+    #[inline]
+    pub unsafe fn to_class(&self) -> Result<*const MrClass, MrubyError> {
+        match self.typ {
+            MrType::MRB_TT_CLASS => {
+                Ok(mrb_ext_get_class(*self))
+            },
+            _ => Err(MrubyError::Cast("Class".to_owned()))
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -223,18 +233,43 @@ extern "C" {
     pub fn mrb_load_irep_cxt(mrb: *const MrState, code: *const u8,
                              context: *const MrContext) -> MrValue;
 
+    pub fn mrb_class_defined(mrb: *const MrState, name: *const c_char) -> bool;
+    pub fn mrb_ext_class_defined_under(mrb: *const MrState, outer: *const MrClass,
+                                       name: *const c_char) -> bool;
+
     pub fn mrb_class_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
     pub fn mrb_module_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
+    pub fn mrb_class_get_under(mrb: *const MrState, outer: *const MrClass,
+                               name: *const c_char) -> *const MrClass;
+    pub fn mrb_module_get_under(mrb: *const MrState, outer: *const MrClass,
+                                name: *const c_char) -> *const MrClass;
 
     pub fn mrb_define_class(mrb: *const MrState, name: *const c_char,
                             sup: *const MrClass) -> *const MrClass;
+    pub fn mrb_define_module(mrb: *const MrState, name: *const c_char) -> *const MrClass;
+    pub fn mrb_define_class_under(mrb: *const MrState, outer: *const MrClass,
+                                  name: *const c_char, sup: *const MrClass) -> *const MrClass;
+    pub fn mrb_define_module_under(mrb: *const MrState, outer: *const MrClass,
+                                   name: *const c_char) -> *const MrClass;
+
+    pub fn mrb_include_module(mrb: *const MrState, class: *const MrClass, module: *const MrClass);
+
+    pub fn mrb_define_const(mrb: *const MrState, class: *const MrClass, name: *const c_char,
+                            value: MrValue);
     pub fn mrb_define_module_function(mrb: *const MrState, module: *const MrClass,
                                       name: *const c_char, fun: MrFunc, aspec: u32);
+
+    pub fn mrb_class_name(mrb: *const MrState, class: *const MrClass) -> *const c_char;
+    pub fn mrb_ext_class_value(class: *const MrClass) -> MrValue;
+    pub fn mrb_ext_module_value(module: *const MrClass) -> MrValue;
 
     pub fn mrb_define_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
                              fun: MrFunc, aspec: u32);
     pub fn mrb_define_class_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
                                    fun: MrFunc, aspec: u32);
+
+    #[inline]
+    pub fn mrb_ext_class(mrb: *const MrState, value: MrValue) -> *const MrClass;
 
     pub fn mrb_get_args(mrb: *const MrState, format: *const c_char, ...);
     pub fn mrb_ext_get_mid(mrb: *const MrState) -> u32;
@@ -297,6 +332,9 @@ extern "C" {
     pub fn mrb_ext_raise(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
     #[inline]
     pub fn mrb_ext_get_exc(mrb: *const MrState) -> MrValue;
+
+    #[inline]
+    pub fn mrb_ext_get_class(class: MrValue) -> *const MrClass;
 }
 
 

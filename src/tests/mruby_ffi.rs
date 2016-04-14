@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 use super::*;
 
@@ -115,6 +115,180 @@ fn define_method() {
 }
 
 #[test]
+fn class_defined() {
+    unsafe {
+        let mrb = mrb_open();
+
+        assert_eq!(mrb_class_defined(mrb, CString::new("Object").unwrap().as_ptr()), true);
+        assert_eq!(mrb_class_defined(mrb, CString::new("Kernel").unwrap().as_ptr()), true);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn class_name() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+
+        let name = mrb_class_name(mrb, new_class);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Mine");
+
+        let name = mrb_class_name(mrb, kernel);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Kernel");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn class_value() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let obj_class = mrb_ext_class_value(obj_class);
+        let args = &[];
+
+        let sym = mrb_intern(mrb, "to_s".as_ptr(), 4usize);
+
+        let result = mrb_funcall_argv(mrb, obj_class, sym, 0, args.as_ptr());
+
+        assert_eq!(result.to_str(mrb).unwrap(), "Object");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn value_class() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let nil = MrValue::nil();
+        let nil_class = mrb_ext_class(mrb, nil);
+
+        let name = mrb_class_name(mrb, nil_class);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "NilClass");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn value_to_class() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let obj_class_value = mrb_ext_class_value(obj_class);
+
+        assert_eq!(obj_class_value.to_class().unwrap(), obj_class);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn define_module() {
+    unsafe {
+        let mrb = mrb_open();
+
+        mrb_define_module(mrb, CString::new("MyMod").unwrap().as_ptr());
+
+        assert_eq!(mrb_class_defined(mrb, CString::new("MyMod").unwrap().as_ptr()), true);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn defined_under() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+        let name = CString::new("Mine").unwrap().as_ptr();
+
+        mrb_define_module_under(mrb, kernel, name);
+
+        assert!(mrb_ext_class_defined_under(mrb, kernel, CString::new("Mine").unwrap().as_ptr()));
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn class_under() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let name = CString::new("Mine").unwrap().as_ptr();
+
+        mrb_define_class_under(mrb, obj_class, name, obj_class);
+        let new_class = mrb_class_get_under(mrb, obj_class, name);
+
+        let name = mrb_class_name(mrb, new_class);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Mine");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn module_under() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+        let name = CString::new("Mine").unwrap().as_ptr();
+
+        mrb_define_module_under(mrb, kernel, name);
+        let new_module = mrb_module_get_under(mrb, kernel, name);
+
+        let name = mrb_class_name(mrb, new_module);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Kernel::Mine");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn include_module() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let code = "module Increment; def inc; self + 1; end; end";
+
+        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+
+        let fixnum_class = mrb_class_get(mrb, CString::new("Fixnum").unwrap().as_ptr());
+        let increment = mrb_module_get(mrb, CString::new("Increment").unwrap().as_ptr());
+
+        mrb_include_module(mrb, fixnum_class, increment);
+
+        let code = "1.inc";
+
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn define_class_method() {
     unsafe {
         let mrb = mrb_open();
@@ -135,6 +309,34 @@ fn define_class_method() {
 
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn define_constant() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+
+        let one = MrValue::fixnum(1);
+
+        mrb_define_const(mrb, obj_class, CString::new("ONE").unwrap().as_ptr(), one);
+        mrb_define_const(mrb, kernel, CString::new("ONE").unwrap().as_ptr(), one);
+
+        let code = "Object::ONE";
+
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 1);
+
+       let code = "Kernel::ONE";
+
+       assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                  .to_i32().unwrap(), 1);
 
         mrb_close(mrb);
     }

@@ -82,6 +82,24 @@ void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
   mrb_data_init(*value, ptr, type);
 }
 
+mrb_value mrb_ext_class_value(struct RClass* klass) {
+  mrb_value value;
+
+  value.value.p = klass;
+  value.tt = MRB_TT_CLASS;
+
+  return value;
+}
+
+mrb_value mrb_ext_module_value(struct RClass* module) {
+  mrb_value value;
+
+  value.value.p = module;
+  value.tt = MRB_TT_MODULE;
+
+  return value;
+}
+
 mrb_value mrb_ext_data_value(struct RData* data) {
   mrb_value value;
 
@@ -118,6 +136,24 @@ mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
   }
 }
 
-mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass, const char* msg) {
+mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass,
+  const char* msg) {
   mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
+}
+
+mrb_bool mrb_ext_class_defined_under(struct mrb_state* mrb,
+  struct RClass* outer, const char* name) {
+  mrb_value sym = mrb_check_intern_cstr(mrb, name);
+
+  if (mrb_nil_p(sym)) return FALSE;
+
+  return mrb_const_defined(mrb, mrb_obj_value(outer), mrb_symbol(sym));
+}
+
+struct RClass* mrb_ext_get_class(mrb_value value) {
+  return (struct RClass*) value.value.p;
+}
+
+struct RClass* mrb_ext_class(struct mrb_state* mrb, mrb_value value) {
+  return mrb_class(mrb, value);
 }
