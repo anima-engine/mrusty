@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 use super::*;
 
@@ -109,6 +109,22 @@ fn define_method() {
         let code = "Mine.new.job";
 
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context).to_i32().unwrap(), 2);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn class_name() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+
+        let name = mrb_class_name(mrb, new_class);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Mine");
 
         mrb_close(mrb);
     }

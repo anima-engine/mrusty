@@ -482,7 +482,7 @@ pub trait MrubyImpl {
     ///
     /// mruby.def_class::<Cont>("Container");
     /// ```
-    fn def_class<T: Any>(&self, name: &str);
+    fn def_class<T: Any>(&self, name: &str) -> Class;
 
     /// Defines an mruby method named `name`. The closure to be run when the `name` method is
     /// called should be passed through the `mrfn!` macro.
@@ -852,8 +852,8 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    fn def_class<T: Any>(&self, name: &str) {
-        unsafe {
+    fn def_class<T: Any>(&self, name: &str) -> Class {
+        let class = unsafe {
             let name = name.to_owned();
 
             let c_name = CString::new(name.clone()).unwrap();
@@ -875,11 +875,15 @@ impl MrubyImpl for MrubyType {
             self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
             self.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
             self.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
-        }
+
+            Class::new(self.clone(), class)
+        };
 
         self.def_method::<T, _>("dup", |_mruby, slf| {
             slf.clone()
         });
+
+        class
     }
 
     fn def_method<T: Any, F>(&self, name: &str,
@@ -1539,5 +1543,59 @@ impl PartialEq<Value> for Value {
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Value {{ {:?} }}", self.value)
+    }
+}
+
+/// A `struct` that wraps around an mruby `Class`.
+///
+/// # Examples
+///
+/// ```
+/// # use mrusty::Mruby;
+/// # use mrusty::MrubyImpl;
+/// let mruby = Mruby::new();
+///
+/// struct Cont;
+///
+/// let class = mruby.def_class::<Cont>("Container");
+///
+/// assert_eq!(class.to_str(), "Container");
+/// ```
+pub struct Class {
+    mruby: MrubyType,
+    class: *const MrClass
+}
+
+impl Class {
+    /// Not meant to be called directly.
+    #[doc(hidden)]
+    pub fn new(mruby: MrubyType, class: *const MrClass) -> Class {
+        Class {
+            mruby: mruby,
+            class: class
+        }
+    }
+
+    /// Returns a `&str` with the mruby `Class` name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// let class = mruby.def_class::<Cont>("Container");
+    ///
+    /// assert_eq!(class.to_str(), "Container");
+    /// ```
+    pub fn to_str(&self) -> &str {
+        unsafe {
+            let name = mrb_class_name(self.mruby.borrow().mrb, self.class);
+
+            CStr::from_ptr(name).to_str().unwrap()
+        }
     }
 }

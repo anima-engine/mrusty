@@ -24,9 +24,8 @@ mod macros;
 mod mruby;
 mod mruby_ffi;
 mod read_line;
-mod spec;
-
 mod repl;
+mod spec;
 
 /// Not meant to be called directly.
 #[doc(hidden)]
@@ -35,6 +34,7 @@ pub use mruby_ffi::MrValue;
 #[doc(hidden)]
 pub use mruby_ffi::mrb_get_args;
 
+pub use mruby::Class;
 pub use mruby::Mruby;
 pub use mruby::MrubyError;
 pub use mruby::MrubyFile;
