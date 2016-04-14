@@ -239,6 +239,9 @@ extern "C" {
     pub fn mrb_define_class_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
                                    fun: MrFunc, aspec: u32);
 
+    #[inline]
+    pub fn mrb_ext_class(mrb: *const MrState, value: MrValue) -> *const MrClass;
+
     pub fn mrb_get_args(mrb: *const MrState, format: *const c_char, ...);
     pub fn mrb_ext_get_mid(mrb: *const MrState) -> u32;
 

@@ -150,6 +150,22 @@ fn class_value() {
 }
 
 #[test]
+fn value_class() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let nil = MrValue::nil();
+        let nil_class = mrb_ext_class(mrb, nil);
+
+        let name = mrb_class_name(mrb, nil_class);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "NilClass");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn define_class_method() {
     unsafe {
         let mrb = mrb_open();

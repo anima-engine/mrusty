@@ -1288,7 +1288,7 @@ impl Value {
         }
     }
 
-    /// Returns the name of the mruby `Class` as a `&str`.
+    /// Returns the `Class` of an mruby `Value`.
     ///
     /// # Examples
     ///
@@ -1298,12 +1298,15 @@ impl Value {
     /// let mruby = Mruby::new();
     ///
     /// let one = mruby.run("1").unwrap();
-    /// assert_eq!(one.type_name(), "Fixnum");
+    /// assert_eq!(one.class().to_str(), "Fixnum");
     /// ```
-    pub fn type_name(&self) -> &str {
-        let string = self.call_unchecked("class", vec![]).call_unchecked("to_s", vec![]);
+    #[inline]
+    pub fn class(&self) -> Class {
+        unsafe {
+            let class = mrb_ext_class(self.mruby.borrow().mrb, self.value);
 
-        string.to_str().unwrap()
+            Class::new(self.mruby.clone(), class, false)
+        }
     }
 
     /// Casts a `Value` and returns a `bool` in an `Ok` or an `Err` if the types mismatch.
@@ -1441,9 +1444,9 @@ impl Value {
                 }
             };
 
-            let class_name = self.type_name();
+            let self_class = self.class();
 
-            if class_name != class.2 {
+            if self_class.to_str() != class.2 {
                 return Err(MrubyError::Undef)
             }
 
@@ -1593,6 +1596,7 @@ impl Class {
     ///
     /// assert_eq!(class.is_module(), false);
     /// ```
+    #[inline]
     pub fn is_module(&self) -> bool {
         self.module
     }
@@ -1612,6 +1616,7 @@ impl Class {
     ///
     /// assert_eq!(class.to_str(), "Container");
     /// ```
+    #[inline]
     pub fn to_str(&self) -> &str {
         unsafe {
             let name = mrb_class_name(self.mruby.borrow().mrb, self.class);
@@ -1638,11 +1643,32 @@ impl Class {
     ///
     /// assert_eq!(name.to_str().unwrap(), "Container");
     /// ```
+    #[inline]
     pub fn to_value(&self) -> Value {
         unsafe {
             let value = mrb_ext_class_value(self.class);
 
             Value::new(self.mruby.clone(), value)
         }
+    }
+}
+
+impl Clone for Class {
+    fn clone(&self) -> Class {
+        Class::new(self.mruby.clone(), self.class, self.module)
+    }
+}
+
+impl PartialEq<Class> for Class {
+    fn eq(&self, other: &Class) -> bool {
+        let result = self.to_value().call("==", vec![other.to_value()]).unwrap();
+
+        result.to_bool().unwrap()
+    }
+}
+
+impl fmt::Debug for Class {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Class {{ {:?} }}", self.to_str())
     }
 }
