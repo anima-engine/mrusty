@@ -876,7 +876,7 @@ impl MrubyImpl for MrubyType {
             self.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
             self.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
 
-            Class::new(self.clone(), class)
+            Class::new(self.clone(), class, false)
         };
 
         self.def_method::<T, _>("dup", |_mruby, slf| {
@@ -1562,18 +1562,39 @@ impl fmt::Debug for Value {
 /// assert_eq!(class.to_str(), "Container");
 /// ```
 pub struct Class {
-    mruby: MrubyType,
-    class: *const MrClass
+    mruby:  MrubyType,
+    class:  *const MrClass,
+    module: bool
 }
 
 impl Class {
     /// Not meant to be called directly.
     #[doc(hidden)]
-    pub fn new(mruby: MrubyType, class: *const MrClass) -> Class {
+    pub fn new(mruby: MrubyType, class: *const MrClass, is_module: bool) -> Class {
         Class {
-            mruby: mruby,
-            class: class
+            mruby:  mruby,
+            class:  class,
+            module: is_module
         }
+    }
+
+    /// Returns whether a `Class` is an mruby `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// let class = mruby.def_class::<Cont>("Container");
+    ///
+    /// assert_eq!(class.is_module(), false);
+    /// ```
+    pub fn is_module(&self) -> bool {
+        self.module
     }
 
     /// Returns a `&str` with the mruby `Class` name.
