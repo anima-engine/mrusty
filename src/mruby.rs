@@ -14,7 +14,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::mem;
 use std::os::raw::{c_char, c_void};
-use std::panic::{self, AssertRecoverSafe};
+use std::panic::{self, AssertUnwindSafe};
 use std::path::Path;
 use std::rc::Rc;
 
@@ -1217,7 +1217,7 @@ impl MrubyImpl for MrubyType {
                         }
                     };
 
-                    match panic::recover(AssertRecoverSafe::new(|| method(mruby.clone(), value).value)) {
+                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(), value).value)) {
                         Ok(value)  => value,
                         Err(error) => {
                             let message = match error.downcast_ref::<&'static str>() {
@@ -1297,7 +1297,7 @@ impl MrubyImpl for MrubyType {
                         }
                     };
 
-                    match panic::recover(AssertRecoverSafe::new(|| method(mruby.clone(), value).value)) {
+                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(), value).value)) {
                         Ok(value)  => value,
                         Err(error) => {
                             let message = match error.downcast_ref::<&'static str>() {

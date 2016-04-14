@@ -15,8 +15,6 @@
 //! It does all this in a safely neat way while also bringing spec testing and a
 //! REPL to the table.
 
-#![feature(recover, std_panic)]
-
 #[cfg(feature = "gnu-readline")]
 extern crate rl_sys;
 
