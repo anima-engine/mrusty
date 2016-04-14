@@ -440,6 +440,24 @@ pub trait MrubyImpl {
     #[inline]
     fn is_defined(&self, name: &str) -> bool;
 
+    /// Returns whether the mruby `Class` or `Module` named `name` is defined under `outer` `Class`
+    /// or `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let module = mruby.def_module("Just");
+    /// mruby.def_module_under("Mine", &module);
+    ///
+    /// assert!(mruby.is_defined_under("Mine", &module));
+    /// ```
+    #[inline]
+    fn is_defined_under<T: ClassLike>(&self, name: &str, outer: &T) -> bool;
+
     /// Returns the mruby `Class` named `name`.
     ///
     /// # Examples
@@ -457,6 +475,27 @@ pub trait MrubyImpl {
     #[inline]
     fn get_class(&self, name: &str) -> Result<Class, MrubyError>;
 
+    /// Returns the mruby `Class` named `name` under `outer` `Class` or `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// let module = mruby.def_module("Mine");
+    /// mruby.def_class_under::<Cont, _>("Container", &module);
+    ///
+    /// let result = mruby.get_class_under("Container", &module).unwrap();
+    ///
+    /// assert_eq!(result.to_str(), "Mine::Container");
+    /// ```
+    #[inline]
+    fn get_class_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Class, MrubyError>;
+
     /// Returns the mruby `Class` named `name`.
     ///
     /// # Examples
@@ -473,6 +512,25 @@ pub trait MrubyImpl {
     /// ```
     #[inline]
     fn get_module(&self, name: &str) -> Result<Module, MrubyError>;
+
+    /// Returns the mruby `Class` named `name` under `outer` `Class` or `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let module = mruby.def_module("Just");
+    /// mruby.def_module_under("Mine", &module);
+    ///
+    /// let result = mruby.get_module_under("Mine", &module).unwrap();
+    ///
+    /// assert_eq!(result.to_str(), "Just::Mine");
+    /// ```
+    #[inline]
+    fn get_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Module, MrubyError>;
 
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
     /// `MrubyFile`-inherited `require` method.
@@ -537,6 +595,24 @@ pub trait MrubyImpl {
     /// ```
     fn def_class<T: Any>(&self, name: &str) -> Class;
 
+    /// Defines Rust type `T` as an mruby `Class` named `name` under `outer` `Class` or `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// struct Cont;
+    ///
+    /// let module = mruby.def_module("Mine");
+    /// mruby.def_class_under::<Cont, _>("Container", &module);
+    ///
+    /// assert!(mruby.is_defined_under("Container", &module));
+    /// ```
+    fn def_class_under<T: Any, U: ClassLike>(&self, name: &str, outer: &U) -> Class;
+
     /// Defines an mruby `Module` named `name`.
     ///
     /// # Examples
@@ -551,6 +627,22 @@ pub trait MrubyImpl {
     /// assert!(mruby.is_defined("Container"));
     /// ```
     fn def_module(&self, name: &str) -> Module;
+
+    /// Defines an mruby `Module` named `name` under `outer` `Class` or `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let module = mruby.def_module("Just");
+    /// mruby.def_module_under("Mine", &module);
+    ///
+    /// assert!(mruby.is_defined_under("Mine", &module));
+    /// ```
+    fn def_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Module;
 
     /// Defines an mruby method named `name`. The closure to be run when the `name` method is
     /// called should be passed through the `mrfn!` macro.
@@ -915,6 +1007,15 @@ impl MrubyImpl for MrubyType {
     }
 
     #[inline]
+    fn is_defined_under<T: ClassLike>(&self, name: &str, outer: &T) -> bool {
+        unsafe {
+            let name = CString::new(name).unwrap().as_ptr();
+
+            mrb_ext_class_defined_under(self.borrow().mrb, outer.class(), name)
+        }
+    }
+
+    #[inline]
     fn get_class(&self, name: &str) -> Result<Class, MrubyError> {
         unsafe {
             if mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr()) {
@@ -928,10 +1029,41 @@ impl MrubyImpl for MrubyType {
     }
 
     #[inline]
+    fn get_class_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Class, MrubyError> {
+        unsafe {
+            if mrb_ext_class_defined_under(self.borrow().mrb, outer.class(),
+                                           CString::new(name).unwrap().as_ptr()) {
+                let class = mrb_class_get_under(self.borrow().mrb, outer.class(),
+                                                CString::new(name).unwrap().as_ptr());
+
+                Ok(Class::new(self.clone(), class))
+            } else {
+                Err(MrubyError::Undef)
+            }
+        }
+    }
+
+    #[inline]
     fn get_module(&self, name: &str) -> Result<Module, MrubyError> {
         unsafe {
             if mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr()) {
-                let class = mrb_module_get(self.borrow().mrb, CString::new(name).unwrap().as_ptr());
+                let class = mrb_module_get(self.borrow().mrb,
+                                           CString::new(name).unwrap().as_ptr());
+
+                Ok(Module::new(self.clone(), class))
+            } else {
+                Err(MrubyError::Undef)
+            }
+        }
+    }
+
+    #[inline]
+    fn get_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Module, MrubyError> {
+        unsafe {
+            if mrb_ext_class_defined_under(self.borrow().mrb, outer.class(),
+                                           CString::new(name).unwrap().as_ptr()) {
+                let class = mrb_module_get_under(self.borrow().mrb, outer.class(),
+                                                 CString::new(name).unwrap().as_ptr());
 
                 Ok(Module::new(self.clone(), class))
             } else {
@@ -987,10 +1119,54 @@ impl MrubyImpl for MrubyType {
         class
     }
 
+    fn def_class_under<T: Any, U: ClassLike>(&self, name: &str, outer: &U) -> Class {
+        let class = unsafe {
+            let name = name.to_owned();
+
+            let c_name = CString::new(name.clone()).unwrap();
+            let object = CString::new("Object").unwrap();
+            let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
+
+            let class = mrb_define_class_under(self.borrow().mrb, outer.class(), c_name.as_ptr(),
+                                               object);
+
+            mrb_ext_set_instance_tt(class, MrType::MRB_TT_DATA);
+
+            extern "C" fn free<T>(_mrb: *const MrState, ptr: *const u8) {
+                unsafe {
+                    mem::transmute::<*const u8, Rc<T>>(ptr);
+                }
+            }
+
+            let data_type = MrDataType { name: c_name.as_ptr(), free: free::<T> };
+
+            self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
+            self.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
+            self.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
+
+            Class::new(self.clone(), class)
+        };
+
+        self.def_method::<T, _>("dup", |_mruby, slf| {
+            slf.clone()
+        });
+
+        class
+    }
+
     fn def_module(&self, name: &str) -> Module {
         unsafe {
             let module = mrb_define_module(self.borrow().mrb,
                                            CString::new(name).unwrap().as_ptr());
+
+            Module::new(self.clone(), module)
+        }
+    }
+
+    fn def_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Module {
+        unsafe {
+            let module = mrb_define_module_under(self.borrow().mrb, outer.class(),
+                                                 CString::new(name).unwrap().as_ptr());
 
             Module::new(self.clone(), module)
         }
@@ -1680,6 +1856,11 @@ impl fmt::Debug for Value {
     }
 }
 
+/// A `trait` which connects `Class` & `Module`.
+pub trait ClassLike {
+    fn class(&self) -> *const MrClass;
+}
+
 /// A `struct` that wraps around an mruby `Class`.
 ///
 /// # Examples
@@ -1819,6 +2000,12 @@ impl Class {
 
             Value::new(self.mruby.clone(), value)
         }
+    }
+}
+
+impl ClassLike for Class {
+    fn class(&self) -> *const MrClass {
+        self.class
     }
 }
 
@@ -1979,6 +2166,12 @@ impl Module {
 
             Value::new(self.mruby.clone(), value)
         }
+    }
+}
+
+impl ClassLike for Module {
+    fn class(&self) -> *const MrClass {
+        self.module
     }
 }
 

@@ -136,8 +136,18 @@ mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
   }
 }
 
-mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass, const char* msg) {
+mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass,
+  const char* msg) {
   mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
+}
+
+mrb_bool mrb_ext_class_defined_under(struct mrb_state* mrb,
+  struct RClass* outer, const char* name) {
+  mrb_value sym = mrb_check_intern_cstr(mrb, name);
+
+  if (mrb_nil_p(sym)) return FALSE;
+
+  return mrb_const_defined(mrb, mrb_obj_value(outer), mrb_symbol(sym));
 }
 
 struct RClass* mrb_ext_get_class(mrb_value value) {

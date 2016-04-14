@@ -234,13 +234,24 @@ extern "C" {
                              context: *const MrContext) -> MrValue;
 
     pub fn mrb_class_defined(mrb: *const MrState, name: *const c_char) -> bool;
+    pub fn mrb_ext_class_defined_under(mrb: *const MrState, outer: *const MrClass,
+                                       name: *const c_char) -> bool;
 
     pub fn mrb_class_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
     pub fn mrb_module_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
+    pub fn mrb_class_get_under(mrb: *const MrState, outer: *const MrClass,
+                               name: *const c_char) -> *const MrClass;
+    pub fn mrb_module_get_under(mrb: *const MrState, outer: *const MrClass,
+                                name: *const c_char) -> *const MrClass;
 
     pub fn mrb_define_class(mrb: *const MrState, name: *const c_char,
                             sup: *const MrClass) -> *const MrClass;
     pub fn mrb_define_module(mrb: *const MrState, name: *const c_char) -> *const MrClass;
+    pub fn mrb_define_class_under(mrb: *const MrState, outer: *const MrClass,
+                                  name: *const c_char, sup: *const MrClass) -> *const MrClass;
+    pub fn mrb_define_module_under(mrb: *const MrState, outer: *const MrClass,
+                                   name: *const c_char) -> *const MrClass;
+
     pub fn mrb_include_module(mrb: *const MrState, class: *const MrClass, module: *const MrClass);
 
     pub fn mrb_define_const(mrb: *const MrState, class: *const MrClass, name: *const c_char,

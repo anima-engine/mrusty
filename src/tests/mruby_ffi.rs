@@ -211,6 +211,60 @@ fn define_module() {
 }
 
 #[test]
+fn defined_under() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+        let name = CString::new("Mine").unwrap().as_ptr();
+
+        mrb_define_module_under(mrb, kernel, name);
+
+        assert!(mrb_ext_class_defined_under(mrb, kernel, CString::new("Mine").unwrap().as_ptr()));
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn class_under() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let name = CString::new("Mine").unwrap().as_ptr();
+
+        mrb_define_class_under(mrb, obj_class, name, obj_class);
+        let new_class = mrb_class_get_under(mrb, obj_class, name);
+
+        let name = mrb_class_name(mrb, new_class);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Mine");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn module_under() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+        let name = CString::new("Mine").unwrap().as_ptr();
+
+        mrb_define_module_under(mrb, kernel, name);
+        let new_module = mrb_module_get_under(mrb, kernel, name);
+
+        let name = mrb_class_name(mrb, new_module);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Kernel::Mine");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn include_module() {
     unsafe {
         let mrb = mrb_open();
