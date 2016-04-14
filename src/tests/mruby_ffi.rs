@@ -166,6 +166,20 @@ fn value_class() {
 }
 
 #[test]
+fn value_to_class() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let obj_class_value = mrb_ext_class_value(obj_class);
+
+        assert_eq!(obj_class_value.to_class().unwrap(), obj_class);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn define_class_method() {
     unsafe {
         let mrb = mrb_open();

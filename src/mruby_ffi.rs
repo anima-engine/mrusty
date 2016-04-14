@@ -172,6 +172,16 @@ impl MrValue {
             _ => Err(MrubyError::Cast("Array".to_owned()))
         }
     }
+
+    #[inline]
+    pub unsafe fn to_class(&self) -> Result<*const MrClass, MrubyError> {
+        match self.typ {
+            MrType::MRB_TT_CLASS => {
+                Ok(mrb_ext_get_class(*self))
+            },
+            _ => Err(MrubyError::Cast("Class".to_owned()))
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -303,6 +313,9 @@ extern "C" {
     pub fn mrb_ext_raise(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
     #[inline]
     pub fn mrb_ext_get_exc(mrb: *const MrState) -> MrValue;
+
+    #[inline]
+    pub fn mrb_ext_get_class(class: MrValue) -> *const MrClass;
 }
 
 

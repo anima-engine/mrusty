@@ -131,6 +131,10 @@ mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass, const
   mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
 }
 
+struct RClass* mrb_ext_get_class(mrb_value value) {
+  return (struct RClass*) value.value.p;
+}
+
 struct RClass* mrb_ext_class(struct mrb_state* mrb, mrb_value value) {
   return mrb_class(mrb, value);
 }
