@@ -115,6 +115,18 @@ fn define_method() {
 }
 
 #[test]
+fn class_defined() {
+    unsafe {
+        let mrb = mrb_open();
+
+        assert_eq!(mrb_class_defined(mrb, CString::new("Object").unwrap().as_ptr()), true);
+        assert_eq!(mrb_class_defined(mrb, CString::new("Kernel").unwrap().as_ptr()), true);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn class_name() {
     unsafe {
         let mrb = mrb_open();

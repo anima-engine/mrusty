@@ -233,6 +233,8 @@ extern "C" {
     pub fn mrb_load_irep_cxt(mrb: *const MrState, code: *const u8,
                              context: *const MrContext) -> MrValue;
 
+    pub fn mrb_class_defined(mrb: *const MrState, name: *const c_char) -> bool;
+
     pub fn mrb_class_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
     pub fn mrb_module_get(mrb: *const MrState, name: *const c_char) -> *const MrClass;
 

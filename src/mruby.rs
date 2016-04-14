@@ -423,6 +423,40 @@ pub trait MrubyImpl {
     #[inline]
     fn raise(&self, eclass: &str, message: &str) -> Value;
 
+    /// Returns whether the mruby `Class` or `Module` with name `name` is defined.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    /// let object = mruby.is_defined("Object");
+    /// let objekt = mruby.is_defined("Objekt");
+    ///
+    /// assert_eq!(object, true);
+    /// assert_eq!(objekt, false);
+    /// ```
+    #[inline]
+    fn is_defined(&self, name: &str) -> bool;
+
+    /// Returns the mruby `Class` with name `name`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    /// let object = mruby.get_class("Object");
+    /// let objekt = mruby.get_class("Objekt");
+    ///
+    /// assert_eq!(object.unwrap().to_str(), "Object");
+    /// assert_eq!(objekt.is_err(), true);
+    /// ```
+    #[inline]
+    fn get_class(&self, name: &str) -> Result<Class, MrubyError>;
+
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
     /// `MrubyFile`-inherited `require` method.
     ///
@@ -836,6 +870,26 @@ impl MrubyImpl for MrubyType {
                           CString::new(message).unwrap().as_ptr());
 
             self.nil()
+        }
+    }
+
+    #[inline]
+    fn is_defined(&self, name: &str) -> bool {
+        unsafe {
+            mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr())
+        }
+    }
+
+    #[inline]
+    fn get_class(&self, name: &str) -> Result<Class, MrubyError> {
+        unsafe {
+            if mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr()) {
+                let class = mrb_class_get(self.borrow().mrb, CString::new(name).unwrap().as_ptr());
+
+                Ok(Class::new(self.clone(), class))
+            } else {
+                Err(MrubyError::Undef)
+            }
         }
     }
 
