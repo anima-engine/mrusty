@@ -91,6 +91,15 @@ mrb_value mrb_ext_class_value(struct RClass* klass) {
   return value;
 }
 
+mrb_value mrb_ext_module_value(struct RClass* module) {
+  mrb_value value;
+
+  value.value.p = module;
+  value.tt = MRB_TT_MODULE;
+
+  return value;
+}
+
 mrb_value mrb_ext_data_value(struct RData* data) {
   mrb_value value;
 

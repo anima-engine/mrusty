@@ -423,7 +423,7 @@ pub trait MrubyImpl {
     #[inline]
     fn raise(&self, eclass: &str, message: &str) -> Value;
 
-    /// Returns whether the mruby `Class` or `Module` with name `name` is defined.
+    /// Returns whether the mruby `Class` or `Module` named `name` is defined.
     ///
     /// # Examples
     ///
@@ -434,13 +434,13 @@ pub trait MrubyImpl {
     /// let object = mruby.is_defined("Object");
     /// let objekt = mruby.is_defined("Objekt");
     ///
-    /// assert_eq!(object, true);
-    /// assert_eq!(objekt, false);
+    /// assert!(object);
+    /// assert!(!objekt);
     /// ```
     #[inline]
     fn is_defined(&self, name: &str) -> bool;
 
-    /// Returns the mruby `Class` with name `name`.
+    /// Returns the mruby `Class` named `name`.
     ///
     /// # Examples
     ///
@@ -452,10 +452,27 @@ pub trait MrubyImpl {
     /// let objekt = mruby.get_class("Objekt");
     ///
     /// assert_eq!(object.unwrap().to_str(), "Object");
-    /// assert_eq!(objekt.is_err(), true);
+    /// assert!(objekt.is_err());
     /// ```
     #[inline]
     fn get_class(&self, name: &str) -> Result<Class, MrubyError>;
+
+    /// Returns the mruby `Class` named `name`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    /// let kernel = mruby.get_module("Kernel");
+    /// let kernet = mruby.get_module("Kernet");
+    ///
+    /// assert_eq!(kernel.unwrap().to_str(), "Kernel");
+    /// assert!(kernet.is_err());
+    /// ```
+    #[inline]
+    fn get_module(&self, name: &str) -> Result<Module, MrubyError>;
 
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
     /// `MrubyFile`-inherited `require` method.
@@ -515,8 +532,25 @@ pub trait MrubyImpl {
     /// }
     ///
     /// mruby.def_class::<Cont>("Container");
+    ///
+    /// assert!(mruby.is_defined("Container"));
     /// ```
     fn def_class<T: Any>(&self, name: &str) -> Class;
+
+    /// Defines an mruby `Module` named `name`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.def_module("Container");
+    ///
+    /// assert!(mruby.is_defined("Container"));
+    /// ```
+    fn def_module(&self, name: &str) -> Module;
 
     /// Defines an mruby method named `name`. The closure to be run when the `name` method is
     /// called should be passed through the `mrfn!` macro.
@@ -894,6 +928,19 @@ impl MrubyImpl for MrubyType {
     }
 
     #[inline]
+    fn get_module(&self, name: &str) -> Result<Module, MrubyError> {
+        unsafe {
+            if mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr()) {
+                let class = mrb_module_get(self.borrow().mrb, CString::new(name).unwrap().as_ptr());
+
+                Ok(Module::new(self.clone(), class))
+            } else {
+                Err(MrubyError::Undef)
+            }
+        }
+    }
+
+    #[inline]
     fn def_file<T: MrubyFile>(&self, name: &str) {
         let mut borrow = self.borrow_mut();
 
@@ -938,6 +985,15 @@ impl MrubyImpl for MrubyType {
         });
 
         class
+    }
+
+    fn def_module(&self, name: &str) -> Module {
+        unsafe {
+            let module = mrb_define_module(self.borrow().mrb,
+                                           CString::new(name).unwrap().as_ptr());
+
+            Module::new(self.clone(), module)
+        }
     }
 
     fn def_method<T: Any, F>(&self, name: &str,
@@ -1723,5 +1779,101 @@ impl PartialEq<Class> for Class {
 impl fmt::Debug for Class {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Class {{ {:?} }}", self.to_str())
+    }
+}
+
+/// A `struct` that wraps around an mruby `Module`.
+///
+/// # Examples
+///
+/// ```
+/// # use mrusty::Mruby;
+/// # use mrusty::MrubyImpl;
+/// let mruby = Mruby::new();
+///
+/// let module = mruby.def_module("Container");
+///
+/// assert_eq!(module.to_str(), "Container");
+/// ```
+pub struct Module {
+    mruby:  MrubyType,
+    module:  *const MrClass
+}
+
+impl Module {
+    /// Not meant to be called directly.
+    #[doc(hidden)]
+    pub fn new(mruby: MrubyType, module: *const MrClass) -> Module {
+        Module {
+            mruby:  mruby,
+            module:  module
+        }
+    }
+
+    /// Returns a `&str` with the mruby `Class` name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let module = mruby.def_module("Container");
+    ///
+    /// assert_eq!(module.to_str(), "Container");
+    /// ```
+    #[inline]
+    pub fn to_str(&self) -> &str {
+        unsafe {
+            let name = mrb_class_name(self.mruby.borrow().mrb, self.module);
+
+            CStr::from_ptr(name).to_str().unwrap()
+        }
+    }
+
+    /// Casts `Class` to `Value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let module = mruby.def_module("Container");
+    /// let value = module.to_value();
+    ///
+    /// let name = value.call("to_s", vec![]).unwrap();
+    ///
+    /// assert_eq!(name.to_str().unwrap(), "Container");
+    /// ```
+    #[inline]
+    pub fn to_value(&self) -> Value {
+        unsafe {
+            let value = mrb_ext_module_value(self.module);
+
+            Value::new(self.mruby.clone(), value)
+        }
+    }
+}
+
+impl Clone for Module {
+    fn clone(&self) -> Module {
+        Module::new(self.mruby.clone(), self.module)
+    }
+}
+
+impl PartialEq<Module> for Module {
+    fn eq(&self, other: &Module) -> bool {
+        let result = self.to_value().call("==", vec![other.to_value()]).unwrap();
+
+        result.to_bool().unwrap()
+    }
+}
+
+impl fmt::Debug for Module {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Module {{ {:?} }}", self.to_str())
     }
 }

@@ -134,9 +134,15 @@ fn class_name() {
         let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
         let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
 
+        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+
         let name = mrb_class_name(mrb, new_class);
 
         assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Mine");
+
+        let name = mrb_class_name(mrb, kernel);
+
+        assert_eq!(CStr::from_ptr(name).to_str().unwrap(), "Kernel");
 
         mrb_close(mrb);
     }
@@ -186,6 +192,19 @@ fn value_to_class() {
         let obj_class_value = mrb_ext_class_value(obj_class);
 
         assert_eq!(obj_class_value.to_class().unwrap(), obj_class);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
+fn define_module() {
+    unsafe {
+        let mrb = mrb_open();
+
+        mrb_define_module(mrb, CString::new("MyMod").unwrap().as_ptr());
+
+        assert_eq!(mrb_class_defined(mrb, CString::new("MyMod").unwrap().as_ptr()), true);
 
         mrb_close(mrb);
     }

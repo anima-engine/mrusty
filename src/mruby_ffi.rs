@@ -240,11 +240,13 @@ extern "C" {
 
     pub fn mrb_define_class(mrb: *const MrState, name: *const c_char,
                             sup: *const MrClass) -> *const MrClass;
+    pub fn mrb_define_module(mrb: *const MrState, name: *const c_char) -> *const MrClass;
     pub fn mrb_define_module_function(mrb: *const MrState, module: *const MrClass,
                                       name: *const c_char, fun: MrFunc, aspec: u32);
 
     pub fn mrb_class_name(mrb: *const MrState, class: *const MrClass) -> *const c_char;
     pub fn mrb_ext_class_value(class: *const MrClass) -> MrValue;
+    pub fn mrb_ext_module_value(module: *const MrClass) -> MrValue;
 
     pub fn mrb_define_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
                              fun: MrFunc, aspec: u32);
