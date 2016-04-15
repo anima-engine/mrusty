@@ -1217,7 +1217,8 @@ impl MrubyImpl for MrubyType {
                         }
                     };
 
-                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(), value).value)) {
+                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
+                                                                         value).value)) {
                         Ok(value)  => value,
                         Err(error) => {
                             let message = match error.downcast_ref::<&'static str>() {
@@ -1297,7 +1298,8 @@ impl MrubyImpl for MrubyType {
                         }
                     };
 
-                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(), value).value)) {
+                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
+                                                                         value).value)) {
                         Ok(value)  => value,
                         Err(error) => {
                             let message = match error.downcast_ref::<&'static str>() {
