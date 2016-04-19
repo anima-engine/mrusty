@@ -154,9 +154,9 @@ macro_rules! slf {
 ///
 /// struct Cont;
 ///
-/// mruby.def_class::<Cont>("Container");
+/// mruby.def_class_for::<Cont>("Container");
 /// // slf cannot be cast to Cont because it does not define initialize().
-/// mruby.def_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: i32, b: i32| {
+/// mruby.def_method_for::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: i32, b: i32| {
 ///     mruby.fixnum(a + b)
 /// }));
 ///
@@ -178,12 +178,12 @@ macro_rules! slf {
 ///
 /// struct Cont;
 ///
-/// mruby.def_class::<Cont>("Container");
-/// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: str, b: str| {
+/// mruby.def_class_for::<Cont>("Container");
+/// mruby.def_class_method_for::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: str, b: str| {
 ///     mruby.string(&(a.to_owned() + b))
 /// }));
 /// // slf is a Value here. (mruby Class type)
-/// mruby.def_class_method::<Cont, _>("class_name", mrfn!(|_mruby, slf: Value| {
+/// mruby.def_class_method_for::<Cont, _>("class_name", mrfn!(|_mruby, slf: Value| {
 ///     slf.call("to_s", vec![]).unwrap()
 /// }));
 ///
@@ -209,8 +209,8 @@ macro_rules! slf {
 ///     value: i32
 /// };
 ///
-/// mruby.def_class::<Cont>("Container");
-/// mruby.def_method::<Cont, _>("gt", mrfn!(|mruby, slf: Cont, o: Cont| {
+/// mruby.def_class_for::<Cont>("Container");
+/// mruby.def_method_for::<Cont, _>("gt", mrfn!(|mruby, slf: Cont, o: Cont| {
 ///    mruby.bool(slf.value > o.value)
 /// }));
 ///
@@ -238,8 +238,8 @@ macro_rules! slf {
 ///     value: i32
 /// };
 ///
-/// mruby.def_class::<Cont>("Container");
-/// mruby.def_method::<Cont, _>("initialize", mrfn!(|mruby, slf: Value; args| {
+/// mruby.def_class_for::<Cont>("Container");
+/// mruby.def_method_for::<Cont, _>("initialize", mrfn!(|mruby, slf: Value; args| {
 ///    let cont = Cont { value: args[0].to_i32().unwrap() + args[1].to_i32().unwrap() };
 ///
 ///    slf.init(cont)
@@ -346,28 +346,28 @@ macro_rules! defines {
 
     // initialize
     ( $mruby:expr, $name:ty, def!("initialize", || $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|_mruby, slf: Value| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|$mrb, slf: Value| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),*| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),*| {
             slf.init($block)
         }));
 
@@ -376,28 +376,28 @@ macro_rules! defines {
 
     // instance methods
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
@@ -406,28 +406,28 @@ macro_rules! defines {
 
     // class methods
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
@@ -436,28 +436,28 @@ macro_rules! defines {
 
     // initialize args
     ( $mruby:expr, $name:ty, def!("initialize", | ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|_mruby, slf: Value; $args:ident| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value; $args:ident| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; $args| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; $args| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|$mrb, slf: Value; $args| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value; $args| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; $args| {
+        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; $args| {
             slf.init($block)
         }));
 
@@ -466,28 +466,28 @@ macro_rules! defines {
 
     // instance methods args
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
@@ -496,28 +496,28 @@ macro_rules! defines {
 
     // class methods args
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
@@ -606,14 +606,14 @@ macro_rules! mrclass {
     ( $name:tt ) => {
         impl MrubyFile for $name {
             fn require(mruby: MrubyType) {
-                mruby.def_class::<$name>(stringify!($name));
+                mruby.def_class_for::<$name>(stringify!($name));
             }
         }
     };
     ( $name:ty, { $( $rest:tt )* } ) => {
         impl MrubyFile for $name {
             fn require(mruby: MrubyType) {
-                mruby.def_class::<$name>(stringify!($name));
+                mruby.def_class_for::<$name>(stringify!($name));
 
                 defines!(mruby, $name, $( $rest )*);
             }
@@ -622,14 +622,14 @@ macro_rules! mrclass {
     ( $name:tt, $mrname:expr ) => {
         impl MrubyFile for $name {
             fn require(mruby: MrubyType) {
-                mruby.def_class::<$name>($mrname);
+                mruby.def_class_for::<$name>($mrname);
             }
         }
     };
     ( $name:ty, $mrname:expr, { $( $rest:tt )* } ) => {
         impl MrubyFile for $name {
             fn require(mruby: MrubyType) {
-                mruby.def_class::<$name>($mrname);
+                mruby.def_class_for::<$name>($mrname);
 
                 defines!(mruby, $name, $( $rest )*);
             }

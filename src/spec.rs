@@ -21,7 +21,7 @@ use super::mruby::*;
 ///
 /// impl MrubyFile for Cont {
 ///     fn require(mruby: MrubyType) {
-///         mruby.def_class::<Cont>("Container");
+///         mruby.def_class_for::<Cont>("Container");
 ///     }
 /// }
 ///
@@ -52,7 +52,7 @@ macro_rules! describe {
 
             $t::require(mruby.clone());
 
-            let name = mruby.class_name::<$t>().unwrap();
+            let name = mruby.class_name_for::<$t>().unwrap();
 
             let spec = Spec::new(mruby, &name, $spec);
 
@@ -68,7 +68,7 @@ macro_rules! describe {
             $t::require(mruby.clone());
             $( $ts::require(mruby.clone()); )*
 
-            let name = mruby.class_name::<$t>().unwrap();
+            let name = mruby.class_name_for::<$t>().unwrap();
 
             let spec = Spec::new(mruby, &name, $spec);
 
@@ -100,7 +100,7 @@ macro_rules! describe {
 ///
 /// impl MrubyFile for Cont {
 ///     fn require(mruby: MrubyType) {
-///         mruby.def_class::<Cont>("Container");
+///         mruby.def_class_for::<Cont>("Container");
 ///     }
 /// }
 ///
@@ -143,7 +143,7 @@ impl Spec {
     ///
     /// impl MrubyFile for Cont {
     ///     fn require(mruby: MrubyType) {
-    ///         mruby.def_class::<Cont>("Container");
+    ///         mruby.def_class_for::<Cont>("Container");
     ///     }
     /// }
     ///
@@ -227,7 +227,7 @@ impl Spec {
     ///
     /// impl MrubyFile for Cont {
     ///     fn require(mruby: MrubyType) {
-    ///         mruby.def_class::<Cont>("Container");
+    ///         mruby.def_class_for::<Cont>("Container");
     ///     }
     /// }
     ///
@@ -272,7 +272,7 @@ mod tests {
 
     impl MrubyFile for Empty {
         fn require(mruby: MrubyType) {
-            mruby.def_class::<Empty>("Empty");
+            mruby.def_class_for::<Empty>("Empty");
         }
     }
 

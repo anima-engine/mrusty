@@ -257,7 +257,7 @@ impl From<io::Error> for MrubyError {
 ///
 /// impl MrubyFile for Cont {
 ///     fn require(mruby: MrubyType) {
-///         mruby.def_class::<Cont>("Container");
+///         mruby.def_class_for::<Cont>("Container");
 ///     }
 /// }
 ///
@@ -347,8 +347,8 @@ pub trait MrubyImpl {
     ///
     /// struct Cont;
     ///
-    /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_class_method::<Cont, _>("raise", mrfn!(|mruby, _slf: Value| {
+    /// mruby.def_class_for::<Cont>("Container");
+    /// mruby.def_class_method_for::<Cont, _>("raise", mrfn!(|mruby, _slf: Value| {
     ///     mruby.run_unchecked("fail 'surprize'")
     /// }));
     ///
@@ -403,8 +403,8 @@ pub trait MrubyImpl {
     ///
     /// struct Cont;
     ///
-    /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value| {
+    /// mruby.def_class_for::<Cont>("Container");
+    /// mruby.def_class_method_for::<Cont, _>("hi", mrfn!(|mruby, _slf: Value| {
     ///     mruby.raise("RuntimeError", "hi");
     ///
     ///     mruby.nil()
@@ -487,7 +487,7 @@ pub trait MrubyImpl {
     /// struct Cont;
     ///
     /// let module = mruby.def_module("Mine");
-    /// mruby.def_class_under::<Cont, _>("Container", &module);
+    /// mruby.def_class_under_for::<Cont, _>("Container", &module);
     ///
     /// let result = mruby.get_class_under("Container", &module).unwrap();
     ///
@@ -550,13 +550,13 @@ pub trait MrubyImpl {
     ///
     /// impl MrubyFile for Cont {
     ///     fn require(mruby: MrubyType) {
-    ///         mruby.def_class::<Cont>("Container");
-    ///         mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
+    ///         mruby.def_class_for::<Cont>("Container");
+    ///         mruby.def_method_for::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
     ///             let cont = Cont { value: v };
     ///
     ///             slf.init(cont)
     ///         }));
-    ///         mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
+    ///         mruby.def_method_for::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
     ///             mruby.fixnum(slf.value)
     ///         }));
     ///     }
@@ -589,11 +589,11 @@ pub trait MrubyImpl {
     ///     value: i32
     /// }
     ///
-    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_class_for::<Cont>("Container");
     ///
     /// assert!(mruby.is_defined("Container"));
     /// ```
-    fn def_class<T: Any>(&self, name: &str) -> Class;
+    fn def_class_for<T: Any>(&self, name: &str) -> Class;
 
     /// Defines Rust type `T` as an mruby `Class` named `name` under `outer` `Class` or `Module`.
     ///
@@ -607,11 +607,11 @@ pub trait MrubyImpl {
     /// struct Cont;
     ///
     /// let module = mruby.def_module("Mine");
-    /// mruby.def_class_under::<Cont, _>("Container", &module);
+    /// mruby.def_class_under_for::<Cont, _>("Container", &module);
     ///
     /// assert!(mruby.is_defined_under("Container", &module));
     /// ```
-    fn def_class_under<T: Any, U: ClassLike>(&self, name: &str, outer: &U) -> Class;
+    fn def_class_under_for<T: Any, U: ClassLike>(&self, name: &str, outer: &U) -> Class;
 
     /// Defines an mruby `Module` named `name`.
     ///
@@ -660,13 +660,13 @@ pub trait MrubyImpl {
     ///     value: i32
     /// };
     ///
-    /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
+    /// mruby.def_class_for::<Cont>("Container");
+    /// mruby.def_method_for::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
     ///     let cont = Cont { value: v };
     ///
     ///     slf.init(cont)
     /// }));
-    /// mruby.def_method::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
+    /// mruby.def_method_for::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
     ///     mruby.fixnum(slf.value)
     /// }));
     ///
@@ -675,7 +675,7 @@ pub trait MrubyImpl {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// # }
     /// ```
-    fn def_method<T: Any, F>(&self, name: &str,
+    fn def_method_for<T: Any, F>(&self, name: &str,
                              method: F) where F: Fn(MrubyType, Value) -> Value + 'static;
 
     /// Defines an mruby class method named `name`. The closure to be run when the `name` method is
@@ -692,8 +692,8 @@ pub trait MrubyImpl {
     ///
     /// struct Cont;
     ///
-    /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_class_method::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, v: i32| {
+    /// mruby.def_class_for::<Cont>("Container");
+    /// mruby.def_class_method_for::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, v: i32| {
     ///     mruby.fixnum(v)
     /// }));
     ///
@@ -702,7 +702,7 @@ pub trait MrubyImpl {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// # }
     /// ```
-    fn def_class_method<T: Any, F>(&self, name: &str,
+    fn def_class_method_for<T: Any, F>(&self, name: &str,
                                    method: F) where F: Fn(MrubyType, Value) -> Value + 'static;
 
     /// Return the mruby name of a previously defined Rust type `T` with `def_class`.
@@ -716,11 +716,11 @@ pub trait MrubyImpl {
     ///
     /// struct Cont;
     ///
-    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_class_for::<Cont>("Container");
     ///
-    /// assert_eq!(mruby.class_name::<Cont>().unwrap(), "Container");
+    /// assert_eq!(mruby.class_name_for::<Cont>().unwrap(), "Container");
     /// ```
-    fn class_name<T: Any>(&self) -> Result<String, MrubyError>;
+    fn class_name_for<T: Any>(&self) -> Result<String, MrubyError>;
 
     /// Creates mruby `Value` `nil`.
     ///
@@ -733,8 +733,8 @@ pub trait MrubyImpl {
     ///
     /// struct Cont;
     ///
-    /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method::<Cont, _>("nil", |mruby, _slf| mruby.nil());
+    /// mruby.def_class_for::<Cont>("Container");
+    /// mruby.def_method_for::<Cont, _>("nil", |mruby, _slf| mruby.nil());
     ///
     /// let result = mruby.run("Container.new.nil.nil?").unwrap();
     ///
@@ -834,7 +834,7 @@ pub trait MrubyImpl {
     ///     value: i32
     /// }
     ///
-    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_class_for::<Cont>("Container");
     ///
     /// let value = mruby.obj(Cont { value: 3 });
     /// ```
@@ -856,7 +856,7 @@ pub trait MrubyImpl {
     ///     value: i32
     /// }
     ///
-    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_class_for::<Cont>("Container");
     ///
     /// let none = mruby.option::<Cont>(None);
     /// let some = mruby.option(Some(Cont { value: 3 }));
@@ -1085,7 +1085,7 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    fn def_class<T: Any>(&self, name: &str) -> Class {
+    fn def_class_for<T: Any>(&self, name: &str) -> Class {
         let class = unsafe {
             let name = name.to_owned();
 
@@ -1112,14 +1112,14 @@ impl MrubyImpl for MrubyType {
             Class::new(self.clone(), class)
         };
 
-        self.def_method::<T, _>("dup", |_mruby, slf| {
+        self.def_method_for::<T, _>("dup", |_mruby, slf| {
             slf.clone()
         });
 
         class
     }
 
-    fn def_class_under<T: Any, U: ClassLike>(&self, name: &str, outer: &U) -> Class {
+    fn def_class_under_for<T: Any, U: ClassLike>(&self, name: &str, outer: &U) -> Class {
         let class = unsafe {
             let name = name.to_owned();
 
@@ -1147,7 +1147,7 @@ impl MrubyImpl for MrubyType {
             Class::new(self.clone(), class)
         };
 
-        self.def_method::<T, _>("dup", |_mruby, slf| {
+        self.def_method_for::<T, _>("dup", |_mruby, slf| {
             slf.clone()
         });
 
@@ -1172,7 +1172,7 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    fn def_method<T: Any, F>(&self, name: &str,
+    fn def_method_for<T: Any, F>(&self, name: &str,
                              method: F) where F: Fn(MrubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
@@ -1253,7 +1253,7 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    fn def_class_method<T: Any, F>(&self, name: &str, method: F)
+    fn def_class_method_for<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(MrubyType, Value) -> Value + 'static {
         {
             let sym = unsafe {
@@ -1335,7 +1335,7 @@ impl MrubyImpl for MrubyType {
     }
 
     #[inline]
-    fn class_name<T: Any>(&self) -> Result<String, MrubyError> {
+    fn class_name_for<T: Any>(&self) -> Result<String, MrubyError> {
         let borrow = self.borrow();
 
         match borrow.classes.get(&TypeId::of::<T>()) {
@@ -1483,8 +1483,8 @@ impl Value {
     ///     value: i32
     /// };
     ///
-    /// mruby.def_class::<Cont>("Container");
-    /// mruby.def_method::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
+    /// mruby.def_class_for::<Cont>("Container");
+    /// mruby.def_method_for::<Cont, _>("initialize", mrfn!(|_mruby, slf: Value, v: i32| {
     ///     let cont = Cont { value: v };
     ///
     ///     slf.init(cont) // Return the same slf value.
@@ -1713,7 +1713,7 @@ impl Value {
     ///     value: i32
     /// }
     ///
-    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_class_for::<Cont>("Container");
     ///
     /// let value = mruby.obj(Cont { value: 3 });
     /// let cont = value.to_obj::<Cont>().unwrap();
@@ -1757,7 +1757,7 @@ impl Value {
     ///     value: i32
     /// }
     ///
-    /// mruby.def_class::<Cont>("Container");
+    /// mruby.def_class_for::<Cont>("Container");
     ///
     /// let value = mruby.obj(Cont { value: 3 });
     /// let cont = value.to_option::<Cont>().unwrap();
@@ -1874,7 +1874,7 @@ pub trait ClassLike {
 ///
 /// struct Cont;
 ///
-/// let class = mruby.def_class::<Cont>("Container");
+/// let class = mruby.def_class_for::<Cont>("Container");
 ///
 /// assert_eq!(class.to_str(), "Container");
 /// ```
@@ -1964,7 +1964,7 @@ impl Class {
     ///
     /// struct Cont;
     ///
-    /// let class = mruby.def_class::<Cont>("Container");
+    /// let class = mruby.def_class_for::<Cont>("Container");
     ///
     /// assert_eq!(class.to_str(), "Container");
     /// ```
@@ -1988,7 +1988,7 @@ impl Class {
     ///
     /// struct Cont;
     ///
-    /// let class = mruby.def_class::<Cont>("Container");
+    /// let class = mruby.def_class_for::<Cont>("Container");
     /// let value = class.to_value();
     ///
     /// let name = value.call("to_s", vec![]).unwrap();
