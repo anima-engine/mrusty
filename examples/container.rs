@@ -1,4 +1,4 @@
-// mrclass!
+// mrusty_class!
 #[macro_use]
 extern crate mrusty;
 
@@ -13,7 +13,7 @@ fn main() {
     }
 
     // Cont should not flood the current namespace. We will add it with require.
-    mrclass!(Cont, "Container", {
+    mrusty_class!(Cont, "Container", {
         // Converts mruby types automatically & safely.
         def!("initialize", |v: i32| {
             Cont { value: v }

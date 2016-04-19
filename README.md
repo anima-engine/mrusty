@@ -23,7 +23,7 @@ is caused by a need to capture `panic`s in mruby. Once this features stabilizes
 A very simple example of a Container `struct` which will be passed to mruby and
 which is perfectly callable.
 ```rust
-// mrclass!
+// mrusty_class!
 #[macro_use]
 extern crate mrusty;
 
@@ -37,7 +37,7 @@ struct Cont {
 }
 
 // Cont should not flood the current namespace. We will add it with require.
-mrclass!(Cont, "Container", {
+mrusty_class!(Cont, "Container", {
     // Converts mruby types automatically & safely.
     def!("initialize", |v: i32| {
         Cont { value: v }

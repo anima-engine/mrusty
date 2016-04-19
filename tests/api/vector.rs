@@ -26,7 +26,7 @@ impl Vector {
     }
 }
 
-mrclass!(Vector, {
+mrusty_class!(Vector, {
     def!("initialize", |x: f64, y: f64, z: f64| {
         Vector::new(x as f32, y as f32, z as f32)
     });

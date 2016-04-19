@@ -525,10 +525,138 @@ macro_rules! defines {
     };
 }
 
-/// A `macro` that comes in handy when defining class in order to remove a large part of the
+/// Not meant to be called directly.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! mruby_defines {
+    // end recursion
+    ( $mruby:expr, $class:expr, ) => ();
+
+    // instance methods
+    ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+
+    // class methods
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+
+    // instance methods args
+    ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+
+    // class methods args
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+    ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
+        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+            $block
+        }));
+
+        mruby_defines!($mruby, $class, $( $rest )*);
+    };
+}
+
+/// A `macro` that comes in handy when defining a class in order to remove a large part of the
 /// clutter and ensure correction. It automates and simplifies the implementation of the
-/// `MrubyFile` `trait`. Thus, any type provided to `mrclass!` will get an `MrubyFile`
-/// implementation.
+/// `MrubyFile` `trait`. Thus, any type provided to `mrusty_class!` will get an `MrubyFile`
+/// implementation, unlike `mruby_class!` which implements a pure mruby class.
 ///
 /// The macro takes a Rust type, an optional mruby `Class` name, and a block as arguments. Inside
 /// of the block you can define mruby methods with the `def!` and `def_self!` helpers which are
@@ -554,7 +682,7 @@ macro_rules! defines {
 ///     value: i32
 /// };
 ///
-/// mrclass!(Cont, "Container", {
+/// mrusty_class!(Cont, "Container", {
 ///     def!("initialize", |v: i32| {
 ///         Cont { value: v }
 ///     });
@@ -588,7 +716,7 @@ macro_rules! defines {
 ///     value: i32
 /// };
 ///
-/// mrclass!(Cont, "Container", {
+/// mrusty_class!(Cont, "Container", {
 ///     def_self!("hi", |mruby, slf: Value| {
 ///         mruby.string("hi")
 ///     });
@@ -602,8 +730,8 @@ macro_rules! defines {
 /// # }
 /// ```
 #[macro_export]
-macro_rules! mrclass {
-    ( $name:tt ) => {
+macro_rules! mrusty_class {
+    ( $name:ty ) => {
         impl MrubyFile for $name {
             fn require(mruby: MrubyType) {
                 mruby.def_class_for::<$name>(stringify!($name));
@@ -619,7 +747,7 @@ macro_rules! mrclass {
             }
         }
     };
-    ( $name:tt, $mrname:expr ) => {
+    ( $name:ty, $mrname:expr ) => {
         impl MrubyFile for $name {
             fn require(mruby: MrubyType) {
                 mruby.def_class_for::<$name>($mrname);
@@ -633,6 +761,84 @@ macro_rules! mrclass {
 
                 defines!(mruby, $name, $( $rest )*);
             }
+        }
+    };
+}
+
+/// A `macro` that comes in handy when defining a pure mruby class in order to remove a large part
+/// of the clutter and ensure correction. It lets you define and control pure mruby types and
+/// returns the newly defined `Class`, unlike `mrusty_class!` which also handles Rust types.
+///
+/// The macro takes an mruby `MrubyType`, an mruby `Class` name, and a block as arguments. Inside
+/// of the block you can define mruby methods with the `def!` and `def_self!` helpers which are
+/// not visible outside of this macro.
+///
+/// # Examples
+///
+/// Use `def!` to define mruby instance methods.
+///
+/// *Note:* `mruby` argument is optional.
+///
+/// ```
+/// # #[macro_use] extern crate mrusty;
+/// use mrusty::*;
+///
+/// # fn main() {
+/// let mruby = Mruby::new();
+///
+/// mruby_class!(mruby, "Container", {
+///     def!("initialize", |mruby, slf: Value, v: i32| {
+///         slf.set_var("value", mruby.fixnum(v));
+///
+///         slf
+///     });
+///
+///     def!("value", |mruby, slf: Value| {
+///         slf.get_var("value").unwrap()
+///     });
+/// });
+///
+/// let result = mruby.run("Container.new(3).value").unwrap();
+///
+/// assert_eq!(result.to_i32().unwrap(), 3);
+/// # }
+/// ```
+/// <br/>
+///
+/// Use `def_self!` to define mruby class methods.
+///
+/// *Note:* `mruby` argument is optional.
+///
+/// ```
+/// # #[macro_use] extern crate mrusty;
+/// use mrusty::*;
+///
+/// # fn main() {
+/// let mruby = Mruby::new();
+///
+/// mruby_class!(mruby, "Container", {
+///     def_self!("hi", |mruby, slf: Value| {
+///         mruby.string("hi")
+///     });
+/// });
+///
+/// let result = mruby.run("Container.hi").unwrap();
+///
+/// assert_eq!(result.to_str().unwrap(), "hi");
+/// # }
+/// ```
+#[macro_export]
+macro_rules! mruby_class {
+    ( $mruby:expr, $mrname:expr ) => {
+        $mruby.def_class($mrname)
+    };
+    ( $mruby:expr, $mrname:expr, { $( $rest:tt )* } ) => {
+        {
+            let class = $mruby.def_class($mrname);
+
+            mruby_defines!($mruby, class, $( $rest )*);
+
+            class
         }
     };
 }
