@@ -1874,16 +1874,24 @@ pub trait ClassLike {
 /// ```
 pub struct Class {
     mruby:  MrubyType,
-    class:  *const MrClass
+    class:  *const MrClass,
+    name:   String
 }
 
 impl Class {
     /// Not meant to be called directly.
     #[doc(hidden)]
     pub fn new(mruby: MrubyType, class: *const MrClass) -> Class {
+        let name = unsafe {
+            let name = mrb_class_name(mruby.borrow().mrb, class);
+
+            CStr::from_ptr(name).to_str().unwrap()
+        };
+
         Class {
             mruby:  mruby,
-            class:  class
+            class:  class,
+            name:   name.to_owned()
         }
     }
 
@@ -1964,11 +1972,7 @@ impl Class {
     /// ```
     #[inline]
     pub fn to_str(&self) -> &str {
-        unsafe {
-            let name = mrb_class_name(self.mruby.borrow().mrb, self.class);
-
-            CStr::from_ptr(name).to_str().unwrap()
-        }
+        &self.name
     }
 
     /// Casts `Class` to `Value`.
@@ -2040,16 +2044,24 @@ impl fmt::Debug for Class {
 /// ```
 pub struct Module {
     mruby:  MrubyType,
-    module:  *const MrClass
+    module: *const MrClass,
+    name:   String
 }
 
 impl Module {
     /// Not meant to be called directly.
     #[doc(hidden)]
     pub fn new(mruby: MrubyType, module: *const MrClass) -> Module {
+        let name = unsafe {
+            let name = mrb_class_name(mruby.borrow().mrb, module);
+
+            CStr::from_ptr(name).to_str().unwrap()
+        };
+
         Module {
             mruby:  mruby,
-            module:  module
+            module: module,
+            name:   name.to_owned()
         }
     }
 
@@ -2132,11 +2144,7 @@ impl Module {
     /// ```
     #[inline]
     pub fn to_str(&self) -> &str {
-        unsafe {
-            let name = mrb_class_name(self.mruby.borrow().mrb, self.module);
-
-            CStr::from_ptr(name).to_str().unwrap()
-        }
+        &self.name
     }
 
     /// Casts `Class` to `Value`.
