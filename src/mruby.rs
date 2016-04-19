@@ -576,6 +576,37 @@ pub trait MrubyImpl {
     #[inline]
     fn def_file<T: MrubyFile>(&self, name: &str);
 
+    /// Defines an mruby `Class` named `name`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.def_class("Container");
+    ///
+    /// assert!(mruby.is_defined("Container"));
+    /// ```
+    fn def_class(&self, name: &str) -> Class;
+
+    /// Defines an mruby `Class` named `name` under `outer` `Class` or `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let module = mruby.def_module("Mine");
+    /// mruby.def_class_under("Container", &module);
+    ///
+    /// assert!(mruby.is_defined_under("Container", &module));
+    /// ```
+    fn def_class_under<U: ClassLike>(&self, name: &str, outer: &U) -> Class;
+
     /// Defines Rust type `T` as an mruby `Class` named `name`.
     ///
     /// # Examples
@@ -1109,7 +1140,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn def_file<T: MrubyFile>(&self, name: &str) {
         let mut borrow = self.borrow_mut();
 
@@ -1119,6 +1149,35 @@ impl MrubyImpl for MrubyType {
             file.push(T::require);
         } else {
             borrow.files.insert(name.to_owned(), vec![T::require]);
+        }
+    }
+
+    fn def_class(&self, name: &str) -> Class {
+        unsafe {
+            let name = name.to_owned();
+
+            let c_name = CString::new(name.clone()).unwrap();
+            let object = CString::new("Object").unwrap();
+            let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
+
+            let class = mrb_define_class(self.borrow().mrb, c_name.as_ptr(), object);
+
+            Class::new(self.clone(), class)
+        }
+    }
+
+    fn def_class_under<U: ClassLike>(&self, name: &str, outer: &U) -> Class {
+        unsafe {
+            let name = name.to_owned();
+
+            let c_name = CString::new(name.clone()).unwrap();
+            let object = CString::new("Object").unwrap();
+            let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
+
+            let class = mrb_define_class_under(self.borrow().mrb, outer.class(), c_name.as_ptr(),
+                                               object);
+
+            Class::new(self.clone(), class)
         }
     }
 
