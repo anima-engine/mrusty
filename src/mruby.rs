@@ -891,6 +891,43 @@ pub trait MrubyImpl {
     fn array(&self, value: Vec<Value>) -> Value;
 }
 
+#[inline]
+fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
+    where F: Fn(*const MrState, *const c_char, *const MrClass) -> *const MrClass {
+
+    let class = unsafe {
+        let name = name.to_owned();
+
+        let c_name = CString::new(name.clone()).unwrap();
+        let object = CString::new("Object").unwrap();
+        let object = mrb_class_get(mruby.borrow().mrb, object.as_ptr());
+
+        let class = get(mruby.borrow().mrb, c_name.as_ptr(), object);
+
+        mrb_ext_set_instance_tt(class, MrType::MRB_TT_DATA);
+
+        extern "C" fn free<T>(_mrb: *const MrState, ptr: *const u8) {
+            unsafe {
+                mem::transmute::<*const u8, Rc<T>>(ptr);
+            }
+        }
+
+        let data_type = MrDataType { name: c_name.as_ptr(), free: free::<T> };
+
+        mruby.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
+        mruby.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
+        mruby.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
+
+        Class::new(mruby.clone(), class)
+    };
+
+    mruby.def_method_for::<T, _>("dup", |_mruby, slf| {
+        slf.clone()
+    });
+
+    class
+}
+
 impl MrubyImpl for MrubyType {
     #[inline]
     fn filename(&self, filename: &str) {
@@ -1086,72 +1123,17 @@ impl MrubyImpl for MrubyType {
     }
 
     fn def_class_for<T: Any>(&self, name: &str) -> Class {
-        let class = unsafe {
-            let name = name.to_owned();
-
-            let c_name = CString::new(name.clone()).unwrap();
-            let object = CString::new("Object").unwrap();
-            let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
-
-            let class = mrb_define_class(self.borrow().mrb, c_name.as_ptr(), object);
-
-            mrb_ext_set_instance_tt(class, MrType::MRB_TT_DATA);
-
-            extern "C" fn free<T>(_mrb: *const MrState, ptr: *const u8) {
-                unsafe {
-                    mem::transmute::<*const u8, Rc<T>>(ptr);
-                }
-            }
-
-            let data_type = MrDataType { name: c_name.as_ptr(), free: free::<T> };
-
-            self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
-            self.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
-            self.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
-
-            Class::new(self.clone(), class)
-        };
-
-        self.def_method_for::<T, _>("dup", |_mruby, slf| {
-            slf.clone()
-        });
-
-        class
+        get_class_for::<T, _>(self, name, |mrb: *const MrState, name: *const c_char,
+                                        object: *const MrClass| {
+            unsafe { mrb_define_class(mrb, name, object) }
+        })
     }
 
     fn def_class_under_for<T: Any, U: ClassLike>(&self, name: &str, outer: &U) -> Class {
-        let class = unsafe {
-            let name = name.to_owned();
-
-            let c_name = CString::new(name.clone()).unwrap();
-            let object = CString::new("Object").unwrap();
-            let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
-
-            let class = mrb_define_class_under(self.borrow().mrb, outer.class(), c_name.as_ptr(),
-                                               object);
-
-            mrb_ext_set_instance_tt(class, MrType::MRB_TT_DATA);
-
-            extern "C" fn free<T>(_mrb: *const MrState, ptr: *const u8) {
-                unsafe {
-                    mem::transmute::<*const u8, Rc<T>>(ptr);
-                }
-            }
-
-            let data_type = MrDataType { name: c_name.as_ptr(), free: free::<T> };
-
-            self.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
-            self.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
-            self.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
-
-            Class::new(self.clone(), class)
-        };
-
-        self.def_method_for::<T, _>("dup", |_mruby, slf| {
-            slf.clone()
-        });
-
-        class
+        get_class_for::<T, _>(self, name, |mrb: *const MrState, name: *const c_char,
+                                        object: *const MrClass| {
+            unsafe { mrb_define_class_under(mrb, outer.class(), name, object) }
+        })
     }
 
     fn def_module(&self, name: &str) -> Module {
@@ -1172,8 +1154,9 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    fn def_method_for<T: Any, F>(&self, name: &str,
-                             method: F) where F: Fn(MrubyType, Value) -> Value + 'static {
+    fn def_method_for<T: Any, F>(&self, name: &str, method: F)
+        where F: Fn(MrubyType, Value) -> Value + 'static {
+
         {
             let sym = unsafe {
                 mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
@@ -1255,6 +1238,7 @@ impl MrubyImpl for MrubyType {
 
     fn def_class_method_for<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(MrubyType, Value) -> Value + 'static {
+
         {
             let sym = unsafe {
                 mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
