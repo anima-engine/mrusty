@@ -977,6 +977,29 @@ pub trait MrubyImpl {
 }
 
 #[inline]
+fn get_class<F>(mruby: &MrubyType, name: &str, get: F) -> Class
+    where F: Fn(*const MrState, *const c_char, *const MrClass) -> *const MrClass {
+
+    unsafe {
+        let name = name.to_owned();
+
+        let c_name = CString::new(name.clone()).unwrap();
+        let object = CString::new("Object").unwrap();
+        let object = mrb_class_get(mruby.borrow().mrb, object.as_ptr());
+
+        let class = get(mruby.borrow().mrb, c_name.as_ptr(), object);
+
+        let class = Class::new(mruby.clone(), class);
+
+        mruby.borrow_mut().mruby_methods.insert(class.to_str().to_owned(), HashMap::new());
+        mruby.borrow_mut().mruby_class_methods.insert(class.to_str().to_owned(),
+                                                      HashMap::new());
+
+        class
+    }
+}
+
+#[inline]
 fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
     where F: Fn(*const MrState, *const c_char, *const MrClass) -> *const MrClass {
 
@@ -1338,44 +1361,17 @@ impl MrubyImpl for MrubyType {
     }
 
     fn def_class(&self, name: &str) -> Class {
-        unsafe {
-            let name = name.to_owned();
-
-            let c_name = CString::new(name.clone()).unwrap();
-            let object = CString::new("Object").unwrap();
-            let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
-
-            let class = mrb_define_class(self.borrow().mrb, c_name.as_ptr(), object);
-
-            let class = Class::new(self.clone(), class);
-
-            self.borrow_mut().mruby_methods.insert(class.to_str().to_owned(), HashMap::new());
-            self.borrow_mut().mruby_class_methods.insert(class.to_str().to_owned(),
-                                                         HashMap::new());
-
-            class
-        }
+        get_class(self, name, |mrb: *const MrState, name: *const c_char,
+                               object: *const MrClass| {
+            unsafe { mrb_define_class(mrb, name, object) }
+        })
     }
 
     fn def_class_under<U: ClassLike>(&self, name: &str, outer: &U) -> Class {
-        unsafe {
-            let name = name.to_owned();
-
-            let c_name = CString::new(name.clone()).unwrap();
-            let object = CString::new("Object").unwrap();
-            let object = mrb_class_get(self.borrow().mrb, object.as_ptr());
-
-            let class = mrb_define_class_under(self.borrow().mrb, outer.class(), c_name.as_ptr(),
-                                               object);
-
-            let class = Class::new(self.clone(), class);
-
-            self.borrow_mut().mruby_methods.insert(class.to_str().to_owned(), HashMap::new());
-            self.borrow_mut().mruby_class_methods.insert(class.to_str().to_owned(),
-                                                         HashMap::new());
-
-            class
-        }
+        get_class(self, name, |mrb: *const MrState, name: *const c_char,
+                               object: *const MrClass| {
+            unsafe { mrb_define_class_under(mrb, outer.class(), name, object) }
+        })
     }
 
     fn def_class_for<T: Any>(&self, name: &str) -> Class {
