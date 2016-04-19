@@ -15,6 +15,7 @@ macro_rules! init {
     ( $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
     ( $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
     ( $name:ident, Vec )     => (let $name = uninitialized::<MrValue>(););
+    ( $name:ident, Class )   => (let $name = uninitialized::<MrValue>(););
     ( $name:ident, $_t:ty )  => (let $name = uninitialized::<MrValue>(););
     ( $name:ident : $t:tt )  => (init!($name, $t));
     ( $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
@@ -33,6 +34,7 @@ macro_rules! sig {
     ( f64 )     => ("f");
     ( str )     => ("z");
     ( Vec )     => ("A");
+    ( Class )   => ("C");
     ( $_t:ty )  => ("o");
     ( $t:tt, $( $ts:tt ),+ ) => (concat!(sig!($t), sig!($( $ts ),*)));
 }
@@ -47,6 +49,7 @@ macro_rules! args {
     ( $name:ident, f64 )     => (&$name as *const f64);
     ( $name:ident, str )     => (&$name as *const *const c_char);
     ( $name:ident, Vec )     => (&$name as *const MrValue);
+    ( $name:ident, Class )   => (&$name as *const MrValue);
     ( $name:ident, $_t:ty )  => (&$name as *const MrValue);
     ( $name:ident : $t:tt )  => (args!($name, $t));
     ( $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
@@ -105,6 +108,9 @@ macro_rules! conv {
     ( $mruby:expr, $name:ident, Vec )     => {
         let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
     };
+    ( $mruby:expr, $name:ident, Class )     => {
+        let $name = Value::new($mruby.clone(), $name).to_class().unwrap();
+    };
     ( $mruby:expr, $name:ident, Value )   => {
         let $name = Value::new($mruby.clone(), $name);
     };
@@ -122,6 +128,7 @@ macro_rules! conv {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! slf {
+    ( $slf:ident, Class ) => (let $slf = $slf.to_class().unwrap(););
     ( $slf:ident, Value ) => ();
     ( $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
 }
@@ -842,3 +849,7 @@ macro_rules! mruby_class {
         }
     };
 }
+
+#[path="tests/macros.rs"]
+#[cfg(test)]
+mod tests;
