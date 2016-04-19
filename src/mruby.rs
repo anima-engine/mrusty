@@ -959,6 +959,81 @@ fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
     class
 }
 
+macro_rules! insert_method {
+    ( $mruby:expr, $name:expr, $method:expr, $methods:ident, $key:expr ) => {
+        {
+            let sym = unsafe {
+                mrb_intern($mruby.borrow().mrb, $name.as_ptr(), $name.len())
+            };
+
+            let mut borrow = $mruby.borrow_mut();
+
+            let methods = match borrow.$methods.get_mut($key) {
+                Some(methods) => methods,
+                None          => panic!("Class not found.")
+            };
+
+            methods.insert(sym, Rc::new($method));
+        }
+    }
+}
+
+macro_rules! callback {
+    ( $name:ident, $methods:ident, $key:expr ) => {
+        extern "C" fn $name<T: Any>(mrb: *const MrState,
+                                                              slf: MrValue) -> MrValue {
+            unsafe {
+                let ptr = mrb_ext_get_ud(mrb);
+                let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
+
+                let result = {
+                    let value = Value::new(mruby.clone(), slf);
+
+                    let method = {
+                        let borrow = mruby.borrow();
+
+                        let methods = match borrow.$methods.get($key) {
+                            Some(methods) => methods,
+                            None          => {
+                                return mruby.raise("TypeError", "Class not found.").value
+                            }
+                        };
+
+                        let sym = mrb_ext_get_mid(mrb);
+
+                        match methods.get(&sym) {
+                            Some(method) => method.clone(),
+                            None         => {
+                                return mruby.raise("TypeError", "Method not found.").value
+                            }
+                        }
+                    };
+
+                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
+                                                                         value).value)) {
+                        Ok(value)  => value,
+                        Err(error) => {
+                            let message = match error.downcast_ref::<&'static str>() {
+                                Some(s) => *s,
+                                None    => match error.downcast_ref::<String>() {
+                                    Some(s) => &s[..],
+                                    None    => ""
+                                }
+                            };
+
+                            mruby.raise("RustPanic", message).value
+                        }
+                    }
+                };
+
+                mem::forget(mruby);
+
+                result
+            }
+        }
+    }
+}
+
 impl MrubyImpl for MrubyType {
     #[inline]
     fn filename(&self, filename: &str) {
@@ -1216,71 +1291,9 @@ impl MrubyImpl for MrubyType {
     fn def_method_for<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(MrubyType, Value) -> Value + 'static {
 
-        {
-            let sym = unsafe {
-                mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
-            };
+        insert_method!(self, name, method, methods, &TypeId::of::<T>());
 
-            let mut borrow = self.borrow_mut();
-
-            let methods = match borrow.methods.get_mut(&TypeId::of::<T>()) {
-                Some(methods) => methods,
-                None          => panic!("Class not found.")
-            };
-
-            methods.insert(sym, Rc::new(method));
-        }
-
-        extern "C" fn call_method<T: Any>(mrb: *const MrState, slf: MrValue) -> MrValue {
-            unsafe {
-                let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
-
-                let result = {
-                    let value = Value::new(mruby.clone(), slf);
-
-                    let method = {
-                        let borrow = mruby.borrow();
-
-                        let methods = match borrow.methods.get(&TypeId::of::<T>()) {
-                            Some(methods) => methods,
-                            None          => {
-                                return mruby.raise("TypeError", "Class not found.").value
-                            }
-                        };
-
-                        let sym = mrb_ext_get_mid(mrb);
-
-                        match methods.get(&sym) {
-                            Some(method) => method.clone(),
-                            None         => {
-                                return mruby.raise("TypeError", "Method not found.").value
-                            }
-                        }
-                    };
-
-                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
-                                                                         value).value)) {
-                        Ok(value)  => value,
-                        Err(error) => {
-                            let message = match error.downcast_ref::<&'static str>() {
-                                Some(s) => *s,
-                                None    => match error.downcast_ref::<String>() {
-                                    Some(s) => &s[..],
-                                    None    => ""
-                                }
-                            };
-
-                            mruby.raise("RustPanic", message).value
-                        }
-                    }
-                };
-
-                mem::forget(mruby);
-
-                result
-            }
-        }
+        callback!(call_method, methods, &TypeId::of::<T>());
 
         let borrow = self.borrow();
 
@@ -1298,71 +1311,9 @@ impl MrubyImpl for MrubyType {
     fn def_class_method_for<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(MrubyType, Value) -> Value + 'static {
 
-        {
-            let sym = unsafe {
-                mrb_intern(self.borrow().mrb, name.as_ptr(), name.len())
-            };
+        insert_method!(self, name, method, class_methods, &TypeId::of::<T>());
 
-            let mut borrow = self.borrow_mut();
-
-            let methods = match borrow.class_methods.get_mut(&TypeId::of::<T>()) {
-                Some(methods) => methods,
-                None          => panic!("Class not found.")
-            };
-
-            methods.insert(sym, Rc::new(method));
-        }
-
-        extern "C" fn call_class_method<T: Any>(mrb: *const MrState, slf: MrValue) -> MrValue {
-            unsafe {
-                let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
-
-                let result = {
-                    let value = Value::new(mruby.clone(), slf);
-
-                    let method = {
-                        let borrow = mruby.borrow();
-
-                        let methods = match borrow.class_methods.get(&TypeId::of::<T>()) {
-                            Some(methods) => methods,
-                            None          => {
-                                return mruby.raise("TypeError", "Class not found.").value
-                            }
-                        };
-
-                        let sym = mrb_ext_get_mid(mrb);
-
-                        match methods.get(&sym) {
-                            Some(method) => method.clone(),
-                            None         => {
-                                return mruby.raise("TypeError", "Method not found.").value
-                            }
-                        }
-                    };
-
-                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
-                                                                         value).value)) {
-                        Ok(value)  => value,
-                        Err(error) => {
-                            let message = match error.downcast_ref::<&'static str>() {
-                                Some(s) => *s,
-                                None    => match error.downcast_ref::<String>() {
-                                    Some(s) => &s[..],
-                                    None    => ""
-                                }
-                            };
-
-                            mruby.raise("RustPanic", message).value
-                        }
-                    }
-                };
-
-                mem::forget(mruby);
-
-                result
-            }
-        }
+        callback!(call_class_method, class_methods, &TypeId::of::<T>());
 
         let borrow = self.borrow();
 
