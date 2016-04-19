@@ -1715,6 +1715,91 @@ impl Value {
         }
     }
 
+    /// Returns whether the instance variable `name` is defined on a `Value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.def_class("Container");
+    ///
+    /// let cont = mruby.run("Container.new").unwrap();
+    ///
+    /// assert!(!cont.has_var("value"));
+    /// ```
+    #[inline]
+    pub fn has_var(&self, name: &str) -> bool {
+        unsafe {
+            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+
+            mrb_iv_defined(self.mruby.borrow().mrb, self.value, sym)
+        }
+    }
+
+    /// Returns the value of the instance variable `name` in a `Some` or `None` if it is undefined.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.def_class("Container");
+    ///
+    /// let cont = mruby.run("Container.new").unwrap();
+    ///
+    /// cont.set_var("value", mruby.fixnum(2));
+    ///
+    /// assert_eq!(cont.get_var("value").unwrap().to_i32().unwrap(), 2);
+    /// assert!(cont.get_var("valup").is_none());
+    /// ```
+    #[inline]
+    pub fn get_var(&self, name: &str) -> Option<Value> {
+        unsafe {
+            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+
+            if mrb_iv_defined(self.mruby.borrow().mrb, self.value, sym) {
+                Some(Value::new(self.mruby.clone(),
+                                mrb_iv_get(self.mruby.borrow().mrb, self.value, sym)))
+            } else {
+                None
+            }
+        }
+    }
+
+    /// Sets the value of the instance variable `name` to `value`.
+    ///
+    /// *Note:* setting instance variables on some primitives may cause `SIGABRT`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// mruby.def_class("Container");
+    ///
+    /// let cont = mruby.run("Container.new").unwrap();
+    ///
+    /// cont.set_var("value", mruby.fixnum(2));
+    ///
+    /// assert!(cont.has_var("value"));
+    /// assert_eq!(cont.get_var("value").unwrap().to_i32().unwrap(), 2);
+    /// ```
+    #[inline]
+    pub fn set_var(&self, name: &str, value: Value) {
+        unsafe {
+            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+
+            mrb_iv_set(self.mruby.borrow().mrb, self.value, sym, value.value)
+        }
+    }
+
     /// Returns the `Class` of an mruby `Value`.
     ///
     /// # Examples
