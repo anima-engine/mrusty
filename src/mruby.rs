@@ -2404,7 +2404,7 @@ impl Module {
         }
     }
 
-    /// Returns a `&str` with the mruby `Class` name.
+    /// Returns a `&str` with the mruby `Module` name.
     ///
     /// # Examples
     ///
@@ -2422,7 +2422,7 @@ impl Module {
         &self.name
     }
 
-    /// Casts `Class` to `Value`.
+    /// Casts `Module` to `Value`.
     ///
     /// # Examples
     ///
