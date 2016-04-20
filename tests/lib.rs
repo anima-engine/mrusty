@@ -171,6 +171,29 @@ fn api_execute_binary() {
     assert_eq!(*result.to_obj::<Scalar>().unwrap(), Scalar::new(2.0));
 }
 
+#[test]
+fn api_mruby_class() {
+    let mruby = Mruby::new();
+
+    Scalar::require(mruby.clone());
+
+    mruby_class!(mruby, "Container", {
+        def!("initialize", |mruby, slf: Value, s: Scalar| {
+            slf.set_var("value", mruby.float(s.value as f64));
+
+            slf
+        });
+
+        def!("value", |slf: Value| {
+            slf.get_var("value").unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new(Scalar.new 3.0).value").unwrap();
+
+    assert_eq!(result.to_f64().unwrap(), 3.0);
+}
+
 describe!(Scalar, "
   context 'when zero' do
     let(:zero) { Scalar.new 0 }
