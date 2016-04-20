@@ -15,7 +15,7 @@
 //! It does all this in a safely neat way while also bringing spec testing and a
 //! REPL to the table.
 //!
-//! *Note:* Starting with *v0.4.0*, mrusty will only work with Rust beta (1.8.0).
+//! *Note:* Starting with *v0.4.0*, mrusty will only work with Rust beta (1.9.0).
 //! This is caused by a need to capture `panic`s in mruby. Once this features
 //! stabilizes (and it will in Rust 1.9.0), mrusty will return to stable Rust.
 
@@ -37,6 +37,7 @@ pub use mruby_ffi::MrValue;
 pub use mruby_ffi::mrb_get_args;
 
 pub use mruby::Class;
+pub use mruby::ClassLike;
 pub use mruby::Mruby;
 pub use mruby::MrubyError;
 pub use mruby::MrubyFile;

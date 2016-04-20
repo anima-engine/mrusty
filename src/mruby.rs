@@ -462,7 +462,7 @@ pub trait MrubyImpl {
     #[inline]
     fn is_defined_under<T: ClassLike>(&self, name: &str, outer: &T) -> bool;
 
-    /// Returns the mruby `Class` named `name`.
+    /// Returns the mruby `Class` named `name` in a `Some` or `None` if it is not defined.
     ///
     /// # Examples
     ///
@@ -479,7 +479,8 @@ pub trait MrubyImpl {
     #[inline]
     fn get_class(&self, name: &str) -> Result<Class, MrubyError>;
 
-    /// Returns the mruby `Class` named `name` under `outer` `Class` or `Module`.
+    /// Returns the mruby `Class` named `name` under `outer` `Class` or `Module` in a `Some` or
+    /// `None` if it is not defined.
     ///
     /// # Examples
     ///
@@ -500,7 +501,7 @@ pub trait MrubyImpl {
     #[inline]
     fn get_class_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Class, MrubyError>;
 
-    /// Returns the mruby `Class` named `name`.
+    /// Returns the mruby `Module` named `name` in a `Some` or `None` if it is not defined.
     ///
     /// # Examples
     ///
@@ -517,7 +518,8 @@ pub trait MrubyImpl {
     #[inline]
     fn get_module(&self, name: &str) -> Result<Module, MrubyError>;
 
-    /// Returns the mruby `Class` named `name` under `outer` `Class` or `Module`.
+    /// Returns the mruby `Module` named `name` under `outer` `Class` or `Module` in a `Some` or
+    /// `None` if it is not defined.
     ///
     /// # Examples
     ///
@@ -729,8 +731,8 @@ pub trait MrubyImpl {
     fn def_class_method<F>(&self, class: Class, name: &str, method: F)
         where F: Fn(MrubyType, Value) -> Value + 'static;
 
-    /// Defines an mruby method named `name`. The closure to be run when the `name` method is
-    /// called should be passed through the `mrfn!` macro.
+    /// Defines an mruby method named `name` on the mruby `Class` reflecting type `T`. The closure
+    /// to be run when the `name` method is called should be passed through the `mrfn!` macro.
     ///
     /// # Examples
     ///
@@ -763,8 +765,9 @@ pub trait MrubyImpl {
     fn def_method_for<T: Any, F>(&self, name: &str, method: F)
         where F: Fn(MrubyType, Value) -> Value + 'static;
 
-    /// Defines an mruby class method named `name`. The closure to be run when the `name` method is
-    /// called should be passed through the `mrfn!` macro.
+    /// Defines an mruby class method named `name` on the mruby `Class` reflecting type `T`. The
+    /// closure to be run when the `name` method is called should be passed through the `mrfn!`
+    /// macro.
     ///
     /// # Examples
     ///
@@ -1739,7 +1742,8 @@ impl Value {
         }
     }
 
-    /// Returns the value of the instance variable `name` in a `Some` or `None` if it is undefined.
+    /// Returns the value of the instance variable `name` in a `Some` or `None` if it is not
+    /// defined.
     ///
     /// # Examples
     ///
