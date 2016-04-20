@@ -4,6 +4,8 @@
 [![Coverage Status]
 (https://coveralls.io/repos/github/anima-engine/mrusty/badge.svg?branch=master)]
 (https://coveralls.io/github/anima-engine/mrusty?branch=master)
+[![Cargo Crate](http://meritbadge.herokuapp.com/mrusty)]
+(https://crates.io/crates/mrusty)
 
 mrusty lets you:
 
