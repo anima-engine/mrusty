@@ -38,6 +38,7 @@ pub use mruby_ffi::mrb_get_args;
 
 pub use mruby::Class;
 pub use mruby::ClassLike;
+pub use mruby::Module;
 pub use mruby::Mruby;
 pub use mruby::MrubyError;
 pub use mruby::MrubyFile;
