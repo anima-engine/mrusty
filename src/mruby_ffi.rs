@@ -182,6 +182,16 @@ impl MrValue {
             _ => Err(MrubyError::Cast("Class".to_owned()))
         }
     }
+
+    #[inline]
+    pub unsafe fn to_module(&self) -> Result<*const MrClass, MrubyError> {
+        match self.typ {
+            MrType::MRB_TT_MODULE => {
+                Ok(mrb_ext_get_class(*self))
+            },
+            _ => Err(MrubyError::Cast("Module".to_owned()))
+        }
+    }
 }
 
 #[allow(dead_code)]

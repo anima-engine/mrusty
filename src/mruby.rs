@@ -2067,6 +2067,27 @@ impl Value {
             Ok(Class::new(self.mruby.clone(), class))
         }
     }
+
+    /// Casts mruby `Value` of `Class` `Module` to Rust type `Module`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    /// let result = mruby.run("Kernel").unwrap();
+    ///
+    /// assert_eq!(result.to_module().unwrap().to_str(), "Kernel");
+    /// ```
+    #[inline]
+    pub fn to_module(&self) -> Result<Module, MrubyError> {
+        unsafe {
+            let module = try!(self.value.to_module());
+
+            Ok(Module::new(self.mruby.clone(), module))
+        }
+    }
 }
 
 use std::fmt;
