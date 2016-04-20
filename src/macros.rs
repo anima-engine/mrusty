@@ -653,10 +653,10 @@ macro_rules! mruby_defines {
     };
 }
 
-/// A `macro` that comes in handy when defining a class in order to remove a large part of the
-/// clutter and ensure correction. It automates and simplifies the implementation of the
-/// `MrubyFile` `trait`. Thus, any type provided to `mrusty_class!` will get an `MrubyFile`
-/// implementation, unlike `mruby_class!` which implements a pure mruby class.
+/// A `macro` that comes in handy when defining an mruby `Class` with Rust type reflection. It
+/// automates and simplifies the implementation of the `MrubyFile` `trait`. Thus, any type provided
+/// to `mrusty_class!` will get an `MrubyFile` implementation, unlike `mruby_class!` which
+/// implements a pure mruby class.
 ///
 /// The macro takes a Rust type, an optional mruby `Class` name, and a block as arguments. Inside
 /// of the block you can define mruby methods with the `def!` and `def_self!` helpers which are
@@ -765,9 +765,9 @@ macro_rules! mrusty_class {
     };
 }
 
-/// A `macro` that comes in handy when defining a pure mruby class in order to remove a large part
-/// of the clutter and ensure correction. It lets you define and control pure mruby types and
-/// returns the newly defined `Class`, unlike `mrusty_class!` which also handles Rust types.
+/// A `macro` that comes in handy when defining a pure mruby `Class`. It lets you define and
+/// control pure mruby types and returns the newly defined `Class`, unlike `mrusty_class!` which
+/// also handles Rust types.
 ///
 /// The macro takes an mruby `MrubyType`, an mruby `Class` name, and a block as arguments. Inside
 /// of the block you can define mruby methods with the `def!` and `def_self!` helpers which are
