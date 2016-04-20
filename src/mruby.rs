@@ -1773,8 +1773,6 @@ impl Value {
 
     /// Sets the value of the instance variable `name` to `value`.
     ///
-    /// *Note:* setting instance variables on some primitives may cause `SIGABRT`.
-    ///
     /// # Examples
     ///
     /// ```
@@ -1791,12 +1789,34 @@ impl Value {
     /// assert!(cont.has_var("value"));
     /// assert_eq!(cont.get_var("value").unwrap().to_i32().unwrap(), 2);
     /// ```
+    /// <br/>
+    ///
+    /// Method panics if called on non-objects.
+    ///
+    /// ```should_panic
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// let mruby = Mruby::new();
+    ///
+    /// let one = mruby.fixnum(1);
+    ///
+    /// one.set_var("value", mruby.fixnum(2)); // panics because Fixnum cannot have instance vars
+    /// ```
     #[inline]
     pub fn set_var(&self, name: &str, value: Value) {
-        unsafe {
-            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+        match self.value.typ {
+            MrType::MRB_TT_OBJECT |
+            MrType::MRB_TT_CLASS |
+            MrType::MRB_TT_MODULE |
+            MrType::MRB_TT_SCLASS |
+            MrType::MRB_TT_HASH |
+            MrType::MRB_TT_DATA |
+            MrType::MRB_TT_EXCEPTION => unsafe {
+                let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
 
-            mrb_iv_set(self.mruby.borrow().mrb, self.value, sym, value.value)
+                mrb_iv_set(self.mruby.borrow().mrb, self.value, sym, value.value)
+            },
+            _ => panic!("Cannot set instance variable on non-object.")
         }
     }
 
