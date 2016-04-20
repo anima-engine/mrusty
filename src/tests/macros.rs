@@ -423,3 +423,237 @@ fn mrusty_class_args_mruby_values() {
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
+
+#[test]
+fn mruby_instance_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |slf: Value| {
+            slf
+        });
+    });
+
+    mruby.run("Container.new.hi").unwrap();
+}
+
+#[test]
+fn mruby_instance_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |slf: Value, _v: i32| {
+            slf
+        });
+    });
+
+    mruby.run("Container.new.hi 3").unwrap();
+}
+
+#[test]
+fn mruby_instance_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_mruby, slf: Value| {
+            slf
+        });
+    });
+
+    mruby.run("Container.new.hi").unwrap();
+}
+
+#[test]
+fn mruby_instance_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |mruby, _slf: Value, v: i32| {
+            mruby.fixnum(v)
+        });
+    });
+
+    let result = mruby.run("Container.new.hi 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |slf: Class| {
+            slf.to_value()
+        });
+    });
+
+    let result = mruby.run("Container.hi == Container").unwrap();
+
+    assert_eq!(result.to_bool().unwrap(), true);
+}
+
+#[test]
+fn mruby_class_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_slf: Class, other: Class| {
+            other.to_value()
+        });
+    });
+
+    let result = mruby.run("Container.hi(Fixnum) == Fixnum").unwrap();
+
+    assert_eq!(result.to_bool().unwrap(), true);
+}
+
+#[test]
+fn mruby_class_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, slf: Class| {
+            slf.to_value()
+        });
+    });
+
+    let result = mruby.run("Container.hi == Container").unwrap();
+
+    assert_eq!(result.to_bool().unwrap(), true);
+}
+
+#[test]
+fn mruby_class_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, _slf: Class, other: Class| {
+            other.to_value()
+        });
+    });
+
+    let result = mruby.run("Container.hi(Fixnum) == Fixnum").unwrap();
+
+    assert_eq!(result.to_bool().unwrap(), true);
+}
+
+#[test]
+fn mruby_instance_args_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_slf: Value; args| {
+            args[2].clone()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_args_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_slf: Value, _v: i32; args| {
+            args[1].clone()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_args_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_mruby, _slf: Value; args| {
+            args[2].clone()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_args_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_mruby, _slf: Value, _v: i32; args| {
+            args[1].clone()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_slf: Class; args| {
+            args[2].clone()
+        });
+    });
+
+    let result = mruby.run("Container.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_slf: Class, _v: i32; args| {
+            args[1].clone()
+        });
+    });
+
+    let result = mruby.run("Container.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, _slf: Class; args| {
+            args[2].clone()
+        });
+    });
+
+    let result = mruby.run("Container.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, _slf: Class, _v: i32; args| {
+            args[1].clone()
+        });
+    });
+
+    let result = mruby.run("Container.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
