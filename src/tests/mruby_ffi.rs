@@ -535,6 +535,34 @@ fn funcall_argv() {
 }
 
 #[test]
+fn iv() {
+    unsafe {
+        let mrb = mrb_open();
+        let context = mrbc_context_new(mrb);
+
+        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+
+        mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+
+        let one = MrValue::fixnum(1);
+
+        let code = "Mine.new";
+        let obj = mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+
+        let sym = mrb_intern(mrb, "value".as_ptr(), 1usize);
+
+        assert!(!mrb_iv_defined(mrb, obj, sym));
+
+        mrb_iv_set(mrb, obj, sym, one);
+
+        assert!(mrb_iv_defined(mrb, obj, sym));
+        assert_eq!(mrb_iv_get(mrb, obj, sym).to_i32().unwrap(), 1);
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn nil() {
     unsafe {
         let mrb = mrb_open();

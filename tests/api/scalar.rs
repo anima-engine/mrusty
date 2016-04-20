@@ -22,7 +22,7 @@ impl Scalar {
     }
 }
 
-mrclass!(Scalar, {
+mrusty_class!(Scalar, {
     def!("initialize", |v: f64| {
         Scalar::new(v as f32)
     });

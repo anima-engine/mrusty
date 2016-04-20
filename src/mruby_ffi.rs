@@ -280,6 +280,13 @@ extern "C" {
                             argv: *const MrValue) -> MrValue;
 
     #[inline]
+    pub fn mrb_iv_defined(mrb: *const MrState, object: MrValue, sym: u32) -> bool;
+    #[inline]
+    pub fn mrb_iv_get(mrb: *const MrState, object: MrValue, sym: u32) -> MrValue;
+    #[inline]
+    pub fn mrb_iv_set(mrb: *const MrState, object: MrValue, sym: u32, value: MrValue);
+
+    #[inline]
     pub fn mrb_ext_fixnum_to_cint(value: MrValue) -> i32;
     #[inline]
     pub fn mrb_ext_float_to_cdouble(value: MrValue) -> f64;

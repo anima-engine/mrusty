@@ -136,7 +136,7 @@ fn api_dup() {
         {
             let mruby = Mruby::new();
 
-            mruby.def_class::<Cont>("Container");
+            mruby.def_class_for::<Cont>("Container");
 
             {
                 let orig = Cont { value: 3 };
