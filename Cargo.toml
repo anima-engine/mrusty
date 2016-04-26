@@ -1,6 +1,6 @@
 [package]
 name = "mrusty"
-description = "mruby safe bindings for Rust"
+description = "mruby safe bindings for Rust. Define and run Ruby without dependencies."
 version = "0.4.2"
 authors = ["Dragoș Tiselice <dragostiselice@gmail.com>", "Robert Krody <krody.robi@gmail.com>"]
 build = "build.rs"
