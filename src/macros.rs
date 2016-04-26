@@ -128,6 +128,11 @@ macro_rules! conv {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! slf {
+    ( $slf:ident, bool )  => (let $slf = $slf.to_bool().unwrap(););
+    ( $slf:ident, i32 )   => (let $slf = $slf.to_i32().unwrap(););
+    ( $slf:ident, f64 )   => (let $slf = $slf.to_f64().unwrap(););
+    ( $slf:ident, str )   => (let $slf = $slf.to_str().unwrap(););
+    ( $slf:ident, Vec )   => (let $slf = $slf.to_vec().unwrap(););
     ( $slf:ident, Class ) => (let $slf = $slf.to_class().unwrap(););
     ( $slf:ident, Value ) => ();
     ( $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
@@ -825,6 +830,41 @@ macro_rules! mrusty_class {
 /// let result = mruby.run("Container.hi").unwrap();
 ///
 /// assert_eq!(result.to_str().unwrap(), "hi");
+/// # }
+/// ```
+/// <br/>
+///
+/// `mruby_class!` also works on mruby primitive types.
+///
+/// ```
+/// # #[macro_use] extern crate mrusty;
+/// use mrusty::*;
+///
+/// # fn main() {
+/// let mruby = Mruby::new();
+///
+/// mruby_class!(mruby, "Fixnum", {
+///     def!("digits", |mruby, slf: i32| {
+///         if slf == 0 {
+///             mruby.array(vec![mruby.fixnum(0)])
+///         } else {
+///             let mut number = slf;
+///             let mut digits = vec![];
+///
+///             while number != 0 {
+///                 digits.push(mruby.fixnum(number % 10));
+///
+///                 number /= 10;
+///             }
+///
+///             mruby.array(digits)
+///         }
+///     });
+/// });
+///
+/// let result = mruby.run("123.digits.inject(:+)").unwrap();
+///
+/// assert_eq!(result.to_i32().unwrap(), 6);
 /// # }
 /// ```
 #[macro_export]

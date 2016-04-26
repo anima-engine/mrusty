@@ -984,15 +984,19 @@ fn get_class<F>(mruby: &MrubyType, name: &str, get: F) -> Class
     where F: Fn(*const MrState, *const c_char, *const MrClass) -> *const MrClass {
 
     unsafe {
-        let name = name.to_owned();
+        let class = if let Ok(class) = mruby.get_class(name) {
+            class
+        } else {
+            let name = name.to_owned();
 
-        let c_name = CString::new(name.clone()).unwrap();
-        let object = CString::new("Object").unwrap();
-        let object = mrb_class_get(mruby.borrow().mrb, object.as_ptr());
+            let c_name = CString::new(name.clone()).unwrap();
+            let object = CString::new("Object").unwrap();
+            let object = mrb_class_get(mruby.borrow().mrb, object.as_ptr());
 
-        let class = get(mruby.borrow().mrb, c_name.as_ptr(), object);
+            let class = get(mruby.borrow().mrb, c_name.as_ptr(), object);
 
-        let class = Class::new(mruby.clone(), class);
+            Class::new(mruby.clone(), class)
+        };
 
         mruby.borrow_mut().mruby_methods.insert(class.to_str().to_owned(), HashMap::new());
         mruby.borrow_mut().mruby_class_methods.insert(class.to_str().to_owned(),
