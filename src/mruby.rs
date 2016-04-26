@@ -980,11 +980,11 @@ pub trait MrubyImpl {
 }
 
 #[inline]
-fn get_class<F>(mruby: &MrubyType, name: &str, get: F) -> Class
+fn get_class<F>(mruby: &MrubyType, name: &str, class: Result<Class, MrubyError>, get: F) -> Class
     where F: Fn(*const MrState, *const c_char, *const MrClass) -> *const MrClass {
 
     unsafe {
-        let class = if let Ok(class) = mruby.get_class(name) {
+        let class = if let Ok(class) = class {
             class
         } else {
             let name = name.to_owned();
@@ -1368,15 +1368,16 @@ impl MrubyImpl for MrubyType {
     }
 
     fn def_class(&self, name: &str) -> Class {
-        get_class(self, name, |mrb: *const MrState, name: *const c_char,
-                               object: *const MrClass| {
+        get_class(self, name, self.get_class(name), |mrb: *const MrState, name: *const c_char,
+                                                     object: *const MrClass| {
             unsafe { mrb_define_class(mrb, name, object) }
         })
     }
 
     fn def_class_under<U: ClassLike>(&self, name: &str, outer: &U) -> Class {
-        get_class(self, name, |mrb: *const MrState, name: *const c_char,
-                               object: *const MrClass| {
+        get_class(self, name, self.get_class_under(name, outer),
+                  |mrb: *const MrState, name: *const c_char,
+                   object: *const MrClass| {
             unsafe { mrb_define_class_under(mrb, outer.class(), name, object) }
         })
     }
