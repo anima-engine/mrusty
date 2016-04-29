@@ -218,8 +218,10 @@ describe!(Scalar, "
       expect { zero.panic }.to raise_error RustPanic, 'I always panic.'
     end
 
-    it 'raises exception on #raise' do
-      expect { zero.raise }.to raise_error RuntimeError, 'Except me.'
+    it 'changes value on #value=' do
+      zero.value = 1
+
+      expect(zero.value).to eql 1
     end
   end
 ");

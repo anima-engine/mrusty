@@ -116,7 +116,11 @@ impl Mruby {
                                 mruby.bool(true)
                             },
                             None => {
-                                let filename = mruby.borrow().filename.clone();
+                                let filename = {
+                                    let borrow = mruby.borrow();
+
+                                    borrow.filename.clone()
+                                };
 
                                 let execute = |path: &Path, name: String,
                                                filename: Option<String>| {
@@ -131,7 +135,7 @@ impl Mruby {
 
                                     match result {
                                         Err(err) => {
-                                            mruby.raise("RuntimeError", &format!("{}", err));
+                                            Mruby::raise(mrb, "RuntimeError", &format!("{}", err));
                                         }
                                         _ => ()
                                     }
@@ -142,19 +146,21 @@ impl Mruby {
                                 let path = Path::new(name);
                                 let rb = name.to_owned() + ".rb";
                                 let rb = Path::new(&rb);
-                                let mrb = name.to_owned() + ".mrb";
-                                let mrb = Path::new(&mrb);
+                                let mrbb = name.to_owned() + ".mrb";
+                                let mrbb = Path::new(&mrbb);
 
                                 if rb.is_file() {
                                     execute(rb, name.to_owned(), filename)
-                                } else if mrb.is_file() {
-                                    execute(mrb, name.to_owned(), filename)
+                                } else if mrbb.is_file() {
+                                    execute(mrbb, name.to_owned(), filename)
                                 } else if path.is_file() {
                                     execute(path, name.to_owned(), filename)
                                 } else {
-                                    mruby.raise("RuntimeError",
-                                                &format!("cannot load {}.rb or {}.mrb",
-                                                         name, name))
+                                    Mruby::raise(mrb, "RuntimeError",
+                                                 &format!("cannot load {}.rb or {}.mrb",
+                                                 name, name));
+
+                                    mruby.nil()
                                 }
                             }
                         }
@@ -183,6 +189,16 @@ impl Mruby {
             ");
 
             mruby
+        }
+    }
+
+    #[inline]
+    fn raise(mrb: *const MrState, eclass: &str, message: &str) -> MrValue {
+        unsafe {
+            mrb_ext_raise(mrb, CString::new(eclass).unwrap().as_ptr(),
+                          CString::new(message).unwrap().as_ptr());
+
+            MrValue::nil()
         }
     }
 
@@ -393,39 +409,6 @@ pub trait MrubyImpl {
     /// ```
     #[inline]
     fn execute(&self, script: &Path) -> Result<Value, MrubyError>;
-
-    /// Raises an mruby `RuntimeError` with `message` message and `eclass` mruby Exception Class.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
-    ///
-    /// # fn main() {
-    /// let mruby = Mruby::new();
-    ///
-    /// struct Cont;
-    ///
-    /// mruby.def_class_for::<Cont>("Container");
-    /// mruby.def_class_method_for::<Cont, _>("hi", mrfn!(|mruby, _slf: Value| {
-    ///     mruby.raise("RuntimeError", "hi");
-    ///
-    ///     mruby.nil()
-    /// }));
-    ///
-    /// let result = mruby.run("Container.hi");
-    ///
-    /// match result {
-    ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "RuntimeError: hi");
-    /// },
-    ///     _ => assert!(false)
-    /// }
-    /// # }
-    /// ```
-    #[inline]
-    fn raise(&self, eclass: &str, message: &str) -> Value;
 
     /// Returns whether the mruby `Class` or `Module` named `name` is defined.
     ///
@@ -1078,37 +1061,31 @@ macro_rules! callback {
                     let method = {
                         let borrow = mruby.borrow();
 
-                        let methods = match borrow.$methods.get($key) {
-                            Some(methods) => methods,
-                            None          => {
-                                return mruby.raise("TypeError", "Class not found.").value
-                            }
-                        };
+                        borrow.$methods.get($key).map(|methods| {
+                            let sym = mrb_ext_get_mid(mrb);
 
-                        let sym = mrb_ext_get_mid(mrb);
-
-                        match methods.get(&sym) {
-                            Some(method) => method.clone(),
-                            None         => {
-                                return mruby.raise("TypeError", "Method not found.").value
-                            }
-                        }
+                            methods.get(&sym).map(|method| method.clone())
+                        })
                     };
 
-                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
-                                                                         value).value)) {
-                        Ok(value)  => value,
-                        Err(error) => {
-                            let message = match error.downcast_ref::<&'static str>() {
-                                Some(s) => *s,
-                                None    => match error.downcast_ref::<String>() {
-                                    Some(s) => &s[..],
-                                    None    => ""
-                                }
-                            };
+                    if let Some(Some(method)) = method {
+                        match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
+                                                                             value).value)) {
+                            Ok(value)  => value,
+                            Err(error) => {
+                                let message = match error.downcast_ref::<&'static str>() {
+                                    Some(s) => *s,
+                                    None    => match error.downcast_ref::<String>() {
+                                        Some(s) => &s[..],
+                                        None    => ""
+                                    }
+                                };
 
-                            mruby.raise("RustPanic", message).value
+                                Mruby::raise(mrb, "RustPanic", message)
+                            }
                         }
+                    } else {
+                        Mruby::raise(mrb, "TypeError", "Class not found.")
                     }
                 };
 
@@ -1135,37 +1112,31 @@ macro_rules! mruby_callback {
                     let method = {
                         let borrow = mruby.borrow();
 
-                        let methods = match borrow.$methods.get(mruby_callback!(value, $conv)) {
-                            Some(methods) => methods,
-                            None          => {
-                                return mruby.raise("TypeError", "Class not found.").value
-                            }
-                        };
+                        borrow.$methods.get(mruby_callback!(value, $conv)).map(|methods| {
+                            let sym = mrb_ext_get_mid(mrb);
 
-                        let sym = mrb_ext_get_mid(mrb);
-
-                        match methods.get(&sym) {
-                            Some(method) => method.clone(),
-                            None         => {
-                                return mruby.raise("TypeError", "Method not found.").value
-                            }
-                        }
+                            methods.get(&sym).map(|method| method.clone())
+                        })
                     };
 
-                    match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
-                                                                         value).value)) {
-                        Ok(value)  => value,
-                        Err(error) => {
-                            let message = match error.downcast_ref::<&'static str>() {
-                                Some(s) => *s,
-                                None    => match error.downcast_ref::<String>() {
-                                    Some(s) => &s[..],
-                                    None    => ""
-                                }
-                            };
+                    if let Some(Some(method)) = method {
+                        match panic::catch_unwind(AssertUnwindSafe(|| method(mruby.clone(),
+                                                                             value).value)) {
+                            Ok(value)  => value,
+                            Err(error) => {
+                                let message = match error.downcast_ref::<&'static str>() {
+                                    Some(s) => *s,
+                                    None    => match error.downcast_ref::<String>() {
+                                        Some(s) => &s[..],
+                                        None    => ""
+                                    }
+                                };
 
-                            mruby.raise("RustPanic", message).value
+                                Mruby::raise(mrb, "RustPanic", message)
+                            }
                         }
+                    } else {
+                        Mruby::raise(mrb, "TypeError", "Class not found.")
                     }
                 };
 
@@ -1272,16 +1243,6 @@ impl MrubyImpl for MrubyType {
                 }
             },
             None => Err(MrubyError::Filetype)
-        }
-    }
-
-    #[inline]
-    fn raise(&self, eclass: &str, message: &str) -> Value {
-        unsafe {
-            mrb_ext_raise(self.borrow().mrb, CString::new(eclass).unwrap().as_ptr(),
-                          CString::new(message).unwrap().as_ptr());
-
-            self.nil()
         }
     }
 

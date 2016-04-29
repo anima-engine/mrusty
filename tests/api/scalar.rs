@@ -45,11 +45,7 @@ mrusty_class!(Scalar, {
         mruby.obj((*slf).clone() * (*vector).clone())
     });
 
-    def!("panic", |_slf: (&Scalar)| {
+    def!("panic", |_slf: Value| {
         panic!("I always panic.");
-    });
-
-    def!("raise", |mruby, _slf: (&Scalar)| {
-        mruby.raise("RuntimeError", "Except me.")
     });
 });
