@@ -27,19 +27,19 @@ mrusty_class!(Scalar, {
         Scalar::new(v as f32)
     });
 
-    def!("value", |mruby, slf: Scalar| {
+    def!("value", |mruby, slf: (&Scalar)| {
         mruby.float(slf.value as f64)
     });
 
-    def!("*", |mruby, slf: Scalar, vector: Vector| {
+    def!("*", |mruby, slf: (&Scalar), vector: (&Vector)| {
         mruby.obj((*slf).clone() * (*vector).clone())
     });
 
-    def!("panic", |_slf: Scalar| {
+    def!("panic", |_slf: (&Scalar)| {
         panic!("I always panic.");
     });
 
-    def!("raise", |mruby, _slf: Scalar| {
+    def!("raise", |mruby, _slf: (&Scalar)| {
         mruby.raise("RuntimeError", "Except me.")
     });
 });

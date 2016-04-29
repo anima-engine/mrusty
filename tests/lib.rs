@@ -178,7 +178,7 @@ fn api_mruby_class() {
     Scalar::require(mruby.clone());
 
     mruby_class!(mruby, "Container", {
-        def!("initialize", |mruby, slf: Value, s: Scalar| {
+        def!("initialize", |mruby, slf: Value, s: (&Scalar)| {
             slf.set_var("value", mruby.float(s.value as f64));
 
             slf

@@ -31,23 +31,23 @@ mrusty_class!(Vector, {
         Vector::new(x as f32, y as f32, z as f32)
     });
 
-    def_self!("from_a", |slf: Value, array: Vec| {
+    def_self!("from_a", |slf: Value, array: (Vec<Value>)| {
         slf.call_unchecked("new", array)
     });
 
-    def!("x", |mruby, slf: Vector| {
+    def!("x", |mruby, slf: (&Vector)| {
         mruby.float(slf.x as f64)
     });
 
-    def!("y", |mruby, slf: Vector| {
+    def!("y", |mruby, slf: (&Vector)| {
         mruby.float(slf.y as f64)
     });
 
-    def!("z", |mruby, slf: Vector| {
+    def!("z", |mruby, slf: (&Vector)| {
         mruby.float(slf.z as f64)
     });
 
-    def!("to_a", |mruby, slf: Vector| {
+    def!("to_a", |mruby, slf: (&Vector)| {
         mruby.array(vec![
             mruby.float(slf.x as f64),
             mruby.float(slf.y as f64),

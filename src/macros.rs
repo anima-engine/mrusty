@@ -12,9 +12,9 @@
 /// * `bool`
 /// * `i32`
 /// * `f64`
-/// * `str` (`&str`; macro limtation)
-/// * `Vec` (`Vec<Value>`; macro limtation)
-/// * `T` (defined with `def_class`)
+/// * `(&str)` (`&str`; macro limtation)
+/// * `(Vec<Value>)` (`Vec<Value>`; macro limtation)
+/// * `(&T)` (defined with `def_class`; macro limtation)
 /// * `Value`
 ///
 /// Any `panic!` call within the closure will get rescued in a `RustPanic` mruby `Exception`.
@@ -58,7 +58,7 @@
 /// struct Cont;
 ///
 /// mruby.def_class_for::<Cont>("Container");
-/// mruby.def_class_method_for::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: str, b: str| {
+/// mruby.def_class_method_for::<Cont, _>("hi", mrfn!(|mruby, _slf: Value, a: (&str), b: (&str)| {
 ///     mruby.string(&(a.to_owned() + b))
 /// }));
 /// // slf is a Value here. (mruby Class type)
@@ -89,7 +89,7 @@
 /// };
 ///
 /// mruby.def_class_for::<Cont>("Container");
-/// mruby.def_method_for::<Cont, _>("gt", mrfn!(|mruby, slf: Cont, o: Cont| {
+/// mruby.def_method_for::<Cont, _>("gt", mrfn!(|mruby, slf: (&Cont), o: (&Cont)| {
 ///    mruby.bool(slf.value > o.value)
 /// }));
 ///
@@ -133,40 +133,40 @@
 macro_rules! mrfn {
     // init
     ( @init ) => ();
-    ( @init $name:ident, bool )    => (let $name = uninitialized::<bool>(););
-    ( @init $name:ident, i32 )     => (let $name = uninitialized::<i32>(););
-    ( @init $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
-    ( @init $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
-    ( @init $name:ident, Vec )     => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, Class )   => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, $_t:ty )  => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident : $t:tt )  => (mrfn!(@init $name, $t));
+    ( @init $name:ident, bool )         => (let $name = uninitialized::<bool>(););
+    ( @init $name:ident, i32 )          => (let $name = uninitialized::<i32>(););
+    ( @init $name:ident, f64 )          => (let $name = uninitialized::<f64>(););
+    ( @init $name:ident, (&str) )       => (let $name = uninitialized::<*const c_char>(););
+    ( @init $name:ident, (Vec<Value>) ) => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, Class )        => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, (&$_t:ty) )    => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident : $t:tt )       => (mrfn!(@init $name, $t));
     ( @init $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         mrfn!(@init $name, $t);
         mrfn!(@init $( $names : $ts ),*);
     };
 
     // sig
-    ( @sig ) => ("");
-    ( @sig bool )    => ("b");
-    ( @sig i32 )     => ("i");
-    ( @sig f64 )     => ("f");
-    ( @sig str )     => ("z");
-    ( @sig Vec )     => ("A");
-    ( @sig Class )   => ("C");
-    ( @sig $_t:ty )  => ("o");
+    ( @sig )              => ("");
+    ( @sig bool )         => ("b");
+    ( @sig i32 )          => ("i");
+    ( @sig f64 )          => ("f");
+    ( @sig (&str) )       => ("z");
+    ( @sig (Vec<Value>) ) => ("A");
+    ( @sig Class )        => ("C");
+    ( @sig (&$_t:ty) )    => ("o");
     ( @sig $t:tt, $( $ts:tt ),+ ) => (concat!(mrfn!(@sig $t), mrfn!(@sig $( $ts ),*)));
 
     // args
-    ( @args ) => ();
-    ( @args $name:ident, bool )    => (&$name as *const bool);
-    ( @args $name:ident, i32 )     => (&$name as *const i32);
-    ( @args $name:ident, f64 )     => (&$name as *const f64);
-    ( @args $name:ident, str )     => (&$name as *const *const c_char);
-    ( @args $name:ident, Vec )     => (&$name as *const MrValue);
-    ( @args $name:ident, Class )   => (&$name as *const MrValue);
-    ( @args $name:ident, $_t:ty )  => (&$name as *const MrValue);
-    ( @args $name:ident : $t:tt )  => (mrfn!(@args $name, $t));
+    ( @args )                           => ();
+    ( @args $name:ident, bool )         => (&$name as *const bool);
+    ( @args $name:ident, i32 )          => (&$name as *const i32);
+    ( @args $name:ident, f64 )          => (&$name as *const f64);
+    ( @args $name:ident, (&str) )       => (&$name as *const *const c_char);
+    ( @args $name:ident, (Vec<Value>) ) => (&$name as *const MrValue);
+    ( @args $name:ident, Class )        => (&$name as *const MrValue);
+    ( @args $name:ident, (&$_t:ty) )    => (&$name as *const MrValue);
+    ( @args $name:ident : $t:tt )       => (mrfn!(@args $name, $t));
     ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
         mrb_get_args($mrb, $sig, mrfn!(@args $name, $t));
     };
@@ -205,40 +205,40 @@ macro_rules! mrfn {
     };
 
     // conv
-    ( @conv $mruby:expr )                       => ();
-    ( @conv $mruby:expr, $name:ident, bool )    => ();
-    ( @conv $mruby:expr, $name:ident, i32 )     => ();
-    ( @conv $mruby:expr, $name:ident, f64 )     => ();
-    ( @conv $mruby:expr, $name:ident, str )     => {
+    ( @conv $mruby:expr )                           => ();
+    ( @conv $mruby:expr, $name:ident, bool )        => ();
+    ( @conv $mruby:expr, $name:ident, i32 )         => ();
+    ( @conv $mruby:expr, $name:ident, f64 )         => ();
+    ( @conv $mruby:expr, $name:ident, (&str) )      => {
         let $name = CStr::from_ptr($name).to_str().unwrap();
     };
-    ( @conv $mruby:expr, $name:ident, Vec )     => {
+    ( @conv $mruby:expr, $name:ident, (Vec<Value>) ) => {
         let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
     };
-    ( @conv $mruby:expr, $name:ident, Class )     => {
+    ( @conv $mruby:expr, $name:ident, Class )        => {
         let $name = Value::new($mruby.clone(), $name).to_class().unwrap();
     };
-    ( @conv $mruby:expr, $name:ident, Value )   => {
+    ( @conv $mruby:expr, $name:ident, Value )        => {
         let $name = Value::new($mruby.clone(), $name);
     };
-    ( @conv $mruby:expr, $name:ident, $t:ty )   => {
+    ( @conv $mruby:expr, $name:ident, (&$t:ty) )     => {
         let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
     };
-    ( @conv $mruby:expr, $name:ident : $t:tt )  => (mrfn!(@conv $mruby, $name, $t));
+    ( @conv $mruby:expr, $name:ident : $t:tt )       => (mrfn!(@conv $mruby, $name, $t));
     ( @conv $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         mrfn!(@conv $mruby, $name, $t);
         mrfn!(@conv $mruby, $( $names : $ts ),*);
     };
 
-    // sig
-    ( @slf $slf:ident, bool )  => (let $slf = $slf.to_bool().unwrap(););
-    ( @slf $slf:ident, i32 )   => (let $slf = $slf.to_i32().unwrap(););
-    ( @slf $slf:ident, f64 )   => (let $slf = $slf.to_f64().unwrap(););
-    ( @slf $slf:ident, str )   => (let $slf = $slf.to_str().unwrap(););
-    ( @slf $slf:ident, Vec )   => (let $slf = $slf.to_vec().unwrap(););
-    ( @slf $slf:ident, Class ) => (let $slf = $slf.to_class().unwrap(););
-    ( @slf $slf:ident, Value ) => ();
-    ( @slf $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
+    // slf
+    ( @slf $slf:ident, bool )         => (let $slf = $slf.to_bool().unwrap(););
+    ( @slf $slf:ident, i32 )          => (let $slf = $slf.to_i32().unwrap(););
+    ( @slf $slf:ident, f64 )          => (let $slf = $slf.to_f64().unwrap(););
+    ( @slf $slf:ident, (&str) )       => (let $slf = $slf.to_str().unwrap(););
+    ( @slf $slf:ident, (Vec<Value>) ) => (let $slf = $slf.to_vec().unwrap(););
+    ( @slf $slf:ident, Class )        => (let $slf = $slf.to_class().unwrap(););
+    ( @slf $slf:ident, Value )        => ();
+    ( @slf $slf:ident, (&$t:ty) )     => (let $slf = $slf.to_obj::<$t>().unwrap(););
 
     // mrfn
     ( |$mruby:ident, $slf:ident : $st:tt| $block:expr ) => {
@@ -669,7 +669,7 @@ macro_rules! mruby_defines {
 ///         Cont { value: v }
 ///     });
 ///
-///     def!("value", |mruby, slf: Cont| {
+///     def!("value", |mruby, slf: (&Cont)| {
 ///         mruby.fixnum(slf.value)
 ///     });
 /// });

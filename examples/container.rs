@@ -20,7 +20,7 @@ fn main() {
         });
 
         // Converts slf to Cont.
-        def!("value", |mruby, slf: Cont| {
+        def!("value", |mruby, slf: (&Cont)| {
             mruby.fixnum(slf.value)
         });
     });

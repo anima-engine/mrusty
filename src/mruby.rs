@@ -562,7 +562,7 @@ pub trait MrubyImpl {
     ///
     ///             slf.init(cont)
     ///         }));
-    ///         mruby.def_method_for::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
+    ///         mruby.def_method_for::<Cont, _>("value", mrfn!(|mruby, slf: (&Cont)| {
     ///             mruby.fixnum(slf.value)
     ///         }));
     ///     }
@@ -753,7 +753,7 @@ pub trait MrubyImpl {
     ///
     ///     slf.init(cont)
     /// }));
-    /// mruby.def_method_for::<Cont, _>("value", mrfn!(|mruby, slf: Cont| {
+    /// mruby.def_method_for::<Cont, _>("value", mrfn!(|mruby, slf: (&Cont)| {
     ///     mruby.fixnum(slf.value)
     /// }));
     ///
