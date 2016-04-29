@@ -5,139 +5,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-/// Not meant to be called directly.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! init {
-    () => ();
-    ( $name:ident, bool )    => (let $name = uninitialized::<bool>(););
-    ( $name:ident, i32 )     => (let $name = uninitialized::<i32>(););
-    ( $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
-    ( $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
-    ( $name:ident, Vec )     => (let $name = uninitialized::<MrValue>(););
-    ( $name:ident, Class )   => (let $name = uninitialized::<MrValue>(););
-    ( $name:ident, $_t:ty )  => (let $name = uninitialized::<MrValue>(););
-    ( $name:ident : $t:tt )  => (init!($name, $t));
-    ( $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        init!($name, $t);
-        init!($( $names : $ts ),*);
-    };
-}
-
-/// Not meant to be called directly.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! sig {
-    () => ("");
-    ( bool )    => ("b");
-    ( i32 )     => ("i");
-    ( f64 )     => ("f");
-    ( str )     => ("z");
-    ( Vec )     => ("A");
-    ( Class )   => ("C");
-    ( $_t:ty )  => ("o");
-    ( $t:tt, $( $ts:tt ),+ ) => (concat!(sig!($t), sig!($( $ts ),*)));
-}
-
-/// Not meant to be called directly.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! args {
-    () => ();
-    ( $name:ident, bool )    => (&$name as *const bool);
-    ( $name:ident, i32 )     => (&$name as *const i32);
-    ( $name:ident, f64 )     => (&$name as *const f64);
-    ( $name:ident, str )     => (&$name as *const *const c_char);
-    ( $name:ident, Vec )     => (&$name as *const MrValue);
-    ( $name:ident, Class )   => (&$name as *const MrValue);
-    ( $name:ident, $_t:ty )  => (&$name as *const MrValue);
-    ( $name:ident : $t:tt )  => (args!($name, $t));
-    ( $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
-        mrb_get_args($mrb, $sig, args!($name, $t));
-    };
-    ( $mrb:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        mrb_get_args($mrb, $sig, args!($name, $t), $( args!($names : $ts) ),*);
-    };
-}
-
-/// Not meant to be called directly.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! args_rest {
-    ( $mruby:expr, $sig:expr, $name:ident : $t:tt) => {
-        {
-            let mrb = $mruby.borrow().mrb;
-
-            let args = uninitialized::<*mut MrValue>();
-            let count = uninitialized::<i32>();
-
-            mrb_get_args(mrb, $sig, args!($name, $t), &args as *const *mut MrValue,
-                         &count as *const i32);
-
-            let args = slice::from_raw_parts(args, count as usize);
-            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
-         }
-    };
-    ( $mruby:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        {
-            let mrb = $mruby.borrow().mrb;
-
-            let args = uninitialized::<*mut MrValue>();
-            let count = uninitialized::<i32>();
-
-            mrb_get_args(mrb, $sig, args!($name, $t), $( args!($names : $ts) ),* ,
-                         &args as *const *mut MrValue, &count as *const i32);
-
-            let args = slice::from_raw_parts(args, count as usize);
-            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
-         }
-    };
-}
-
-/// Not meant to be called directly.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! conv {
-    ( $mruby:expr )                       => ();
-    ( $mruby:expr, $name:ident, bool )    => ();
-    ( $mruby:expr, $name:ident, i32 )     => ();
-    ( $mruby:expr, $name:ident, f64 )     => ();
-    ( $mruby:expr, $name:ident, str )     => {
-        let $name = CStr::from_ptr($name).to_str().unwrap();
-    };
-    ( $mruby:expr, $name:ident, Vec )     => {
-        let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
-    };
-    ( $mruby:expr, $name:ident, Class )     => {
-        let $name = Value::new($mruby.clone(), $name).to_class().unwrap();
-    };
-    ( $mruby:expr, $name:ident, Value )   => {
-        let $name = Value::new($mruby.clone(), $name);
-    };
-    ( $mruby:expr, $name:ident, $t:ty )   => {
-        let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
-    };
-    ( $mruby:expr, $name:ident : $t:tt )  => (conv!($mruby, $name, $t));
-    ( $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        conv!($mruby, $name, $t);
-        conv!($mruby, $( $names : $ts ),*);
-    };
-}
-
-/// Not meant to be called directly.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! slf {
-    ( $slf:ident, bool )  => (let $slf = $slf.to_bool().unwrap(););
-    ( $slf:ident, i32 )   => (let $slf = $slf.to_i32().unwrap(););
-    ( $slf:ident, f64 )   => (let $slf = $slf.to_f64().unwrap(););
-    ( $slf:ident, str )   => (let $slf = $slf.to_str().unwrap(););
-    ( $slf:ident, Vec )   => (let $slf = $slf.to_vec().unwrap(););
-    ( $slf:ident, Class ) => (let $slf = $slf.to_class().unwrap(););
-    ( $slf:ident, Value ) => ();
-    ( $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
-}
-
 /// A `macro` useful for defining Rust closures for mruby. Requires `use mrusty::*;`.
 ///
 /// Types can be:
@@ -264,9 +131,119 @@ macro_rules! slf {
 /// ```
 #[macro_export]
 macro_rules! mrfn {
+    // init
+    ( @init ) => ();
+    ( @init $name:ident, bool )    => (let $name = uninitialized::<bool>(););
+    ( @init $name:ident, i32 )     => (let $name = uninitialized::<i32>(););
+    ( @init $name:ident, f64 )     => (let $name = uninitialized::<f64>(););
+    ( @init $name:ident, str )     => (let $name = uninitialized::<*const c_char>(););
+    ( @init $name:ident, Vec )     => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, Class )   => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, $_t:ty )  => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident : $t:tt )  => (mrfn!(@init $name, $t));
+    ( @init $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        mrfn!(@init $name, $t);
+        mrfn!(@init $( $names : $ts ),*);
+    };
+
+    // sig
+    ( @sig ) => ("");
+    ( @sig bool )    => ("b");
+    ( @sig i32 )     => ("i");
+    ( @sig f64 )     => ("f");
+    ( @sig str )     => ("z");
+    ( @sig Vec )     => ("A");
+    ( @sig Class )   => ("C");
+    ( @sig $_t:ty )  => ("o");
+    ( @sig $t:tt, $( $ts:tt ),+ ) => (concat!(mrfn!(@sig $t), mrfn!(@sig $( $ts ),*)));
+
+    // args
+    ( @args ) => ();
+    ( @args $name:ident, bool )    => (&$name as *const bool);
+    ( @args $name:ident, i32 )     => (&$name as *const i32);
+    ( @args $name:ident, f64 )     => (&$name as *const f64);
+    ( @args $name:ident, str )     => (&$name as *const *const c_char);
+    ( @args $name:ident, Vec )     => (&$name as *const MrValue);
+    ( @args $name:ident, Class )   => (&$name as *const MrValue);
+    ( @args $name:ident, $_t:ty )  => (&$name as *const MrValue);
+    ( @args $name:ident : $t:tt )  => (mrfn!(@args $name, $t));
+    ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
+        mrb_get_args($mrb, $sig, mrfn!(@args $name, $t));
+    };
+    ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        mrb_get_args($mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),*);
+    };
+
+    // args_rest
+    ( @args_rest $mruby:expr, $sig:expr, $name:ident : $t:tt) => {
+        {
+            let mrb = $mruby.borrow().mrb;
+
+            let args = uninitialized::<*mut MrValue>();
+            let count = uninitialized::<i32>();
+
+            mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), &args as *const *mut MrValue,
+                         &count as *const i32);
+
+            let args = slice::from_raw_parts(args, count as usize);
+            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
+         }
+    };
+    ( @args_rest $mruby:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        {
+            let mrb = $mruby.borrow().mrb;
+
+            let args = uninitialized::<*mut MrValue>();
+            let count = uninitialized::<i32>();
+
+            mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),* ,
+                         &args as *const *mut MrValue, &count as *const i32);
+
+            let args = slice::from_raw_parts(args, count as usize);
+            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
+         }
+    };
+
+    // conv
+    ( @conv $mruby:expr )                       => ();
+    ( @conv $mruby:expr, $name:ident, bool )    => ();
+    ( @conv $mruby:expr, $name:ident, i32 )     => ();
+    ( @conv $mruby:expr, $name:ident, f64 )     => ();
+    ( @conv $mruby:expr, $name:ident, str )     => {
+        let $name = CStr::from_ptr($name).to_str().unwrap();
+    };
+    ( @conv $mruby:expr, $name:ident, Vec )     => {
+        let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
+    };
+    ( @conv $mruby:expr, $name:ident, Class )     => {
+        let $name = Value::new($mruby.clone(), $name).to_class().unwrap();
+    };
+    ( @conv $mruby:expr, $name:ident, Value )   => {
+        let $name = Value::new($mruby.clone(), $name);
+    };
+    ( @conv $mruby:expr, $name:ident, $t:ty )   => {
+        let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
+    };
+    ( @conv $mruby:expr, $name:ident : $t:tt )  => (mrfn!(@conv $mruby, $name, $t));
+    ( @conv $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        mrfn!(@conv $mruby, $name, $t);
+        mrfn!(@conv $mruby, $( $names : $ts ),*);
+    };
+
+    // sig
+    ( @slf $slf:ident, bool )  => (let $slf = $slf.to_bool().unwrap(););
+    ( @slf $slf:ident, i32 )   => (let $slf = $slf.to_i32().unwrap(););
+    ( @slf $slf:ident, f64 )   => (let $slf = $slf.to_f64().unwrap(););
+    ( @slf $slf:ident, str )   => (let $slf = $slf.to_str().unwrap(););
+    ( @slf $slf:ident, Vec )   => (let $slf = $slf.to_vec().unwrap(););
+    ( @slf $slf:ident, Class ) => (let $slf = $slf.to_class().unwrap(););
+    ( @slf $slf:ident, Value ) => ();
+    ( @slf $slf:ident, $t:ty ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
+
+    // mrfn
     ( |$mruby:ident, $slf:ident : $st:tt| $block:expr ) => {
         |$mruby, $slf| {
-            slf!($slf, $st);
+            mrfn!(@slf $slf, $st);
 
             $block
         }
@@ -277,7 +254,7 @@ macro_rules! mrfn {
             use std::mem::uninitialized;
             use std::slice;
 
-            slf!($slf, $st);
+            mrfn!(@slf $slf, $st);
 
             unsafe {
                 let mrb = $mruby.borrow().mrb;
@@ -308,15 +285,15 @@ macro_rules! mrfn {
             use std::os::raw::c_char;
 
             unsafe {
-                slf!($slf, $st);
+                mrfn!(@slf $slf, $st);
 
-                init!($( $name : $t ),*);
+                mrfn!(@init $( $name : $t ),*);
 
                 let mrb = $mruby.borrow().mrb;
-                let sig = CString::new(sig!($( $t ),*)).unwrap().as_ptr();
+                let sig = CString::new(mrfn!(@sig $( $t ),*)).unwrap().as_ptr();
 
-                args!(mrb, sig, $( $name : $t ),*);
-                conv!($mruby, $( $name : $t ),*);
+                mrfn!(@args mrb, sig, $( $name : $t ),*);
+                mrfn!(@conv $mruby, $( $name : $t ),*);
 
                 $block
             }
@@ -334,14 +311,14 @@ macro_rules! mrfn {
             use std::slice;
 
             unsafe {
-                slf!($slf, $st);
+                mrfn!(@slf $slf, $st);
 
-                init!($( $name : $t ),*);
+                mrfn!(@init $( $name : $t ),*);
 
-                let sig = CString::new(concat!(sig!($( $t ),*), "*")).unwrap().as_ptr();
+                let sig = CString::new(concat!(mrfn!(@sig $( $t ),*), "*")).unwrap().as_ptr();
 
-                let $args = args_rest!($mruby, sig, $( $name : $t ),*);
-                conv!($mruby, $( $name : $t ),*);
+                let $args = mrfn!(@args_rest $mruby, sig, $( $name : $t ),*);
+                mrfn!(@conv $mruby, $( $name : $t ),*);
 
                 $block
             }
