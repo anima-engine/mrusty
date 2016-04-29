@@ -135,40 +135,43 @@
 macro_rules! mrfn {
     // init
     ( @init ) => ();
-    ( @init $name:ident, bool )         => (let $name = uninitialized::<bool>(););
-    ( @init $name:ident, i32 )          => (let $name = uninitialized::<i32>(););
-    ( @init $name:ident, f64 )          => (let $name = uninitialized::<f64>(););
-    ( @init $name:ident, (&str) )       => (let $name = uninitialized::<*const c_char>(););
-    ( @init $name:ident, (Vec<Value>) ) => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, Class )        => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, (&$_t:ty) )    => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident : $t:tt )       => (mrfn!(@init $name, $t));
+    ( @init $name:ident, bool )          => (let $name = uninitialized::<bool>(););
+    ( @init $name:ident, i32 )           => (let $name = uninitialized::<i32>(););
+    ( @init $name:ident, f64 )           => (let $name = uninitialized::<f64>(););
+    ( @init $name:ident, (&str) )        => (let $name = uninitialized::<*const c_char>(););
+    ( @init $name:ident, (Vec<Value>) )  => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, Class )         => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, (&mut $_t:ty) ) => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, (&$_t:ty) )     => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident : $t:tt )        => (mrfn!(@init $name, $t));
     ( @init $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         mrfn!(@init $name, $t);
         mrfn!(@init $( $names : $ts ),*);
     };
 
     // sig
-    ( @sig )              => ("");
-    ( @sig bool )         => ("b");
-    ( @sig i32 )          => ("i");
-    ( @sig f64 )          => ("f");
-    ( @sig (&str) )       => ("z");
-    ( @sig (Vec<Value>) ) => ("A");
-    ( @sig Class )        => ("C");
-    ( @sig (&$_t:ty) )    => ("o");
+    ( @sig )               => ("");
+    ( @sig bool )          => ("b");
+    ( @sig i32 )           => ("i");
+    ( @sig f64 )           => ("f");
+    ( @sig (&str) )        => ("z");
+    ( @sig (Vec<Value>) )  => ("A");
+    ( @sig Class )         => ("C");
+    ( @sig (&mut $_t:ty) ) => ("o");
+    ( @sig (&$_t:ty) )     => ("o");
     ( @sig $t:tt, $( $ts:tt ),+ ) => (concat!(mrfn!(@sig $t), mrfn!(@sig $( $ts ),*)));
 
     // args
-    ( @args )                           => ();
-    ( @args $name:ident, bool )         => (&$name as *const bool);
-    ( @args $name:ident, i32 )          => (&$name as *const i32);
-    ( @args $name:ident, f64 )          => (&$name as *const f64);
-    ( @args $name:ident, (&str) )       => (&$name as *const *const c_char);
-    ( @args $name:ident, (Vec<Value>) ) => (&$name as *const MrValue);
-    ( @args $name:ident, Class )        => (&$name as *const MrValue);
-    ( @args $name:ident, (&$_t:ty) )    => (&$name as *const MrValue);
-    ( @args $name:ident : $t:tt )       => (mrfn!(@args $name, $t));
+    ( @args )                            => ();
+    ( @args $name:ident, bool )          => (&$name as *const bool);
+    ( @args $name:ident, i32 )           => (&$name as *const i32);
+    ( @args $name:ident, f64 )           => (&$name as *const f64);
+    ( @args $name:ident, (&str) )        => (&$name as *const *const c_char);
+    ( @args $name:ident, (Vec<Value>) )  => (&$name as *const MrValue);
+    ( @args $name:ident, Class )         => (&$name as *const MrValue);
+    ( @args $name:ident, (&mut $_t:ty) ) => (&$name as *const MrValue);
+    ( @args $name:ident, (&$_t:ty) )     => (&$name as *const MrValue);
+    ( @args $name:ident : $t:tt )        => (mrfn!(@args $name, $t));
     ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
         mrb_get_args($mrb, $sig, mrfn!(@args $name, $t));
     };
@@ -223,6 +226,9 @@ macro_rules! mrfn {
     ( @conv $mruby:expr, $name:ident, Value )        => {
         let $name = Value::new($mruby.clone(), $name);
     };
+    ( @conv $mruby:expr, $name:ident, (&mut $t:ty) ) => {
+        let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
+    };
     ( @conv $mruby:expr, $name:ident, (&$t:ty) )     => {
         let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
     };
@@ -240,12 +246,14 @@ macro_rules! mrfn {
     ( @slf $slf:ident, (Vec<Value>) ) => (let $slf = $slf.to_vec().unwrap(););
     ( @slf $slf:ident, Class )        => (let $slf = $slf.to_class().unwrap(););
     ( @slf $slf:ident, Value )        => ();
+    ( @slf $slf:ident, (&mut $t:ty) ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
     ( @slf $slf:ident, (&$t:ty) )     => (let $slf = $slf.to_obj::<$t>().unwrap(););
 
     // borrow
-    ( @borrow $name:ident, (&str) )   => ();
-    ( @borrow $name:ident, (&$t:ty) ) => (let $name = $name.borrow());
-    ( @borrow $name:ident, $_t:tt )   => ();
+    ( @borrow $name:ident, (&str) )       => ();
+    ( @borrow $name:ident, (&mut $t:ty) ) => (let mut $name = $name.borrow_mut());
+    ( @borrow $name:ident, (&$t:ty) )     => (let $name = $name.borrow());
+    ( @borrow $name:ident, $_t:tt )       => ();
     ( @borrow $name:ident : $t:tt )       => (mrfn!(@borrow $name, $t));
     ( @borrow $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         mrfn!(@borrow $name, $t);

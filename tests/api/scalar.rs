@@ -20,6 +20,10 @@ impl Scalar {
             value: value
         }
     }
+
+    pub fn set_value(&mut self, value: f32) {
+        self.value = value;
+    }
 }
 
 mrusty_class!(Scalar, {
@@ -29,6 +33,12 @@ mrusty_class!(Scalar, {
 
     def!("value", |mruby, slf: (&Scalar)| {
         mruby.float(slf.value as f64)
+    });
+
+    def!("value=", |mruby, slf: (&mut Scalar), v: f64| {
+        slf.set_value(v as f32);
+
+        mruby.nil()
     });
 
     def!("*", |mruby, slf: (&Scalar), vector: (&Vector)| {
