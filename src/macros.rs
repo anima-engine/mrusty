@@ -125,8 +125,10 @@
 /// }));
 ///
 /// let result = mruby.run("Container.new 1, 2, 3").unwrap();
+/// let result = result.to_obj::<Cont>().unwrap();
+/// let result = result.borrow();
 ///
-/// assert_eq!(result.to_obj::<Cont>().unwrap().value, 3);
+/// assert_eq!(result.value, 3);
 /// # }
 /// ```
 #[macro_export]
@@ -240,10 +242,21 @@ macro_rules! mrfn {
     ( @slf $slf:ident, Value )        => ();
     ( @slf $slf:ident, (&$t:ty) )     => (let $slf = $slf.to_obj::<$t>().unwrap(););
 
+    // borrow
+    ( @borrow $name:ident, (&str) )   => ();
+    ( @borrow $name:ident, (&$t:ty) ) => (let $name = $name.borrow());
+    ( @borrow $name:ident, $_t:tt )   => ();
+    ( @borrow $name:ident : $t:tt )       => (mrfn!(@borrow $name, $t));
+    ( @borrow $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
+        mrfn!(@borrow $name, $t);
+        mrfn!(@borrow $( $names : $ts ),*);
+    };
+
     // mrfn
     ( |$mruby:ident, $slf:ident : $st:tt| $block:expr ) => {
         |$mruby, $slf| {
             mrfn!(@slf $slf, $st);
+            mrfn!(@borrow $slf, $st);
 
             $block
         }
@@ -255,6 +268,7 @@ macro_rules! mrfn {
             use std::slice;
 
             mrfn!(@slf $slf, $st);
+            mrfn!(@borrow $slf, $st);
 
             unsafe {
                 let mrb = $mruby.borrow().mrb;
@@ -286,6 +300,7 @@ macro_rules! mrfn {
 
             unsafe {
                 mrfn!(@slf $slf, $st);
+                mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*);
 
@@ -294,6 +309,7 @@ macro_rules! mrfn {
 
                 mrfn!(@args mrb, sig, $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
+                mrfn!(@borrow $( $name : $t ),*);
 
                 $block
             }
@@ -312,6 +328,7 @@ macro_rules! mrfn {
 
             unsafe {
                 mrfn!(@slf $slf, $st);
+                mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*);
 
@@ -319,6 +336,7 @@ macro_rules! mrfn {
 
                 let $args = mrfn!(@args_rest $mruby, sig, $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
+                mrfn!(@borrow $( $name : $t ),*);
 
                 $block
             }

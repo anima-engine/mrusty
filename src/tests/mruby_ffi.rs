@@ -631,6 +631,7 @@ fn string() {
 
 #[test]
 fn obj() {
+    use std::cell::RefCell;
     use std::mem;
     use std::rc::Rc;
 
@@ -656,9 +657,10 @@ fn obj() {
 
         let obj = Cont { value: 3 };
         let obj = MrValue::obj(mrb, cont_class, obj, &data_type);
-        let obj: Rc<Cont> = obj.to_obj(mrb, &data_type).unwrap();
+        let obj: Rc<RefCell<Cont>> = obj.to_obj(mrb, &data_type).unwrap();
+        let value = obj.borrow().value;
 
-        assert_eq!(obj.value, 3);
+        assert_eq!(value, 3);
 
         mrb_close(mrb);
     }
@@ -666,6 +668,7 @@ fn obj() {
 
 #[test]
 fn obj_init() {
+    use std::cell::RefCell;
     use std::mem;
     use std::rc::Rc;
 
@@ -684,15 +687,15 @@ fn obj_init() {
 
         extern "C" fn free(_mrb: *const MrState, ptr: *const u8) {
             unsafe {
-                mem::transmute::<*const u8, Rc<Cont>>(ptr);
+                mem::transmute::<*const u8, Rc<RefCell<Cont>>>(ptr);
             }
         }
 
         extern "C" fn init(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
                 let cont = Cont { value: 3 };
-                let rc = Rc::new(cont);
-                let ptr = mem::transmute::<Rc<Cont>, *const u8>(rc);
+                let rc = Rc::new(RefCell::new(cont));
+                let ptr = mem::transmute::<Rc<RefCell<Cont>>, *const u8>(rc);
 
                 let data_type = mem::transmute::<*const u8,
                                                  *const MrDataType>(mrb_ext_get_ud(mrb));
@@ -707,9 +710,10 @@ fn obj_init() {
             unsafe {
                 let data_type = mem::transmute::<*const u8, &MrDataType>(mrb_ext_get_ud(mrb));
 
-                let cont = slf.to_obj::<Cont>(mrb, data_type);
+                let cont = slf.to_obj::<Cont>(mrb, data_type).unwrap();
+                let value = cont.borrow().value;
 
-                MrValue::fixnum(cont.unwrap().value)
+                MrValue::fixnum(value)
             }
         }
 
@@ -734,6 +738,7 @@ fn obj_init() {
 
 #[test]
 fn obj_scoping() {
+    use std::cell::RefCell;
     use std::mem;
     use std::rc::Rc;
 
@@ -761,7 +766,7 @@ fn obj_scoping() {
 
         extern "C" fn free(_mrb: *const MrState, ptr: *const u8) {
             unsafe {
-                mem::transmute::<*const u8, Rc<Cont>>(ptr);
+                mem::transmute::<*const u8, Rc<RefCell<Cont>>>(ptr);
             }
         }
 
@@ -772,9 +777,10 @@ fn obj_scoping() {
 
             {
                 let obj = MrValue::obj(mrb, cont_class, orig, &data_type);
-                let obj: Rc<Cont> = obj.to_obj(mrb, &data_type).unwrap();
+                let obj: Rc<RefCell<Cont>> = obj.to_obj(mrb, &data_type).unwrap();
+                let value = obj.borrow().value;
 
-                assert_eq!(obj.value, 3);
+                assert_eq!(value, 3);
 
                 assert_eq!(DROPPED, false);
             }

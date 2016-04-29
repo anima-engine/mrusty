@@ -26,8 +26,11 @@ fn api_init() {
     let scalar = mruby.run("Scalar.new 2.3").unwrap();
     let vector = mruby.run("Vector.new 1.0, 2.0, 3.0").unwrap();
 
-    assert_eq!(*scalar.to_obj::<Scalar>().unwrap(), Scalar::new(2.3));
-    assert_eq!(*vector.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
+    let scalar = scalar.to_obj::<Scalar>().unwrap();
+    let vector = vector.to_obj::<Vector>().unwrap();
+
+    assert_eq!(*scalar.borrow(), Scalar::new(2.3));
+    assert_eq!(*vector.borrow(), Vector::new(1.0, 2.0, 3.0));
 }
 
 #[test]
@@ -40,11 +43,14 @@ fn api_getters() {
     let scalar = mruby.run("Scalar.new 2.3").unwrap();
     let vector = mruby.run("Vector.new 1.0, 2.0, 3.0").unwrap();
 
-    assert_eq!(scalar.to_obj::<Scalar>().unwrap().value, 2.3);
+    let scalar = scalar.to_obj::<Scalar>().unwrap();
+    let vector = vector.to_obj::<Vector>().unwrap();
 
-    assert_eq!(vector.to_obj::<Vector>().unwrap().x, 1.0);
-    assert_eq!(vector.to_obj::<Vector>().unwrap().y, 2.0);
-    assert_eq!(vector.to_obj::<Vector>().unwrap().z, 3.0);
+    assert_eq!(scalar.borrow().value, 2.3);
+
+    assert_eq!(vector.borrow().x, 1.0);
+    assert_eq!(vector.borrow().y, 2.0);
+    assert_eq!(vector.borrow().z, 3.0);
 }
 
 #[test]
@@ -55,8 +61,9 @@ fn api_mul() {
     Vector::require(mruby.clone());
 
     let vector = mruby.run("Scalar.new(2.0) * Vector.new(1.0, 2.0, 3.0)").unwrap();
+    let vector = vector.to_obj::<Vector>().unwrap();
 
-    assert_eq!(*vector.to_obj::<Vector>().unwrap(), Vector::new(2.0, 4.0, 6.0));
+    assert_eq!(*vector.borrow(), Vector::new(2.0, 4.0, 6.0));
 }
 
 #[test]
@@ -79,8 +86,9 @@ fn api_vec() {
     Vector::require(mruby.clone());
 
     let result = mruby.run("Vector.from_a [1.0, 2.0, 3.0]").unwrap();
+    let result = result.to_obj::<Vector>().unwrap();
 
-    assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
+    assert_eq!(*result.borrow(), Vector::new(1.0, 2.0, 3.0));
 }
 
 #[test]
@@ -95,7 +103,9 @@ fn api_require() {
         Vector.new(1.0, 2.0, 3.0)
     ").unwrap();
 
-    assert_eq!(*result.to_obj::<Vector>().unwrap(), Vector::new(1.0, 2.0, 3.0));
+    let result = result.to_obj::<Vector>().unwrap();
+
+    assert_eq!(*result.borrow(), Vector::new(1.0, 2.0, 3.0));
 }
 
 #[test]
@@ -144,6 +154,7 @@ fn api_dup() {
                 {
                     let obj = mruby.obj(orig);
                     let dup = obj.call("dup", vec![]).unwrap().to_obj::<Cont>().unwrap();
+                    let dup = dup.borrow();
 
                     assert_eq!(dup.value, 3);
 
@@ -167,8 +178,9 @@ fn api_execute_binary() {
     Scalar::require(mruby.clone());
 
     let result = mruby.execute(Path::new("tests/compiled.mrb")).unwrap();
+    let result = result.to_obj::<Scalar>().unwrap();
 
-    assert_eq!(*result.to_obj::<Scalar>().unwrap(), Scalar::new(2.0));
+    assert_eq!(*result.borrow(), Scalar::new(2.0));
 }
 
 #[test]

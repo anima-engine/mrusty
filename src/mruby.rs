@@ -949,8 +949,11 @@ pub trait MrubyImpl {
     /// let none = mruby.option::<Cont>(None);
     /// let some = mruby.option(Some(Cont { value: 3 }));
     ///
+    /// let some = some.to_obj::<Cont>().unwrap();
+    /// let some = some.borrow();
+    ///
     /// assert_eq!(none.call("nil?", vec![]).unwrap().to_bool().unwrap(), true);
-    /// assert_eq!(some.to_obj::<Cont>().unwrap().value, 3);
+    /// assert_eq!(some.value, 3);
     /// ```
     #[inline]
     fn option<T: Any>(&self, obj: Option<T>) -> Value;
@@ -1023,7 +1026,7 @@ fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
 
         extern "C" fn free<T>(_mrb: *const MrState, ptr: *const u8) {
             unsafe {
-                mem::transmute::<*const u8, Rc<T>>(ptr);
+                mem::transmute::<*const u8, Rc<RefCell<T>>>(ptr);
             }
         }
 
@@ -1638,14 +1641,16 @@ impl Value {
     /// }));
     ///
     /// let result = mruby.run("Container.new 3").unwrap();
+    /// let result = result.to_obj::<Cont>().unwrap();
+    /// let result = result.borrow();
     ///
-    /// assert_eq!(result.to_obj::<Cont>().unwrap().value, 3);
+    /// assert_eq!(result.value, 3);
     /// # }
     /// ```
     pub fn init<T: Any>(self, obj: T) -> Value {
         unsafe {
-            let rc = Rc::new(obj);
-            let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
+            let rc = Rc::new(RefCell::new(obj));
+            let ptr = mem::transmute::<Rc<RefCell<T>>, *const u8>(rc);
 
             let borrow = self.mruby.borrow();
 
@@ -1970,11 +1975,12 @@ impl Value {
     ///
     /// let value = mruby.obj(Cont { value: 3 });
     /// let cont = value.to_obj::<Cont>().unwrap();
+    /// let cont = cont.borrow();
     ///
     /// assert_eq!(cont.value, 3);
     /// ```
     #[inline]
-    pub fn to_obj<T: Any>(&self) -> Result<Rc<T>, MrubyError> {
+    pub fn to_obj<T: Any>(&self) -> Result<Rc<RefCell<T>>, MrubyError> {
         unsafe {
             let borrow = self.mruby.borrow();
 
@@ -2013,13 +2019,14 @@ impl Value {
     /// mruby.def_class_for::<Cont>("Container");
     ///
     /// let value = mruby.obj(Cont { value: 3 });
-    /// let cont = value.to_option::<Cont>().unwrap();
+    /// let cont = value.to_option::<Cont>().unwrap().unwrap();
+    /// let cont = cont.borrow();
     ///
-    /// assert_eq!(cont.unwrap().value, 3);
+    /// assert_eq!(cont.value, 3);
     /// assert!(mruby.nil().to_option::<Cont>().unwrap().is_none());
     /// ```
     #[inline]
-    pub fn to_option<T: Any>(&self) -> Result<Option<Rc<T>>, MrubyError> {
+    pub fn to_option<T: Any>(&self) -> Result<Option<Rc<RefCell<T>>>, MrubyError> {
         if self.value.typ == MrType::MRB_TT_DATA {
             self.to_obj::<T>().map(|obj| Some(obj))
         } else {

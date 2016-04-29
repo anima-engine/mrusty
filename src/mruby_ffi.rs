@@ -6,6 +6,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::any::Any;
+use std::cell::RefCell;
 use std::ffi::CStr;
 use std::mem;
 use std::os::raw::c_char;
@@ -74,8 +75,8 @@ impl MrValue {
     #[inline]
     pub unsafe fn obj<T: Any>(mrb: *const MrState, class: *const MrClass,
                               obj: T, typ: &MrDataType) -> MrValue {
-        let rc = Rc::new(obj);
-        let ptr = mem::transmute::<Rc<T>, *const u8>(rc);
+        let rc = Rc::new(RefCell::new(obj));
+        let ptr = mem::transmute::<Rc<RefCell<T>>, *const u8>(rc);
         let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MrDataType);
 
         mrb_ext_data_value(data)
@@ -140,11 +141,11 @@ impl MrValue {
 
     #[inline]
     pub unsafe fn to_obj<T: Any>(&self, mrb: *const MrState,
-                                 typ: &MrDataType) -> Result<Rc<T>, MrubyError> {
+                                 typ: &MrDataType) -> Result<Rc<RefCell<T>>, MrubyError> {
         match self.typ {
             MrType::MRB_TT_DATA => {
                 let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MrDataType) as *const u8;
-                let rc = mem::transmute::<*const u8, Rc<T>>(ptr);
+                let rc = mem::transmute::<*const u8, Rc<RefCell<T>>>(ptr);
 
                 let result = Ok(rc.clone());
 
@@ -152,7 +153,7 @@ impl MrValue {
 
                 result
             },
-            _ => Err(MrubyError::Cast("Data(Rust Rc)".to_owned()))
+            _ => Err(MrubyError::Cast("Data(Rust Rc<RefCell<T>>)".to_owned()))
         }
     }
 
