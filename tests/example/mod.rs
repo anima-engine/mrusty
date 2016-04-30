@@ -8,5 +8,5 @@
 mod scalar;
 mod vector;
 
-pub use api::scalar::Scalar;
-pub use api::vector::Vector;
+pub use self::scalar::Scalar;
+pub use self::vector::Vector;

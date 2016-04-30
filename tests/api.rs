@@ -12,9 +12,9 @@ use std::path::Path;
 
 use mrusty::*;
 
-mod api;
+mod example;
 
-use api::{Scalar, Vector};
+use example::{Scalar, Vector};
 
 #[test]
 fn api_init() {

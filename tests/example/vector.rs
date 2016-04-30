@@ -7,7 +7,7 @@
 
 use mrusty::*;
 
-use api::Scalar;
+use super::Scalar;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vector {

@@ -7,7 +7,7 @@
 
 use mrusty::*;
 
-use api::Vector;
+use super::Vector;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Scalar {
