@@ -11,6 +11,23 @@ use mrusty::*;
 
 #[bench]
 fn fib_rust(b: &mut Bencher) {
+    fn fib(n: i32) -> i32 {
+        if n <= 2 {
+            1
+        } else {
+            fib(n - 1) + fib(n - 2)
+        }
+    }
+
+    b.iter(|| {
+        let n = test::black_box(20);
+
+        fib(n)
+    });
+}
+
+#[bench]
+fn fib_rusty(b: &mut Bencher) {
     let mruby = Mruby::new();
 
     fn fib(n: i32) -> i32 {
