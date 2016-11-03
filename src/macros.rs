@@ -284,8 +284,10 @@ macro_rules! mrfn {
                 let $args = uninitialized::<*mut MrValue>();
                 let count = uninitialized::<i32>();
 
-                mrb_get_args(mrb, CString::new("*").unwrap().as_ptr(),
-                             &$args as *const *mut MrValue, &count as *const i32);
+                let sig_str = CString::new("*").unwrap();
+
+                mrb_get_args(mrb, sig_str.as_ptr(), &$args as *const *mut MrValue,
+                             &count as *const i32);
 
                 let $args = slice::from_raw_parts($args, count as usize);
                 let $args = $args.iter().map(|arg| {
@@ -313,9 +315,9 @@ macro_rules! mrfn {
                 mrfn!(@init $( $name : $t ),*);
 
                 let mrb = $mruby.borrow().mrb;
-                let sig = CString::new(mrfn!(@sig $( $t ),*)).unwrap().as_ptr();
+                let sig_str = CString::new(mrfn!(@sig $( $t ),*)).unwrap();
 
-                mrfn!(@args mrb, sig, $( $name : $t ),*);
+                mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
                 mrfn!(@borrow $( $name : $t ),*);
 
@@ -340,9 +342,9 @@ macro_rules! mrfn {
 
                 mrfn!(@init $( $name : $t ),*);
 
-                let sig = CString::new(concat!(mrfn!(@sig $( $t ),*), "*")).unwrap().as_ptr();
+                let sig_str = CString::new(concat!(mrfn!(@sig $( $t ),*), "*")).unwrap();
 
-                let $args = mrfn!(@args_rest $mruby, sig, $( $name : $t ),*);
+                let $args = mrfn!(@args_rest $mruby, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
                 mrfn!(@borrow $( $name : $t ),*);
 

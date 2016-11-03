@@ -78,7 +78,8 @@ impl Mruby {
                 }
             ));
 
-            let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+            let kernel_str = CString::new("Kernel").unwrap();
+            let kernel = mrb_module_get(mrb, kernel_str.as_ptr());
 
             extern "C" fn require(mrb: *const MrState, _slf: MrValue) -> MrValue {
                 unsafe {
@@ -87,8 +88,9 @@ impl Mruby {
 
                     let name = mem::uninitialized::<*const c_char>();
 
-                    mrb_get_args(mrb, CString::new("z").unwrap().as_ptr(),
-                                 &name as *const *const c_char);
+                    let sig_str = CString::new("z").unwrap();
+
+                    mrb_get_args(mrb, sig_str.as_ptr(), &name as *const *const c_char);
 
                     let name = CStr::from_ptr(name).to_str().unwrap();
 
@@ -172,8 +174,9 @@ impl Mruby {
                 }
             }
 
-            mrb_define_module_function(mrb, kernel, CString::new("require").unwrap().as_ptr(),
-                                       require, 1 << 12);
+            let require_str = CString::new("require").unwrap();
+
+            mrb_define_module_function(mrb, kernel, require_str.as_ptr(), require, 1 << 12);
 
             let ptr = mem::transmute::<MrubyType, *const u8>(mruby);
             mrb_ext_set_ud(mrb, ptr);
@@ -195,8 +198,10 @@ impl Mruby {
     #[inline]
     fn raise(mrb: *const MrState, eclass: &str, message: &str) -> MrValue {
         unsafe {
-            mrb_ext_raise(mrb, CString::new(eclass).unwrap().as_ptr(),
-                          CString::new(message).unwrap().as_ptr());
+            let eclass_str = CString::new(eclass).unwrap();
+            let message_str = CString::new(message).unwrap();
+
+            mrb_ext_raise(mrb, eclass_str.as_ptr(), message_str.as_ptr());
 
             MrValue::nil()
         }
@@ -1033,7 +1038,9 @@ macro_rules! insert_method {
     ( $mruby:expr, $name:expr, $method:expr, $methods:ident, $key:expr ) => {
         {
             let sym = unsafe {
-                mrb_intern($mruby.borrow().mrb, $name.as_ptr(), $name.len())
+                let name_str = CString::new($name).unwrap();
+
+                mrb_intern($mruby.borrow().mrb, name_str.as_ptr(), $name.len())
             };
 
             let mut borrow = $mruby.borrow_mut();
@@ -1154,8 +1161,9 @@ impl MrubyImpl for MrubyType {
         self.borrow_mut().filename = Some(filename.to_owned());
 
         unsafe {
-            mrbc_filename(self.borrow().mrb, self.borrow().ctx,
-                          CString::new(filename).unwrap().as_ptr());
+            let filename_str = CString::new(filename).unwrap();
+
+            mrbc_filename(self.borrow().mrb, self.borrow().ctx, filename_str.as_ptr());
         }
     }
 
@@ -1249,24 +1257,28 @@ impl MrubyImpl for MrubyType {
     #[inline]
     fn is_defined(&self, name: &str) -> bool {
         unsafe {
-            mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr())
+            let name_str = CString::new(name).unwrap();
+
+            mrb_class_defined(self.borrow().mrb, name_str.as_ptr())
         }
     }
 
     #[inline]
     fn is_defined_under<T: ClassLike>(&self, name: &str, outer: &T) -> bool {
         unsafe {
-            let name = CString::new(name).unwrap().as_ptr();
+            let name_str = CString::new(name).unwrap();
 
-            mrb_ext_class_defined_under(self.borrow().mrb, outer.class(), name)
+            mrb_ext_class_defined_under(self.borrow().mrb, outer.class(), name_str.as_ptr())
         }
     }
 
     #[inline]
     fn get_class(&self, name: &str) -> Result<Class, MrubyError> {
         unsafe {
-            if mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr()) {
-                let class = mrb_class_get(self.borrow().mrb, CString::new(name).unwrap().as_ptr());
+            let name_str = CString::new(name).unwrap();
+
+            if mrb_class_defined(self.borrow().mrb, name_str.as_ptr()) {
+                let class = mrb_class_get(self.borrow().mrb, name_str.as_ptr());
 
                 Ok(Class::new(self.clone(), class))
             } else {
@@ -1278,10 +1290,11 @@ impl MrubyImpl for MrubyType {
     #[inline]
     fn get_class_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Class, MrubyError> {
         unsafe {
-            if mrb_ext_class_defined_under(self.borrow().mrb, outer.class(),
-                                           CString::new(name).unwrap().as_ptr()) {
+            let name_str = CString::new(name).unwrap();
+
+            if mrb_ext_class_defined_under(self.borrow().mrb, outer.class(), name_str.as_ptr()) {
                 let class = mrb_class_get_under(self.borrow().mrb, outer.class(),
-                                                CString::new(name).unwrap().as_ptr());
+                                                name_str.as_ptr());
 
                 Ok(Class::new(self.clone(), class))
             } else {
@@ -1293,9 +1306,10 @@ impl MrubyImpl for MrubyType {
     #[inline]
     fn get_module(&self, name: &str) -> Result<Module, MrubyError> {
         unsafe {
-            if mrb_class_defined(self.borrow().mrb, CString::new(name).unwrap().as_ptr()) {
-                let class = mrb_module_get(self.borrow().mrb,
-                                           CString::new(name).unwrap().as_ptr());
+            let name_str = CString::new(name).unwrap();
+
+            if mrb_class_defined(self.borrow().mrb, name_str.as_ptr()) {
+                let class = mrb_module_get(self.borrow().mrb, name_str.as_ptr());
 
                 Ok(Module::new(self.clone(), class))
             } else {
@@ -1307,10 +1321,11 @@ impl MrubyImpl for MrubyType {
     #[inline]
     fn get_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Module, MrubyError> {
         unsafe {
-            if mrb_ext_class_defined_under(self.borrow().mrb, outer.class(),
-                                           CString::new(name).unwrap().as_ptr()) {
+            let name_str = CString::new(name).unwrap();
+
+            if mrb_ext_class_defined_under(self.borrow().mrb, outer.class(), name_str.as_ptr()) {
                 let class = mrb_module_get_under(self.borrow().mrb, outer.class(),
-                                                 CString::new(name).unwrap().as_ptr());
+                                                 name_str.as_ptr());
 
                 Ok(Module::new(self.clone(), class))
             } else {
@@ -1362,8 +1377,9 @@ impl MrubyImpl for MrubyType {
 
     fn def_module(&self, name: &str) -> Module {
         unsafe {
-            let module = mrb_define_module(self.borrow().mrb,
-                                           CString::new(name).unwrap().as_ptr());
+            let name_str = CString::new(name).unwrap();
+
+            let module = mrb_define_module(self.borrow().mrb, name_str.as_ptr());
 
             Module::new(self.clone(), module)
         }
@@ -1371,8 +1387,10 @@ impl MrubyImpl for MrubyType {
 
     fn def_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Module {
         unsafe {
+            let name_str = CString::new(name).unwrap();
+
             let module = mrb_define_module_under(self.borrow().mrb, outer.class(),
-                                                 CString::new(name).unwrap().as_ptr());
+                                                 name_str.as_ptr());
 
             Module::new(self.clone(), module)
         }
@@ -1386,7 +1404,9 @@ impl MrubyImpl for MrubyType {
         mruby_callback!(call_mruby_method, mruby_methods, class);
 
         unsafe {
-            mrb_define_method(self.borrow().mrb, class.class, CString::new(name).unwrap().as_ptr(),
+            let name_str = CString::new(name).unwrap();
+
+            mrb_define_method(self.borrow().mrb, class.class, name_str.as_ptr(),
                               call_mruby_method, 1 << 12);
         }
     }
@@ -1399,8 +1419,9 @@ impl MrubyImpl for MrubyType {
         mruby_callback!(call_mruby_class_method, mruby_class_methods, to_class);
 
         unsafe {
-            mrb_define_class_method(self.borrow().mrb, class.class,
-                                    CString::new(name).unwrap().as_ptr(),
+            let name_str = CString::new(name).unwrap();
+
+            mrb_define_class_method(self.borrow().mrb, class.class, name_str.as_ptr(),
                                     call_mruby_class_method, 1 << 12);
         }
     }
@@ -1420,8 +1441,9 @@ impl MrubyImpl for MrubyType {
         };
 
         unsafe {
-            mrb_define_method(borrow.mrb, class.0, CString::new(name).unwrap().as_ptr(),
-                              call_method::<T>, 1 << 12);
+            let name_str = CString::new(name).unwrap();
+
+            mrb_define_method(borrow.mrb, class.0, name_str.as_ptr(), call_method::<T>, 1 << 12);
         }
     }
 
@@ -1440,7 +1462,9 @@ impl MrubyImpl for MrubyType {
         };
 
         unsafe {
-            mrb_define_class_method(borrow.mrb, class.0, CString::new(name).unwrap().as_ptr(),
+            let name_str = CString::new(name).unwrap();
+
+            mrb_define_class_method(borrow.mrb, class.0, name_str.as_ptr(),
                                     call_class_method::<T>, 1 << 12);
         }
     }
@@ -1644,7 +1668,9 @@ impl Value {
     /// ```
     pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, MrubyError> {
         unsafe {
-            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+            let name_str = CString::new(name).unwrap();
+
+            let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
 
             let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
@@ -1678,7 +1704,9 @@ impl Value {
     /// ```
     pub fn call_unchecked(&self, name: &str, args: Vec<Value>) -> Value {
         unsafe {
-            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+            let name_str = CString::new(name).unwrap();
+
+            let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
 
             let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
@@ -1707,7 +1735,9 @@ impl Value {
     #[inline]
     pub fn has_var(&self, name: &str) -> bool {
         unsafe {
-            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+            let name_str = CString::new(name).unwrap();
+
+            let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
 
             mrb_iv_defined(self.mruby.borrow().mrb, self.value, sym)
         }
@@ -1735,7 +1765,9 @@ impl Value {
     #[inline]
     pub fn get_var(&self, name: &str) -> Option<Value> {
         unsafe {
-            let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+            let name_str = CString::new(name).unwrap();
+
+            let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
 
             if mrb_iv_defined(self.mruby.borrow().mrb, self.value, sym) {
                 Some(Value::new(self.mruby.clone(),
@@ -1787,7 +1819,9 @@ impl Value {
             MrType::MRB_TT_HASH |
             MrType::MRB_TT_DATA |
             MrType::MRB_TT_EXCEPTION => unsafe {
-                let sym = mrb_intern(self.mruby.borrow().mrb, name.as_ptr(), name.len());
+                let name_str = CString::new(name).unwrap();
+
+                let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
 
                 mrb_iv_set(self.mruby.borrow().mrb, self.value, sym, value.value)
             },
@@ -2198,8 +2232,9 @@ impl Class {
     /// ```
     pub fn def_const(&self, name: &str, value: Value) {
         unsafe {
-            mrb_define_const(self.mruby.borrow().mrb, self.class,
-                             CString::new(name).unwrap().as_ptr(), value.value);
+            let name_str = CString::new(name).unwrap();
+
+            mrb_define_const(self.mruby.borrow().mrb, self.class, name_str.as_ptr(), value.value);
         }
     }
 
@@ -2372,8 +2407,9 @@ impl Module {
     /// ```
     pub fn def_const(&self, name: &str, value: Value) {
         unsafe {
-            mrb_define_const(self.mruby.borrow().mrb, self.module,
-                             CString::new(name).unwrap().as_ptr(), value.value);
+            let name_str = CString::new(name).unwrap();
+
+            mrb_define_const(self.mruby.borrow().mrb, self.module, name_str.as_ptr(), value.value);
         }
     }
 

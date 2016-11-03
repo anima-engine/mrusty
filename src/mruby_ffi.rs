@@ -285,7 +285,7 @@ extern "C" {
     pub fn mrb_get_args(mrb: *const MrState, format: *const c_char, ...);
     pub fn mrb_ext_get_mid(mrb: *const MrState) -> u32;
 
-    pub fn mrb_intern(mrb: *const MrState, string: *const u8, len: usize) -> u32;
+    pub fn mrb_intern(mrb: *const MrState, string: *const c_char, len: usize) -> u32;
 
     pub fn mrb_funcall_argv(mrb: *const MrState, object: MrValue, sym: u32, argc: i32,
                             argv: *const MrValue) -> MrValue;

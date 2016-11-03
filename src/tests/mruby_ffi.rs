@@ -41,8 +41,9 @@ fn exec_context() {
     unsafe {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
+        let filename = CString::new("script.rb").unwrap();
 
-        mrbc_filename(mrb, context, CString::new("script.rb").unwrap().as_ptr());
+        mrbc_filename(mrb, context, filename.as_ptr());
 
         let code = "'' + 0";
 
@@ -95,8 +96,10 @@ fn define_method() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_class_str = CString::new("Mine").unwrap();
+        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
 
         extern "C" fn job(_mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
@@ -104,7 +107,9 @@ fn define_method() {
             }
         }
 
-        mrb_define_method(mrb, new_class, CString::new("job").unwrap().as_ptr(), job, 0);
+        let job_str = CString::new("job").unwrap();
+
+        mrb_define_method(mrb, new_class, job_str.as_ptr(), job, 0);
 
         let code = "Mine.new.job";
 
@@ -119,8 +124,11 @@ fn class_defined() {
     unsafe {
         let mrb = mrb_open();
 
-        assert_eq!(mrb_class_defined(mrb, CString::new("Object").unwrap().as_ptr()), true);
-        assert_eq!(mrb_class_defined(mrb, CString::new("Kernel").unwrap().as_ptr()), true);
+        let obj_str = CString::new("Object").unwrap();
+        let kernel_str = CString::new("Kernel").unwrap();
+
+        assert_eq!(mrb_class_defined(mrb, obj_str.as_ptr()), true);
+        assert_eq!(mrb_class_defined(mrb, kernel_str.as_ptr()), true);
 
         mrb_close(mrb);
     }
@@ -131,10 +139,13 @@ fn class_name() {
     unsafe {
         let mrb = mrb_open();
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_class_str = CString::new("Mine").unwrap();
+        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
 
-        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+        let kernel_str = CString::new("Kernel").unwrap();
+        let kernel = mrb_module_get(mrb, kernel_str.as_ptr());
 
         let name = mrb_class_name(mrb, new_class);
 
@@ -153,11 +164,13 @@ fn class_value() {
     unsafe {
         let mrb = mrb_open();
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
         let obj_class = mrb_ext_class_value(obj_class);
+        let to_s_str = CString::new("to_s").unwrap();
         let args = &[];
 
-        let sym = mrb_intern(mrb, "to_s".as_ptr(), 4usize);
+        let sym = mrb_intern(mrb, to_s_str.as_ptr(), 4usize);
 
         let result = mrb_funcall_argv(mrb, obj_class, sym, 0, args.as_ptr());
 
@@ -188,7 +201,8 @@ fn value_to_class() {
     unsafe {
         let mrb = mrb_open();
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
         let obj_class_value = mrb_ext_class_value(obj_class);
 
         assert_eq!(obj_class_value.to_class().unwrap(), obj_class);
@@ -202,9 +216,11 @@ fn define_module() {
     unsafe {
         let mrb = mrb_open();
 
-        mrb_define_module(mrb, CString::new("MyMod").unwrap().as_ptr());
+        let mod_str = CString::new("MyMod").unwrap();
 
-        assert_eq!(mrb_class_defined(mrb, CString::new("MyMod").unwrap().as_ptr()), true);
+        mrb_define_module(mrb, mod_str.as_ptr());
+
+        assert_eq!(mrb_class_defined(mrb, mod_str.as_ptr()), true);
 
         mrb_close(mrb);
     }
@@ -215,12 +231,14 @@ fn defined_under() {
     unsafe {
         let mrb = mrb_open();
 
-        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
-        let name = CString::new("Mine").unwrap().as_ptr();
+        let kernel_str = CString::new("Kernel").unwrap();
+        let kernel = mrb_module_get(mrb, kernel_str.as_ptr());
+        let name_str = CString::new("Mine").unwrap();
+        let name = name_str.as_ptr();
 
         mrb_define_module_under(mrb, kernel, name);
 
-        assert!(mrb_ext_class_defined_under(mrb, kernel, CString::new("Mine").unwrap().as_ptr()));
+        assert!(mrb_ext_class_defined_under(mrb, kernel, name));
 
         mrb_close(mrb);
     }
@@ -231,8 +249,10 @@ fn class_under() {
     unsafe {
         let mrb = mrb_open();
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let name = CString::new("Mine").unwrap().as_ptr();
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let name_str = CString::new("Mine").unwrap();
+        let name = name_str.as_ptr();
 
         mrb_define_class_under(mrb, obj_class, name, obj_class);
         let new_class = mrb_class_get_under(mrb, obj_class, name);
@@ -250,8 +270,10 @@ fn module_under() {
     unsafe {
         let mrb = mrb_open();
 
-        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
-        let name = CString::new("Mine").unwrap().as_ptr();
+        let kernel_str = CString::new("Kernel").unwrap();
+        let kernel = mrb_module_get(mrb, kernel_str.as_ptr());
+        let name_str = CString::new("Mine").unwrap();
+        let name = name_str.as_ptr();
 
         mrb_define_module_under(mrb, kernel, name);
         let new_module = mrb_module_get_under(mrb, kernel, name);
@@ -274,10 +296,12 @@ fn include_module() {
 
         mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
 
-        let fixnum_class = mrb_class_get(mrb, CString::new("Fixnum").unwrap().as_ptr());
-        let increment = mrb_module_get(mrb, CString::new("Increment").unwrap().as_ptr());
+        let fixnum_str = CString::new("Fixnum").unwrap();
+        let fixnum = mrb_class_get(mrb, fixnum_str.as_ptr());
+        let increment_str = CString::new("Increment").unwrap();
+        let increment = mrb_module_get(mrb, increment_str.as_ptr());
 
-        mrb_include_module(mrb, fixnum_class, increment);
+        mrb_include_module(mrb, fixnum, increment);
 
         let code = "1.inc";
 
@@ -294,8 +318,10 @@ fn define_class_method() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_class_str = CString::new("Mine").unwrap();
+        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
 
         extern "C" fn job(_mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
@@ -303,7 +329,9 @@ fn define_class_method() {
             }
         }
 
-        mrb_define_class_method(mrb, new_class, CString::new("job").unwrap().as_ptr(), job, 0);
+        let job_str = CString::new("job").unwrap();
+
+        mrb_define_class_method(mrb, new_class, job_str.as_ptr(), job, 0);
 
         let code = "Mine.job";
 
@@ -320,13 +348,16 @@ fn define_constant() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let kernel = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let kernel_str = CString::new("Kernel").unwrap();
+        let kernel = mrb_module_get(mrb, kernel_str.as_ptr());
 
         let one = MrValue::fixnum(1);
+        let one_str = CString::new("ONE").unwrap();
 
-        mrb_define_const(mrb, obj_class, CString::new("ONE").unwrap().as_ptr(), one);
-        mrb_define_const(mrb, kernel, CString::new("ONE").unwrap().as_ptr(), one);
+        mrb_define_const(mrb, obj_class, one_str.as_ptr(), one);
+        mrb_define_const(mrb, kernel, one_str.as_ptr(), one);
 
         let code = "Object::ONE";
 
@@ -348,7 +379,8 @@ fn define_module_function() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let kernel_mod = mrb_module_get(mrb, CString::new("Kernel").unwrap().as_ptr());
+        let kernel_str = CString::new("Kernel").unwrap();
+        let kernel = mrb_module_get(mrb, kernel_str.as_ptr());
 
         extern "C" fn hi(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
@@ -356,7 +388,9 @@ fn define_module_function() {
             }
         }
 
-        mrb_define_module_function(mrb, kernel_mod, CString::new("hi").unwrap().as_ptr(), hi, 0);
+        let hi_str = CString::new("hi").unwrap();
+
+        mrb_define_module_function(mrb, kernel, hi_str.as_ptr(), hi, 0);
 
         let code = "hi";
 
@@ -373,19 +407,25 @@ fn raise_exc() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_class_str = CString::new("Mine").unwrap();
+        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
 
         extern "C" fn job(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                mrb_ext_raise(mrb, CString::new("RuntimeError").unwrap().as_ptr(),
-                              CString::new("excepting").unwrap().as_ptr());
+                let runtime_str = CString::new("RuntimeError").unwrap();
+                let excepting_str = CString::new("excepting").unwrap();
+
+                mrb_ext_raise(mrb, runtime_str.as_ptr(), excepting_str.as_ptr());
 
                 MrValue::nil()
             }
         }
 
-        mrb_define_class_method(mrb, new_class, CString::new("job").unwrap().as_ptr(), job, 0);
+        let job_str = CString::new("job").unwrap();
+
+        mrb_define_class_method(mrb, new_class, job_str.as_ptr(), job, 0);
 
         let code = "Mine.job";
 
@@ -410,20 +450,29 @@ pub fn args() {
                 let a = uninitialized::<MrValue>();
                 let b = uninitialized::<MrValue>();
 
-                mrb_get_args(mrb, CString::new("oo").unwrap().as_ptr(), &a as *const MrValue,
+                let sig_str = CString::new("oo").unwrap();
+
+                mrb_get_args(mrb, sig_str.as_ptr(), &a as *const MrValue,
                              &b as *const MrValue);
 
                 let args = &[b];
-                let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
+
+                let plus_str = CString::new("+").unwrap();
+
+                let sym = mrb_intern(mrb, plus_str.as_ptr(), 1usize);
 
                 mrb_funcall_argv(mrb, a, sym, 1, args.as_ptr())
             }
         }
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_class_str = CString::new("Mine").unwrap();
+        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
 
-        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
+        let add_str = CString::new("add").unwrap();
+
+        mrb_define_method(mrb, new_class, add_str.as_ptr(), add,
                           (2 & 0x1f) << 18);
 
         let code = "Mine.new.add 1, 1";
@@ -450,23 +499,32 @@ pub fn str_args() {
                 let a = uninitialized::<*const c_char>();
                 let b = uninitialized::<*const c_char>();
 
-                mrb_get_args(mrb, CString::new("zz").unwrap().as_ptr(), &a as *const *const c_char,
+                let sig_str = CString::new("zz").unwrap();
+
+                mrb_get_args(mrb, sig_str.as_ptr(), &a as *const *const c_char,
                              &b as *const *const c_char);
 
                 let a = CStr::from_ptr(a).to_str().unwrap();
                 let b = CStr::from_ptr(b).to_str().unwrap();
 
                 let args = &[MrValue::string(mrb, b)];
-                let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
+
+                let plus_str = CString::new("+").unwrap();
+
+                let sym = mrb_intern(mrb, plus_str.as_ptr(), 1usize);
 
                 mrb_funcall_argv(mrb, MrValue::string(mrb, a), sym, 1, args.as_ptr())
             }
         }
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_class_str = CString::new("Mine").unwrap();
+        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
 
-        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
+        let add_str = CString::new("add").unwrap();
+
+        mrb_define_method(mrb, new_class, add_str.as_ptr(), add,
                           (2 & 0x1f) << 18);
 
         let code = "Mine.new.add 'a', 'b'";
@@ -490,21 +548,30 @@ pub fn array_args() {
             unsafe {
                 let array = uninitialized::<MrValue>();
 
-                mrb_get_args(mrb, CString::new("A").unwrap().as_ptr(), &array as *const MrValue);
+                let a_str = CString::new("A").unwrap();
+
+                mrb_get_args(mrb, a_str.as_ptr(), &array as *const MrValue);
 
                 let vec = array.to_vec(mrb).unwrap();
 
                 let args = &[vec[1]];
-                let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
+
+                let plus_str = CString::new("+").unwrap();
+
+                let sym = mrb_intern(mrb, plus_str.as_ptr(), 1usize);
 
                 mrb_funcall_argv(mrb, vec[0], sym, 1, args.as_ptr())
             }
         }
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let new_class = mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_class_str = CString::new("Mine").unwrap();
+        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
 
-        mrb_define_method(mrb, new_class, CString::new("add").unwrap().as_ptr(), add,
+        let add_str = CString::new("add").unwrap();
+
+        mrb_define_method(mrb, new_class, add_str.as_ptr(), add,
                           (2 & 0x1f) << 18);
 
         let code = "Mine.new.add [1, 1]";
@@ -524,7 +591,9 @@ fn funcall_argv() {
         let one = MrValue::fixnum(1);
         let args = &[MrValue::fixnum(2)];
 
-        let sym = mrb_intern(mrb, "+".as_ptr(), 1usize);
+        let plus_str = CString::new("+").unwrap();
+
+        let sym = mrb_intern(mrb, plus_str.as_ptr(), 1usize);
 
         let result = mrb_funcall_argv(mrb, one, sym, 1, args.as_ptr());
 
@@ -540,16 +609,20 @@ fn iv() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let new_str = CString::new("Mine").unwrap();
 
-        mrb_define_class(mrb, CString::new("Mine").unwrap().as_ptr(), obj_class);
+        mrb_define_class(mrb, new_str.as_ptr(), obj_class);
 
         let one = MrValue::fixnum(1);
 
         let code = "Mine.new";
         let obj = mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
 
-        let sym = mrb_intern(mrb, "value".as_ptr(), 1usize);
+        let value_str = CString::new("value").unwrap();
+
+        let sym = mrb_intern(mrb, value_str.as_ptr(), 1usize);
 
         assert!(!mrb_iv_defined(mrb, obj, sym));
 
@@ -571,7 +644,9 @@ fn nil() {
 
         let args: &[MrValue] = &[];
 
-        let sym = mrb_intern(mrb, "to_s".as_ptr(), 4usize);
+        let to_s_str = CString::new("to_s").unwrap();
+
+        let sym = mrb_intern(mrb, to_s_str.as_ptr(), 4usize);
 
         let result = mrb_funcall_argv(mrb, nil, sym, 0, args.as_ptr());
 
@@ -642,8 +717,10 @@ fn obj() {
 
         let mrb = mrb_open();
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let cont_str = CString::new("Cont").unwrap();
+        let cont_class = mrb_define_class(mrb, cont_str.as_ptr(), obj_class);
 
         mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
 
@@ -653,7 +730,7 @@ fn obj() {
             }
         }
 
-        let data_type = MrDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+        let data_type = MrDataType { name: cont_str.as_ptr(), free: free };
 
         let obj = Cont { value: 3 };
         let obj = MrValue::obj(mrb, cont_class, obj, &data_type);
@@ -680,8 +757,10 @@ fn obj_init() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let cont_str = CString::new("Cont").unwrap();
+        let cont_class = mrb_define_class(mrb, cont_str.as_ptr(), obj_class);
 
         mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
 
@@ -717,13 +796,16 @@ fn obj_init() {
             }
         }
 
-        let data_type = &MrDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+        let data_type = &MrDataType { name: cont_str.as_ptr(), free: free };
 
         mrb_ext_set_ud(mrb, mem::transmute::<&MrDataType, *const u8>(data_type));
 
-        mrb_define_method(mrb, cont_class, CString::new("initialize").unwrap().as_ptr(), init,
+        let init_str = CString::new("initialize").unwrap();
+        let value_str = CString::new("value").unwrap();
+
+        mrb_define_method(mrb, cont_class, init_str.as_ptr(), init,
                           1 << 12);
-        mrb_define_method(mrb, cont_class, CString::new("value").unwrap().as_ptr(), value,
+        mrb_define_method(mrb, cont_class, value_str.as_ptr(), value,
                           1 << 12);
 
         let code = "Cont.new.value";
@@ -759,8 +841,10 @@ fn obj_scoping() {
 
         let mrb = mrb_open();
 
-        let obj_class = mrb_class_get(mrb, CString::new("Object").unwrap().as_ptr());
-        let cont_class = mrb_define_class(mrb, CString::new("Cont").unwrap().as_ptr(), obj_class);
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let cont_str = CString::new("Cont").unwrap();
+        let cont_class = mrb_define_class(mrb, cont_str.as_ptr(), obj_class);
 
         mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
 
@@ -770,7 +854,7 @@ fn obj_scoping() {
             }
         }
 
-        let data_type = MrDataType { name: CString::new("Cont").unwrap().as_ptr(), free: free };
+        let data_type = MrDataType { name: cont_str.as_ptr(), free: free };
 
         {
             let orig = Cont { value: 3 };
