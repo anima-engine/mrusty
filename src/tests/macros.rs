@@ -222,6 +222,209 @@ fn mrusty_class_mruby_values() {
 }
 
 #[test]
+fn mrusty_initialize_block_only_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("initialize", |_v: i32; &_block| {
+            Cont
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    mruby.run("Container.new(1) {}").unwrap();
+}
+
+#[test]
+fn mrusty_initialize_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("initialize", |_mruby; &_block| {
+            Cont
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    mruby.run("Container.new {}").unwrap();
+}
+
+#[test]
+fn mrusty_initialize_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("initialize", |_mruby, _v: i32; &_block| {
+            Cont
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    mruby.run("Container.new(1) {}").unwrap();
+}
+
+#[test]
+fn mrusty_instance_block_empty() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_slf: Value; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_instance_block_only_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_slf: Value, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_instance_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_mruby, _slf: Value; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_instance_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_mruby, _slf: Value, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_block_empty() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_slf: Class; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_block_only_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_slf: Class, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_mruby, _slf: Class; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_mruby, _slf: Class, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
 fn mrusty_initialize_args_only_values() {
     let mruby = Mruby::new();
 
@@ -425,6 +628,209 @@ fn mrusty_class_args_mruby_values() {
 }
 
 #[test]
+fn mrusty_initialize_args_block_only_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("initialize", |_v: i32; _args, &_block| {
+            Cont
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    mruby.run("Container.new(1, 2, 3) {}").unwrap();
+}
+
+#[test]
+fn mrusty_initialize_args_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("initialize", |_mruby; _args, &_block| {
+            Cont
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    mruby.run("Container.new(1, 2, 3) {}").unwrap();
+}
+
+#[test]
+fn mrusty_initialize_args_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("initialize", |_mruby, _v: i32; _args, &_block| {
+            Cont
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    mruby.run("Container.new(1, 2, 3) {}").unwrap();
+}
+
+#[test]
+fn mrusty_instance_args_block_empty() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_slf: Value; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_instance_args_block_only_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_slf: Value, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_instance_args_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_mruby, _slf: Value; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_instance_args_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def!("hi", |_mruby, _slf: Value, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_args_block_empty() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_slf: Class; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_args_block_only_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_slf: Class, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_args_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_mruby, _slf: Class; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mrusty_class_args_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    struct Cont;
+
+    mrusty_class!(Cont, "Container", {
+        def_self!("hi", |_mruby, _slf: Class, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    Cont::require(mruby.clone());
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
 fn mruby_instance_empty() {
     let mruby = Mruby::new();
 
@@ -536,6 +942,126 @@ fn mruby_class_mruby_values() {
     let result = mruby.run("Container.hi(Fixnum) == Fixnum").unwrap();
 
     assert_eq!(result.to_bool().unwrap(), true);
+}
+
+#[test]
+fn mruby_instance_block_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_slf: Value; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_block_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_slf: Value, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_mruby, _slf: Value; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_mruby, _slf: Value, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_block_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_slf: Class; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_block_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_slf: Class, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, _slf: Class; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, _slf: Class, _v: i32; &block| {
+            block.call("call", vec![]).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi(1) { 3 }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
 }
 
 #[test]
@@ -654,6 +1180,126 @@ fn mruby_class_args_mruby_values() {
     });
 
     let result = mruby.run("Container.hi 1, 2, 3").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_args_block_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_slf: Value; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_args_block_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_slf: Value, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_args_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_mruby, _slf: Value; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_instance_args_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def!("hi", |_mruby, _slf: Value, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_block_empty() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_slf: Class; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_block_only_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_slf: Class, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_block_only_mruby() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, _slf: Class; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+
+    assert_eq!(result.to_i32().unwrap(), 3);
+}
+
+#[test]
+fn mruby_class_args_block_mruby_values() {
+    let mruby = Mruby::new();
+
+    mruby_class!(mruby, "Container", {
+        def_self!("hi", |_mruby, _slf: Class, _v: i32; args, &block| {
+            block.call("call", args).unwrap()
+        });
+    });
+
+    let result = mruby.run("Container.hi(1, 2, 3) { |*a| a[1] }").unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
