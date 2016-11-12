@@ -158,15 +158,15 @@
 macro_rules! mrfn {
     // init
     ( @init ) => ();
-    ( @init $name:ident, bool )          => (let $name = uninitialized::<bool>(););
-    ( @init $name:ident, i32 )           => (let $name = uninitialized::<i32>(););
-    ( @init $name:ident, f64 )           => (let $name = uninitialized::<f64>(););
-    ( @init $name:ident, (&str) )        => (let $name = uninitialized::<*const c_char>(););
-    ( @init $name:ident, (Vec<Value>) )  => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, Class )         => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, Value )         => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, (&mut $_t:ty) ) => (let $name = uninitialized::<MrValue>(););
-    ( @init $name:ident, (&$_t:ty) )     => (let $name = uninitialized::<MrValue>(););
+    ( @init $name:ident, bool )          => (let $name = ::std::mem::uninitialized::<bool>(););
+    ( @init $name:ident, i32 )           => (let $name = ::std::mem::uninitialized::<i32>(););
+    ( @init $name:ident, f64 )           => (let $name = ::std::mem::uninitialized::<f64>(););
+    ( @init $name:ident, (&str) )        => (let $name = ::std::mem::uninitialized::<*const ::std::os::raw::c_char>(););
+    ( @init $name:ident, (Vec<Value>) )  => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
+    ( @init $name:ident, Class )         => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
+    ( @init $name:ident, Value )         => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
+    ( @init $name:ident, (&mut $_t:ty) ) => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
+    ( @init $name:ident, (&$_t:ty) )     => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
     ( @init $name:ident : $t:tt )        => (mrfn!(@init $name, $t));
     ( @init $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         mrfn!(@init $name, $t);
@@ -191,18 +191,18 @@ macro_rules! mrfn {
     ( @args $name:ident, bool )          => (&$name as *const bool);
     ( @args $name:ident, i32 )           => (&$name as *const i32);
     ( @args $name:ident, f64 )           => (&$name as *const f64);
-    ( @args $name:ident, (&str) )        => (&$name as *const *const c_char);
-    ( @args $name:ident, (Vec<Value>) )  => (&$name as *const MrValue);
-    ( @args $name:ident, Class )         => (&$name as *const MrValue);
-    ( @args $name:ident, Value )         => (&$name as *const MrValue);
-    ( @args $name:ident, (&mut $_t:ty) ) => (&$name as *const MrValue);
-    ( @args $name:ident, (&$_t:ty) )     => (&$name as *const MrValue);
+    ( @args $name:ident, (&str) )        => (&$name as *const *const ::std::os::raw::c_char);
+    ( @args $name:ident, (Vec<Value>) )  => (&$name as *const $crate::MrValue);
+    ( @args $name:ident, Class )         => (&$name as *const $crate::MrValue);
+    ( @args $name:ident, Value )         => (&$name as *const $crate::MrValue);
+    ( @args $name:ident, (&mut $_t:ty) ) => (&$name as *const $crate::MrValue);
+    ( @args $name:ident, (&$_t:ty) )     => (&$name as *const $crate::MrValue);
     ( @args $name:ident : $t:tt )        => (mrfn!(@args $name, $t));
     ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
-        mrb_get_args($mrb, $sig, mrfn!(@args $name, $t));
+        $crate::mrb_get_args($mrb, $sig, mrfn!(@args $name, $t));
     };
     ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        mrb_get_args($mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),*);
+        $crate::mrb_get_args($mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),*);
     };
 
     // args_rest
@@ -210,28 +210,28 @@ macro_rules! mrfn {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = uninitialized::<*mut MrValue>();
-            let count = uninitialized::<i32>();
+            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
+            let count = ::std::mem::uninitialized::<i32>();
 
-            mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), &args as *const *mut MrValue,
+            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), &args as *const *mut $crate::MrValue,
                          &count as *const i32);
 
-            let args = slice::from_raw_parts(args, count as usize);
-            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
+            let args = ::std::slice::from_raw_parts(args, count as usize);
+            args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
          }
     };
     ( @args_rest $mruby:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = uninitialized::<*mut MrValue>();
-            let count = uninitialized::<i32>();
+            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
+            let count = ::std::mem::uninitialized::<i32>();
 
-            mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),* ,
-                         &args as *const *mut MrValue, &count as *const i32);
+            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),* ,
+                         &args as *const *mut $crate::MrValue, &count as *const i32);
 
-            let args = slice::from_raw_parts(args, count as usize);
-            args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
+            let args = ::std::slice::from_raw_parts(args, count as usize);
+            args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
          }
     };
 
@@ -240,16 +240,16 @@ macro_rules! mrfn {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = uninitialized::<*mut MrValue>();
-            let count = uninitialized::<i32>();
-            let blk = uninitialized::<MrValue>();
+            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
+            let count = ::std::mem::uninitialized::<i32>();
+            let blk = ::std::mem::uninitialized::<$crate::MrValue>();
 
-            mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), &args as *const *mut MrValue,
-                         &count as *const i32, &blk as *const MrValue);
+            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), &args as *const *mut $crate::MrValue,
+                         &count as *const i32, &blk as *const $crate::MrValue);
 
-            let args = slice::from_raw_parts(args, count as usize);
-            let args = args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>();
-            let blk = Value::new($mruby.clone(), blk);
+            let args = ::std::slice::from_raw_parts(args, count as usize);
+            let args = args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>();
+            let blk = $crate::Value::new($mruby.clone(), blk);
 
             (args, blk)
          }
@@ -258,16 +258,16 @@ macro_rules! mrfn {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = uninitialized::<*mut MrValue>();
-            let count = uninitialized::<i32>();
-            let blk = uninitialized::<MrValue>();
+            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
+            let count = ::std::mem::uninitialized::<i32>();
+            let blk = ::std::mem::uninitialized::<$crate::MrValue>();
 
-            mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),* ,
-                         &args as *const *mut MrValue, &count as *const i32, &blk as *const MrValue);
+            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),* ,
+                         &args as *const *mut $crate::MrValue, &count as *const i32, &blk as *const $crate::MrValue);
 
-            let args = slice::from_raw_parts(args, count as usize);
-            let args = args.iter().map(|arg| { Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>();
-            let blk = Value::new($mruby.clone(), blk);
+            let args = ::std::slice::from_raw_parts(args, count as usize);
+            let args = args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>();
+            let blk = $crate::Value::new($mruby.clone(), blk);
 
             (args, blk)
          }
@@ -279,22 +279,22 @@ macro_rules! mrfn {
     ( @conv $mruby:expr, $name:ident, i32 )         => ();
     ( @conv $mruby:expr, $name:ident, f64 )         => ();
     ( @conv $mruby:expr, $name:ident, (&str) )      => {
-        let $name = CStr::from_ptr($name).to_str().unwrap();
+        let $name = ::std::ffi::CStr::from_ptr($name).to_str().unwrap();
     };
     ( @conv $mruby:expr, $name:ident, (Vec<Value>) ) => {
-        let $name = Value::new($mruby.clone(), $name).to_vec().unwrap();
+        let $name = $crate::Value::new($mruby.clone(), $name).to_vec().unwrap();
     };
     ( @conv $mruby:expr, $name:ident, Class )        => {
-        let $name = Value::new($mruby.clone(), $name).to_class().unwrap();
+        let $name = $crate::Value::new($mruby.clone(), $name).to_class().unwrap();
     };
     ( @conv $mruby:expr, $name:ident, Value )        => {
-        let $name = Value::new($mruby.clone(), $name);
+        let $name = $crate::Value::new($mruby.clone(), $name);
     };
     ( @conv $mruby:expr, $name:ident, (&mut $t:ty) ) => {
-        let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
+        let $name = $crate::Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
     };
     ( @conv $mruby:expr, $name:ident, (&$t:ty) )     => {
-        let $name = Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
+        let $name = $crate::Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
     };
     ( @conv $mruby:expr, $name:ident : $t:tt )       => (mrfn!(@conv $mruby, $name, $t));
     ( @conv $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
@@ -335,9 +335,6 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt; &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
-            use std::ffi::CString;
-            use std::mem::uninitialized;
-
             mrfn!(@slf $slf, $st);
             mrfn!(@borrow $slf, $st);
 
@@ -346,7 +343,7 @@ macro_rules! mrfn {
 
                 mrfn!(@init $blk : Value);
 
-                let sig_str = CString::new("&").unwrap();
+                let sig_str = ::std::ffi::CString::new("&").unwrap();
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $blk : Value);
                 mrfn!(@conv $mruby, $blk : Value);
@@ -357,27 +354,23 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt; $args:ident| $block:expr ) => {
         |$mruby, $slf| {
-            use std::ffi::CString;
-            use std::mem::uninitialized;
-            use std::slice;
-
             mrfn!(@slf $slf, $st);
             mrfn!(@borrow $slf, $st);
 
             unsafe {
                 let mrb = $mruby.borrow().mrb;
 
-                let $args = uninitialized::<*mut MrValue>();
-                let count = uninitialized::<i32>();
+                let $args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
+                let count = ::std::mem::uninitialized::<i32>();
 
-                let sig_str = CString::new("*").unwrap();
+                let sig_str = ::std::ffi::CString::new("*").unwrap();
 
-                mrb_get_args(mrb, sig_str.as_ptr(), &$args as *const *mut MrValue,
+                $crate::mrb_get_args(mrb, sig_str.as_ptr(), &$args as *const *mut $crate::MrValue,
                              &count as *const i32);
 
-                let $args = slice::from_raw_parts($args, count as usize);
+                let $args = ::std::slice::from_raw_parts($args, count as usize);
                 let $args = $args.iter().map(|arg| {
-                    Value::new($mruby.clone(), arg.clone())
+                    $crate::Value::new($mruby.clone(), arg.clone())
                 }).collect::<Vec<_>>();
 
                 $block
@@ -386,31 +379,27 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt; $args:ident, &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
-            use std::ffi::CString;
-            use std::mem::uninitialized;
-            use std::slice;
-
             mrfn!(@slf $slf, $st);
             mrfn!(@borrow $slf, $st);
 
             unsafe {
                 let mrb = $mruby.borrow().mrb;
 
-                let $args = uninitialized::<*mut MrValue>();
-                let count = uninitialized::<i32>();
-                let $blk = uninitialized::<MrValue>();
+                let $args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
+                let count = ::std::mem::uninitialized::<i32>();
+                let $blk = ::std::mem::uninitialized::<$crate::MrValue>();
 
-                let sig_str = CString::new("*&").unwrap();
+                let sig_str = ::std::ffi::CString::new("*&").unwrap();
 
-                mrb_get_args(mrb, sig_str.as_ptr(),
-                             &$args as *const *mut MrValue, &count as *const i32,
-                             &$blk as *const MrValue);
+                $crate::mrb_get_args(mrb, sig_str.as_ptr(),
+                             &$args as *const *mut $crate::MrValue, &count as *const i32,
+                             &$blk as *const $crate::MrValue);
 
-                let $args = slice::from_raw_parts($args, count as usize);
+                let $args = ::std::slice::from_raw_parts($args, count as usize);
                 let $args = $args.iter().map(|arg| {
-                    Value::new($mruby.clone(), arg.clone())
+                    $crate::Value::new($mruby.clone(), arg.clone())
                 }).collect::<Vec<_>>();
-                let $blk = Value::new($mruby.clone(), $blk);
+                let $blk = $crate::Value::new($mruby.clone(), $blk);
 
                 $block
             }
@@ -418,14 +407,6 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),*| $block:expr ) => {
         |$mruby, $slf| {
-            #[allow(unused_imports)]
-            use std::ffi::CStr;
-            use std::ffi::CString;
-            #[allow(unused_imports)]
-            use std::mem::uninitialized;
-            #[allow(unused_imports)]
-            use std::os::raw::c_char;
-
             unsafe {
                 mrfn!(@slf $slf, $st);
                 mrfn!(@borrow $slf, $st);
@@ -433,7 +414,7 @@ macro_rules! mrfn {
                 mrfn!(@init $( $name : $t ),*);
 
                 let mrb = $mruby.borrow().mrb;
-                let sig_str = CString::new(mrfn!(@sig $( $t ),*)).unwrap();
+                let sig_str = ::std::ffi::CString::new(mrfn!(@sig $( $t ),*)).unwrap();
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
@@ -445,14 +426,6 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),* ; &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
-            #[allow(unused_imports)]
-            use std::ffi::CStr;
-            use std::ffi::CString;
-            #[allow(unused_imports)]
-            use std::mem::uninitialized;
-            #[allow(unused_imports)]
-            use std::os::raw::c_char;
-
             unsafe {
                 mrfn!(@slf $slf, $st);
                 mrfn!(@borrow $slf, $st);
@@ -460,7 +433,7 @@ macro_rules! mrfn {
                 mrfn!(@init $( $name : $t ),*, $blk : Value);
 
                 let mrb = $mruby.borrow().mrb;
-                let sig_str = CString::new(concat!(mrfn!(@sig $( $t ),*), "&")).unwrap();
+                let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "&")).unwrap();
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*, $blk : Value);
                 mrfn!(@conv $mruby, $( $name : $t ),*, $blk : Value);
@@ -472,22 +445,13 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),* ; $args:ident| $block:expr ) => {
         |$mruby, $slf| {
-            #[allow(unused_imports)]
-            use std::ffi::CStr;
-            use std::ffi::CString;
-            #[allow(unused_imports)]
-            use std::mem::uninitialized;
-            #[allow(unused_imports)]
-            use std::os::raw::c_char;
-            use std::slice;
-
             unsafe {
                 mrfn!(@slf $slf, $st);
                 mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*);
 
-                let sig_str = CString::new(concat!(mrfn!(@sig $( $t ),*), "*")).unwrap();
+                let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "*")).unwrap();
 
                 let $args = mrfn!(@args_rest $mruby, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
@@ -499,22 +463,13 @@ macro_rules! mrfn {
     };
     ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),* ; $args:ident, &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
-            #[allow(unused_imports)]
-            use std::ffi::CStr;
-            use std::ffi::CString;
-            #[allow(unused_imports)]
-            use std::mem::uninitialized;
-            #[allow(unused_imports)]
-            use std::os::raw::c_char;
-            use std::slice;
-
             unsafe {
                 mrfn!(@slf $slf, $st);
                 mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*);
 
-                let sig_str = CString::new(concat!(mrfn!(@sig $( $t ),*), "*&")).unwrap();
+                let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "*&")).unwrap();
 
                 let ($args, $blk) = mrfn!(@args_rest_blk $mruby, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
@@ -535,28 +490,28 @@ macro_rules! defines {
 
     // initialize
     ( $mruby:expr, $name:ty, def!("initialize", || $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|_mruby, slf: Value| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),*| {
             slf.init($block)
         }));
 
@@ -565,28 +520,28 @@ macro_rules! defines {
 
     // instance methods
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
@@ -595,28 +550,28 @@ macro_rules! defines {
 
     // class methods
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
@@ -625,21 +580,21 @@ macro_rules! defines {
     
     // initialize block
     ( $mruby:expr, $name:ty, def!("initialize", | $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; &$blk| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value; &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value; &$blk| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; &$blk| {
             slf.init($block)
         }));
 
@@ -648,28 +603,28 @@ macro_rules! defines {
 
     // instance methods block
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st; &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st; &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
@@ -678,28 +633,28 @@ macro_rules! defines {
 
     // class methods block
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st; &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st; &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
@@ -708,21 +663,21 @@ macro_rules! defines {
 
     // initialize args
     ( $mruby:expr, $name:ty, def!("initialize", | $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; $args| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; $args| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value; $args| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value; $args| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; $args| {
             slf.init($block)
         }));
 
@@ -731,28 +686,28 @@ macro_rules! defines {
 
     // instance methods args
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
@@ -761,28 +716,28 @@ macro_rules! defines {
 
     // class methods args
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st; $args| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
@@ -791,21 +746,21 @@ macro_rules! defines {
 
     // initialize args & block
     ( $mruby:expr, $name:ty, def!("initialize", | $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; $args, &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|_mruby, slf: Value, $( $n : $t ),*; $args, &$blk| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value; $args, &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value; $args, &$blk| {
             slf.init($block)
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!("initialize", | $mrb:ident, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>("initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, "initialize", mrfn!(|$mrb, slf: Value, $( $n : $t ),* ; $args, &$blk| {
             slf.init($block)
         }));
 
@@ -814,28 +769,28 @@ macro_rules! defines {
 
     // instance methods args & block
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
@@ -844,28 +799,28 @@ macro_rules! defines {
 
     // class methods args & block
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
             $block
         }));
 
         defines!($mruby, $name, $( $rest )*);
     };
     ( $mruby:expr, $name:ty, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method_for::<$name, _>($method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method_for::<$name, _>(&$mruby, $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
@@ -882,28 +837,28 @@ macro_rules! mruby_defines {
 
     // instance methods
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
@@ -912,28 +867,28 @@ macro_rules! mruby_defines {
 
     // class methods
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),*| {
             $block
         }));
 
@@ -942,28 +897,28 @@ macro_rules! mruby_defines {
     
     // instance methods block
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st; &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st; &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
@@ -972,28 +927,28 @@ macro_rules! mruby_defines {
 
     // class methods block
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st; &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st; &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; &$blk| {
             $block
         }));
 
@@ -1002,28 +957,28 @@ macro_rules! mruby_defines {
 
     // instance methods args
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
@@ -1032,28 +987,28 @@ macro_rules! mruby_defines {
 
     // class methods args
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args| {
             $block
         }));
 
@@ -1062,28 +1017,28 @@ macro_rules! mruby_defines {
 
     // instance methods args & block
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
@@ -1092,28 +1047,28 @@ macro_rules! mruby_defines {
 
     // class methods args & block
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st; $args, &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|_mruby, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st; $args, &$blk| {
             $block
         }));
 
         mruby_defines!($mruby, $class, $( $rest )*);
     };
     ( $mruby:expr, $class:expr, def_self!($method:expr, | $mrb:ident, $slf:ident : $st:tt, $( $n:ident : $t:tt ),* ; $args:ident, &$blk:ident | $block:expr ); $( $rest:tt )* ) => {
-        $mruby.def_class_method($class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
+        $crate::MrubyImpl::def_class_method(&$mruby, $class.clone(), $method, mrfn!(|$mrb, $slf: $st, $( $n : $t ),* ; $args, &$blk| {
             $block
         }));
 
@@ -1202,32 +1157,32 @@ macro_rules! mruby_defines {
 #[macro_export]
 macro_rules! mrusty_class {
     ( $name:ty ) => {
-        impl MrubyFile for $name {
-            fn require(mruby: MrubyType) {
-                mruby.def_class_for::<$name>(stringify!($name));
+        impl $crate::MrubyFile for $name {
+            fn require(mruby: $crate::MrubyType) {
+                $crate::MrubyImpl::def_class_for::<$name>(&mruby, stringify!($name));
             }
         }
     };
     ( $name:ty, { $( $rest:tt )* } ) => {
-        impl MrubyFile for $name {
-            fn require(mruby: MrubyType) {
-                mruby.def_class_for::<$name>(stringify!($name));
+        impl $crate::MrubyFile for $name {
+            fn require(mruby: $crate::MrubyType) {
+                $crate::MrubyImpl::def_class_for::<$name>(&mruby, stringify!($name));
 
                 defines!(mruby, $name, $( $rest )*);
             }
         }
     };
     ( $name:ty, $mrname:expr ) => {
-        impl MrubyFile for $name {
-            fn require(mruby: MrubyType) {
-                mruby.def_class_for::<$name>($mrname);
+        impl $crate::MrubyFile for $name {
+            fn require(mruby: $crate::MrubyType) {
+                $crate::MrubyImpl::def_class_for::<$name>(&mruby, $mrname);
             }
         }
     };
     ( $name:ty, $mrname:expr, { $( $rest:tt )* } ) => {
-        impl MrubyFile for $name {
-            fn require(mruby: MrubyType) {
-                mruby.def_class_for::<$name>($mrname);
+        impl $crate::MrubyFile for $name {
+            fn require(mruby: $crate::MrubyType) {
+                $crate::MrubyImpl::def_class_for::<$name>(&mruby, $mrname);
 
                 defines!(mruby, $name, $( $rest )*);
             }
@@ -1337,11 +1292,11 @@ macro_rules! mrusty_class {
 #[macro_export]
 macro_rules! mruby_class {
     ( $mruby:expr, $mrname:expr ) => {
-        $mruby.def_class($mrname)
+        $crate::MrubyImpl::def_class(&$mruby, $mrname)
     };
     ( $mruby:expr, $mrname:expr, { $( $rest:tt )* } ) => {
         {
-            let class = $mruby.def_class($mrname);
+            let class = $crate::MrubyImpl::def_class(&$mruby, $mrname);
 
             mruby_defines!($mruby, class, $( $rest )*);
 
