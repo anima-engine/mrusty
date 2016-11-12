@@ -14,7 +14,7 @@ use super::mruby::*;
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType};
 ///
 /// # fn main() {
 /// struct Cont;
@@ -45,32 +45,32 @@ use super::mruby::*;
 /// ```
 #[macro_export]
 macro_rules! describe {
-    ( $t:ident, $spec:expr ) => {
+    ( $t:ty, $spec:expr ) => {
         #[test]
         fn spec() {
-            let mruby = Mruby::new();
+            let mruby = $crate::Mruby::new();
 
-            $t::require(mruby.clone());
+            <$t as $crate::MrubyFile>::require(mruby.clone());
 
-            let name = mruby.class_name_for::<$t>().unwrap();
+            let name = $crate::MrubyImpl::class_name_for::<$t>(&mruby).unwrap();
 
-            let spec = Spec::new(mruby, &name, $spec);
+            let spec = $crate::Spec::new(mruby, &name, $spec);
 
             assert!(spec.run());
         }
     };
 
-    ( $t:ident, ( $( $ts:ident ),+ ), $spec:expr ) => {
+    ( $t:ty, ( $( $ts:ty ),+ ), $spec:expr ) => {
         #[test]
         fn spec() {
-            let mruby = Mruby::new();
+            let mruby = $crate::Mruby::new();
 
-            $t::require(mruby.clone());
-            $( $ts::require(mruby.clone()); )*
+            <$t as $crate::MrubyFile>::require(mruby.clone());
+            $( <$ts as $crate::MrubyFile>::require(mruby.clone()); )*
 
-            let name = mruby.class_name_for::<$t>().unwrap();
+            let name = $crate::MrubyImpl::class_name_for::<$t>(&mruby).unwrap();
 
-            let spec = Spec::new(mruby, &name, $spec);
+            let spec = $crate::Spec::new(mruby, &name, $spec);
 
             assert!(spec.run());
         }
@@ -95,7 +95,7 @@ macro_rules! describe {
 /// # Examples
 ///
 /// ```
-/// # use mrusty::*;
+/// # use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType, Spec};
 /// struct Cont;
 ///
 /// impl MrubyFile for Cont {
@@ -138,7 +138,7 @@ impl Spec {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::*;
+    /// # use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType, Spec};
     /// struct Cont;
     ///
     /// impl MrubyFile for Cont {
@@ -222,7 +222,7 @@ impl Spec {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::*;
+    /// # use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType, Spec};
     /// struct Cont;
     ///
     /// impl MrubyFile for Cont {

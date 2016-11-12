@@ -29,8 +29,7 @@ which is perfectly callable.
 #[macro_use]
 extern crate mrusty;
 
-// Needs some undocumented, hidden calls.
-use mrusty::*;
+use mrusty::{Mruby, MrubyImpl};
 
 let mruby = Mruby::new();
 

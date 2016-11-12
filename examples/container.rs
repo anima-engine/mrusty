@@ -2,8 +2,7 @@
 #[macro_use]
 extern crate mrusty;
 
-// Needs some undocumented, hidden calls.
-use mrusty::*;
+use mrusty::{Mruby, MrubyImpl};
 
 fn main() {
     let mruby = Mruby::new();

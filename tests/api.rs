@@ -10,7 +10,7 @@ extern crate mrusty;
 
 use std::path::Path;
 
-use mrusty::*;
+use mrusty::{Mruby, MrubyFile, MrubyImpl};
 
 mod example;
 
