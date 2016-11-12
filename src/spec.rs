@@ -14,7 +14,7 @@ use super::mruby::*;
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::{Mruby, MrubyImpl};
+/// use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType};
 ///
 /// # fn main() {
 /// struct Cont;
@@ -95,7 +95,7 @@ macro_rules! describe {
 /// # Examples
 ///
 /// ```
-/// # use mrusty::{Mruby, MrubyImpl};
+/// # use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType, Spec};
 /// struct Cont;
 ///
 /// impl MrubyFile for Cont {
@@ -138,7 +138,7 @@ impl Spec {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::{Mruby, MrubyImpl};
+    /// # use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType, Spec};
     /// struct Cont;
     ///
     /// impl MrubyFile for Cont {
@@ -222,7 +222,7 @@ impl Spec {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::{Mruby, MrubyImpl};
+    /// # use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType, Spec};
     /// struct Cont;
     ///
     /// impl MrubyFile for Cont {

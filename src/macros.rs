@@ -1098,7 +1098,7 @@ macro_rules! mruby_defines {
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::{Mruby, MrubyImpl};
+/// use mrusty::{Mruby, MrubyFile, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -1132,7 +1132,7 @@ macro_rules! mruby_defines {
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::{Mruby, MrubyImpl};
+/// use mrusty::{Mruby, MrubyFile, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();

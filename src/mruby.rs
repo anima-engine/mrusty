@@ -533,7 +533,7 @@ pub trait MrubyImpl {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
