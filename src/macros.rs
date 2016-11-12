@@ -26,7 +26,7 @@
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -50,7 +50,7 @@
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -79,7 +79,7 @@
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -108,7 +108,7 @@
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -137,7 +137,7 @@
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -1098,7 +1098,7 @@ macro_rules! mruby_defines {
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -1132,7 +1132,7 @@ macro_rules! mruby_defines {
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -1208,7 +1208,7 @@ macro_rules! mrusty_class {
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -1238,7 +1238,7 @@ macro_rules! mrusty_class {
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -1260,7 +1260,7 @@ macro_rules! mrusty_class {
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();

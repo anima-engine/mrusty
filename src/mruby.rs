@@ -30,7 +30,7 @@ pub type MrubyType = Rc<RefCell<Mruby>>;
 /// # Examples
 ///
 /// ```
-/// use mrusty::*;
+/// use mrusty::{Mruby, MrubyImpl};
 ///
 /// let mruby = Mruby::new();
 /// let result = mruby.run("2 + 2 == 5").unwrap();
@@ -365,7 +365,7 @@ pub trait MrubyImpl {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
+    /// use mrusty::{Mruby, MrubyImpl};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -533,7 +533,7 @@ pub trait MrubyImpl {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
+    /// use mrusty::{Mruby, MrubyImpl};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -676,7 +676,7 @@ pub trait MrubyImpl {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
+    /// use mrusty::{Mruby, MrubyImpl};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -701,7 +701,7 @@ pub trait MrubyImpl {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
+    /// use mrusty::{Mruby, MrubyImpl};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -726,7 +726,7 @@ pub trait MrubyImpl {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
+    /// use mrusty::{Mruby, MrubyImpl};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -761,7 +761,7 @@ pub trait MrubyImpl {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
+    /// use mrusty::{Mruby, MrubyImpl};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -786,7 +786,7 @@ pub trait MrubyImpl {
     /// # Examples
     ///
     /// ```
-    /// # use mrusty::*;
+    /// # use mrusty::{Mruby, MrubyImpl};
     ///
     /// let mruby = Mruby::new();
     ///
@@ -1609,7 +1609,7 @@ impl Value {
     ///
     /// ```
     /// # #[macro_use] extern crate mrusty;
-    /// use mrusty::*;
+    /// use mrusty::{Mruby, MrubyImpl};
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
