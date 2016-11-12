@@ -7,7 +7,7 @@ extern crate mrusty;
 
 use test::Bencher;
 
-use mrusty::*;
+use mrusty::{Mruby, MrubyImpl};
 
 #[bench]
 fn convert_fixnum(b: &mut Bencher) {

@@ -7,7 +7,7 @@ extern crate mrusty;
 
 use test::Bencher;
 
-use mrusty::*;
+use mrusty::{Mruby, MrubyImpl};
 
 #[bench]
 fn fib_rust(b: &mut Bencher) {
