@@ -94,6 +94,11 @@ impl MrValue {
     }
 
     #[inline]
+    pub unsafe fn ptr(mrb: *const MrState, value: *const u8) -> MrValue {
+        mrb_ext_set_ptr(mrb, value)
+    }
+
+    #[inline]
     pub unsafe fn to_bool<'a>(&self) -> Result<bool, MrubyError> {
         match self.typ {
             MrType::MRB_TT_FALSE => Ok(false),
@@ -191,6 +196,16 @@ impl MrValue {
                 Ok(mrb_ext_get_class(*self))
             },
             _ => Err(MrubyError::Cast("Module".to_owned()))
+        }
+    }
+
+    #[inline]
+    pub unsafe fn to_ptr(&self) -> Result<*const u8, MrubyError> {
+        match self.typ {
+            MrType::MRB_TT_CPTR => {
+                Ok(mrb_ext_get_ptr(*self))
+            },
+            _ => Err(MrubyError::Cast("Pointer".to_owned()))
         }
     }
 }
@@ -318,6 +333,10 @@ extern "C" {
     pub fn mrb_ext_sym2name(mrb: *const MrState, value: MrValue) -> *const u8;
     #[inline]
     pub fn mrb_ext_sym_new(mrb: *const MrState, value: *const u8, len: usize) -> MrValue;
+    #[inline]
+    pub fn mrb_ext_get_ptr(value: MrValue) -> *const u8;
+    #[inline]
+    pub fn mrb_ext_set_ptr(mrb: *const MrState, ptr: *const u8) -> MrValue;
 
     #[inline]
     pub fn mrb_str_to_cstr(mrb: *const MrState, value: MrValue) -> *const c_char;

@@ -894,3 +894,19 @@ fn array() {
         mrb_close(mrb);
     }
 }
+
+#[test]
+fn ptr() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let n = 3u8;
+
+        let value = MrValue::ptr(mrb, &n as *const u8);
+
+        assert_eq!(*value.to_ptr().unwrap(), 3u8);
+
+        mrb_close(mrb);
+    }
+}
+

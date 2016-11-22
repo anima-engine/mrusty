@@ -78,6 +78,18 @@ mrb_value mrb_ext_sym_new(struct mrb_state* mrb, const char* string,
   return value;
 }
 
+void* mrb_ext_get_ptr(mrb_value value) {
+    return mrb_cptr(value);
+}
+
+mrb_value mrb_ext_set_ptr(struct mrb_state* mrb, void* ptr) {
+    mrb_value value;
+
+    SET_CPTR_VALUE(mrb, value, ptr);
+
+    return value;
+}
+
 void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
   mrb_data_init(*value, ptr, type);
 }
