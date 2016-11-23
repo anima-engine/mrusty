@@ -292,9 +292,11 @@ macro_rules! mrfn {
     };
     ( @conv $mruby:expr, $name:ident, (&mut $t:ty) ) => {
         let $name = $crate::Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
+        let mut $name = $name.borrow_mut();
     };
     ( @conv $mruby:expr, $name:ident, (&$t:ty) )     => {
         let $name = $crate::Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
+        let $name = $name.borrow();
     };
     ( @conv $mruby:expr, $name:ident : $t:tt )       => (mrfn!(@conv $mruby, $name, $t));
     ( @conv $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
@@ -310,25 +312,19 @@ macro_rules! mrfn {
     ( @slf $slf:ident, (Vec<Value>) ) => (let $slf = $slf.to_vec().unwrap(););
     ( @slf $slf:ident, Class )        => (let $slf = $slf.to_class().unwrap(););
     ( @slf $slf:ident, Value )        => ();
-    ( @slf $slf:ident, (&mut $t:ty) ) => (let $slf = $slf.to_obj::<$t>().unwrap(););
-    ( @slf $slf:ident, (&$t:ty) )     => (let $slf = $slf.to_obj::<$t>().unwrap(););
-
-    // borrow
-    ( @borrow $name:ident, (&str) )       => ();
-    ( @borrow $name:ident, (&mut $t:ty) ) => (let mut $name = $name.borrow_mut(););
-    ( @borrow $name:ident, (&$t:ty) )     => (let $name = $name.borrow(););
-    ( @borrow $name:ident, $_t:tt )       => ();
-    ( @borrow $name:ident : $t:tt )       => (mrfn!(@borrow $name, $t));
-    ( @borrow $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        mrfn!(@borrow $name, $t);
-        mrfn!(@borrow $( $names : $ts ),*);
+    ( @slf $slf:ident, (&mut $t:ty) ) => {
+        let $slf = $slf.to_obj::<$t>().unwrap();
+        let mut $slf = $slf.borrow_mut();
+    };
+    ( @slf $slf:ident, (&$t:ty) )     => {
+        let $slf = $slf.to_obj::<$t>().unwrap();
+        let $slf = $slf.borrow();
     };
 
     // mrfn
     ( |$mruby:ident, $slf:ident : $st:tt| $block:expr ) => {
         |$mruby, $slf| {
             mrfn!(@slf $slf, $st);
-            mrfn!(@borrow $slf, $st);
 
             $block
         }
@@ -336,7 +332,6 @@ macro_rules! mrfn {
     ( |$mruby:ident, $slf:ident : $st:tt; &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
             mrfn!(@slf $slf, $st);
-            mrfn!(@borrow $slf, $st);
 
             unsafe {
                 let mrb = $mruby.borrow().mrb;
@@ -355,7 +350,6 @@ macro_rules! mrfn {
     ( |$mruby:ident, $slf:ident : $st:tt; $args:ident| $block:expr ) => {
         |$mruby, $slf| {
             mrfn!(@slf $slf, $st);
-            mrfn!(@borrow $slf, $st);
 
             unsafe {
                 let mrb = $mruby.borrow().mrb;
@@ -380,7 +374,6 @@ macro_rules! mrfn {
     ( |$mruby:ident, $slf:ident : $st:tt; $args:ident, &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
             mrfn!(@slf $slf, $st);
-            mrfn!(@borrow $slf, $st);
 
             unsafe {
                 let mrb = $mruby.borrow().mrb;
@@ -409,7 +402,6 @@ macro_rules! mrfn {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
-                mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*);
 
@@ -418,7 +410,6 @@ macro_rules! mrfn {
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
-                mrfn!(@borrow $( $name : $t ),*);
 
                 $block
             }
@@ -428,7 +419,6 @@ macro_rules! mrfn {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
-                mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*, $blk : Value);
 
@@ -437,7 +427,6 @@ macro_rules! mrfn {
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*, $blk : Value);
                 mrfn!(@conv $mruby, $( $name : $t ),*, $blk : Value);
-                mrfn!(@borrow $( $name : $t ),*);
 
                 $block
             }
@@ -447,7 +436,6 @@ macro_rules! mrfn {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
-                mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*);
 
@@ -455,7 +443,6 @@ macro_rules! mrfn {
 
                 let $args = mrfn!(@args_rest $mruby, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
-                mrfn!(@borrow $( $name : $t ),*);
 
                 $block
             }
@@ -465,7 +452,6 @@ macro_rules! mrfn {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
-                mrfn!(@borrow $slf, $st);
 
                 mrfn!(@init $( $name : $t ),*);
 
@@ -473,7 +459,6 @@ macro_rules! mrfn {
 
                 let ($args, $blk) = mrfn!(@args_rest_blk $mruby, sig_str.as_ptr(), $( $name : $t ),*);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
-                mrfn!(@borrow $( $name : $t ),*);
 
                 $block
             }
