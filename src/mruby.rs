@@ -402,7 +402,7 @@ pub trait MrubyImpl {
     ///
     /// # Examples
     ///
-    /// ```no-run
+    /// ```ignore
     /// let mruby = Mruby::new();
     /// let result = mruby.runb(include_bytes!("script.mrb")).unwrap();
     /// ```
@@ -414,9 +414,12 @@ pub trait MrubyImpl {
     ///
     /// # Examples
     ///
-    /// ```no-run
+    /// ```no_run
+    /// # use mrusty::Mruby;
+    /// # use mrusty::MrubyImpl;
+    /// # use std::path::Path;
     /// let mruby = Mruby::new();
-    /// let result = mruby.execute(File::open("script.rb")).unwrap();
+    /// let result = mruby.execute(&Path::new("script.rb")).unwrap();
     /// ```
     #[inline]
     fn execute(&self, script: &Path) -> Result<Value, MrubyError>;

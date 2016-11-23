@@ -16,7 +16,7 @@ use super::read_line::ReadLine;
 ///
 /// Using `GnuReadLine`, which requires the `gnu-readline` feature:
 ///
-/// ```no-run
+/// ```ignore
 /// let mruby = Mruby::new();
 /// let repl = Repl::new(mruby);
 ///
@@ -69,7 +69,7 @@ impl Repl {
     ///
     /// Using `GnuReadLine`, which requires the `gnu-readline` feature:
     ///
-    /// ```no-run
+    /// ```ignore
     /// let mruby = Mruby::new();
     /// let repl = Repl::new(mruby);
     ///
