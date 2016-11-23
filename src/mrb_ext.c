@@ -148,6 +148,16 @@ mrb_value mrb_ext_get_exc(struct mrb_state* mrb) {
   }
 }
 
+void mrb_ext_raise_current(struct mrb_state* mrb) {
+    if (mrb->exc) {
+        mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
+    }
+}
+
+mrb_value mrb_ext_exc_str(struct mrb_state* mrb, mrb_value exc) {
+    return mrb_funcall(mrb, exc, "inspect", 0);
+}
+
 mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass,
   const char* msg) {
   mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);

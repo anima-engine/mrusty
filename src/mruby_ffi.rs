@@ -76,7 +76,7 @@ impl MrValue {
     pub unsafe fn obj<T: Any>(mrb: *const MrState, class: *const MrClass,
                               obj: T, typ: &MrDataType) -> MrValue {
         let rc = Rc::new(RefCell::new(obj));
-        let ptr = mem::transmute::<Rc<RefCell<T>>, *const u8>(rc);
+        let ptr: *const u8 = mem::transmute(rc);
         let data = mrb_data_object_alloc(mrb, class, ptr, typ as *const MrDataType);
 
         mrb_ext_data_value(data)
@@ -150,7 +150,7 @@ impl MrValue {
         match self.typ {
             MrType::MRB_TT_DATA => {
                 let ptr = mrb_data_get_ptr(mrb, *self, typ as *const MrDataType) as *const u8;
-                let rc = mem::transmute::<*const u8, Rc<RefCell<T>>>(ptr);
+                let rc: Rc<RefCell<T>> = mem::transmute(ptr);
 
                 let result = Ok(rc.clone());
 
@@ -294,6 +294,8 @@ extern "C" {
     pub fn mrb_define_class_method(mrb: *const MrState, class: *const MrClass, name: *const c_char,
                                    fun: MrFunc, aspec: u32);
 
+    pub fn mrb_protect(mrb: *const MrState, fun: MrFunc, data: MrValue, state: *const bool) -> MrValue;
+
     #[inline]
     pub fn mrb_ext_class(mrb: *const MrState, value: MrValue) -> *const MrClass;
 
@@ -368,7 +370,9 @@ extern "C" {
     #[inline]
     pub fn mrb_ext_raise(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
     #[inline]
-    pub fn mrb_ext_get_exc(mrb: *const MrState) -> MrValue;
+    pub fn mrb_ext_raise_current(mrb: *const MrState);
+    #[inline]
+    pub fn mrb_ext_exc_str(mrb: *const MrState, exc: MrValue) -> MrValue;
 
     #[inline]
     pub fn mrb_ext_get_class(class: MrValue) -> *const MrClass;

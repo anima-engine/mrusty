@@ -84,7 +84,7 @@ impl Mruby {
             extern "C" fn require(mrb: *const MrState, _slf: MrValue) -> MrValue {
                 unsafe {
                     let ptr = mrb_ext_get_ud(mrb);
-                    let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
+                    let mruby: MrubyType = mem::transmute(ptr);
 
                     let name = mem::uninitialized::<*const c_char>();
 
@@ -178,10 +178,10 @@ impl Mruby {
 
             mrb_define_module_function(mrb, kernel, require_str.as_ptr(), require, 1 << 12);
 
-            let ptr = mem::transmute::<MrubyType, *const u8>(mruby);
+            let ptr: *const u8 = mem::transmute(mruby);
             mrb_ext_set_ud(mrb, ptr);
 
-            let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
+            let mruby: MrubyType = mem::transmute(ptr);
 
             mruby.run_unchecked("
               class RustPanic < Exception
@@ -352,13 +352,18 @@ pub trait MrubyImpl {
 
     /// Runs mruby `script` on a state and context and returns a `Value`. If an mruby Exception is
     /// raised, mruby will be left to handle it.
+    ///
+    /// The method is unsafe because running it within a Rust context will interrupt drops,
+    /// potentially leading to memory leaks.
+    ///
+    ///
     /// # Examples
     ///
     /// ```
     /// # use mrusty::Mruby;
     /// # use mrusty::MrubyImpl;
     /// let mruby = Mruby::new();
-    /// let result = mruby.run_unchecked("true");
+    /// let result = unsafe { mruby.run_unchecked("true") };
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
@@ -374,7 +379,7 @@ pub trait MrubyImpl {
     ///
     /// mruby.def_class_for::<Cont>("Container");
     /// mruby.def_class_method_for::<Cont, _>("raise", mrfn!(|mruby, _slf: Value| {
-    ///     mruby.run_unchecked("fail 'surprize'")
+    ///     unsafe { mruby.run_unchecked("fail 'surprize'") }
     /// }));
     ///
     /// let result = mruby.run("
@@ -389,7 +394,7 @@ pub trait MrubyImpl {
     /// # }
     /// ```
     #[inline]
-    fn run_unchecked(&self, script: &str) -> Value;
+    unsafe fn run_unchecked(&self, script: &str) -> Value;
 
     /// Runs mruby compiled (.mrb) `script` on a state and context and returns a `Value` in an `Ok`
     /// or an `Err` containing an mruby `Exception`'s message.
@@ -1060,7 +1065,7 @@ macro_rules! callback {
         extern "C" fn $name<T: Any>(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
                 let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
+                let mruby: MrubyType = mem::transmute(ptr);
 
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
@@ -1111,7 +1116,7 @@ macro_rules! mruby_callback {
         extern "C" fn $name(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
                 let ptr = mrb_ext_get_ud(mrb);
-                let mruby = mem::transmute::<*const u8, MrubyType>(ptr);
+                let mruby: MrubyType = mem::transmute(ptr);
 
                 let result = {
                     let value = Value::new(mruby.clone(), slf);
@@ -1169,6 +1174,22 @@ impl MrubyImpl for MrubyType {
 
     #[inline]
     fn run(&self, script: &str) -> Result<Value, MrubyError> {
+        extern "C" fn run_protected(mrb: *const MrState, data: MrValue) -> MrValue {
+            unsafe {
+                let ptr = data.to_ptr().unwrap();
+                let args = *mem::transmute::<*const u8, *const [*const u8; 3]>(ptr);
+
+                let script_len: &i32 = mem::transmute(args[1]);
+                let ctx: *const MrContext = mem::transmute(args[2]);
+
+                let result = mrb_load_nstring_cxt(mrb, args[0], *script_len, ctx);
+
+                mrb_ext_raise_current(mrb);
+
+                result
+            }
+        }
+
         unsafe {
             let (mrb, ctx) = {
                 let borrow = self.borrow();
@@ -1176,35 +1197,59 @@ impl MrubyImpl for MrubyType {
                 (borrow.mrb, borrow.ctx)
             };
 
-            let value = mrb_load_nstring_cxt(mrb, script.as_ptr(), script.len() as i32, ctx);
-            let exc = mrb_ext_get_exc(self.borrow().mrb);
+            let script_ptr = script.as_ptr();
+            let script_len = script.len();
+            let script_len_ptr: *const u8 = mem::transmute(&script_len);
+            let ctx_ptr: *const u8 = mem::transmute(ctx);
 
-            match exc.typ {
-                MrType::MRB_TT_FALSE => {
-                    Ok(Value::new(self.clone(), value))
-                },
-                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap().to_owned()))
+            let args = [script_ptr, script_len_ptr, ctx_ptr];
+            let args_ptr: *const u8 = mem::transmute(&args);
+            let data = MrValue::ptr(mrb, args_ptr);
+
+            let state = mem::uninitialized::<bool>();
+
+            let value = mrb_protect(mrb, run_protected, data, &state as *const bool);
+
+            if state {
+                let str = mrb_ext_exc_str(mrb, value).to_str(mrb).unwrap();
+
+                Err(MrubyError::Runtime(str.to_owned()))
+            } else {
+                Ok(Value::new(self.clone(), value))
             }
         }
     }
 
     #[inline]
-    fn run_unchecked(&self, script: &str) -> Value {
-        unsafe {
-            let (mrb, ctx) = {
-                let borrow = self.borrow();
+    unsafe fn run_unchecked(&self, script: &str) -> Value {
+        let (mrb, ctx) = {
+            let borrow = self.borrow();
 
-                (borrow.mrb, borrow.ctx)
-            };
+            (borrow.mrb, borrow.ctx)
+        };
 
-            let value = mrb_load_nstring_cxt(mrb, script.as_ptr(), script.len() as i32, ctx);
+        let value = mrb_load_nstring_cxt(mrb, script.as_ptr(), script.len() as i32, ctx);
 
-            Value::new(self.clone(), value)
-        }
+        Value::new(self.clone(), value)
     }
 
     #[inline]
     fn runb(&self, script: &[u8]) -> Result<Value, MrubyError> {
+        extern "C" fn runb_protected(mrb: *const MrState, data: MrValue) -> MrValue {
+            unsafe {
+                let ptr = data.to_ptr().unwrap();
+                let args = *mem::transmute::<*const u8, *const [*const u8; 2]>(ptr);
+
+                let ctx: *const MrContext = mem::transmute(args[1]);
+
+                let result = mrb_load_irep_cxt(mrb, args[0], ctx);
+
+                mrb_ext_raise_current(mrb);
+
+                result
+            }
+        }
+
         unsafe {
             let (mrb, ctx) = {
                 let borrow = self.borrow();
@@ -1212,14 +1257,23 @@ impl MrubyImpl for MrubyType {
                 (borrow.mrb, borrow.ctx)
             };
 
-            let value = mrb_load_irep_cxt(mrb, script.as_ptr(), ctx);
-            let exc = mrb_ext_get_exc(self.borrow().mrb);
+            let script_ptr = script.as_ptr();
+            let ctx_ptr: *const u8 = mem::transmute(ctx);
 
-            match exc.typ {
-                MrType::MRB_TT_FALSE => {
-                    Ok(Value::new(self.clone(), value))
-                },
-                _ => Err(MrubyError::Runtime(exc.to_str(self.borrow().mrb).unwrap().to_owned()))
+            let args = [script_ptr, ctx_ptr];
+            let args_ptr: *const u8 = mem::transmute(&args);
+            let data = MrValue::ptr(mrb, args_ptr);
+
+            let state = mem::uninitialized::<bool>();
+
+            let value = mrb_protect(mrb, runb_protected, data, &state as *const bool);
+
+            if state {
+                let str = mrb_ext_exc_str(mrb, value).to_str(mrb).unwrap();
+
+                Err(MrubyError::Runtime(str.to_owned()))
+            } else {
+                Ok(Value::new(self.clone(), value))
             }
         }
     }
@@ -1635,7 +1689,7 @@ impl Value {
     pub fn init<T: Any>(self, obj: T) -> Value {
         unsafe {
             let rc = Rc::new(RefCell::new(obj));
-            let ptr = mem::transmute::<Rc<RefCell<T>>, *const u8>(rc);
+            let ptr: *const u8 = mem::transmute(rc);
 
             let borrow = self.mruby.borrow();
 
@@ -1667,30 +1721,61 @@ impl Value {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// ```
     pub fn call(&self, name: &str, args: Vec<Value>) -> Result<Value, MrubyError> {
-        unsafe {
-            let name_str = CString::new(name).unwrap();
+        extern "C" fn call_protected(mrb: *const MrState, data: MrValue) -> MrValue {
+            unsafe {
+                let ptr = data.to_ptr().unwrap();
+                let args = *mem::transmute::<*const u8, *const [*const u8; 4]>(ptr);
 
-            let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
+                let value: MrValue = mem::transmute_copy(&*args[0]);
+                let sym: &u32 = mem::transmute(args[1]);
+                let argc: &i32 = mem::transmute(args[2]);
+                let argv: *const MrValue = mem::transmute(args[3]);
+
+                let result = mrb_funcall_argv(mrb, value, *sym, *argc, argv);
+
+                mrb_ext_raise_current(mrb);
+
+                result
+            }
+        }
+
+        unsafe {
+            let mrb = self.mruby.borrow().mrb;
+
+            let name_str = CString::new(name).unwrap();
+            let sym = mrb_intern(mrb, name_str.as_ptr(), name.len());
 
             let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
-            let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
-                                          args.len() as i32, args.as_ptr());
+            let value_ptr: *const u8 = mem::transmute(&self.value);
+            let sym_ptr: *const u8 = mem::transmute(&sym);
+            let argc = args.len();
+            let argc_ptr: * const u8 = mem::transmute(&argc);
+            let argv_ptr: *const u8 = mem::transmute(args.as_ptr());
 
-            let exc = mrb_ext_get_exc(self.mruby.borrow().mrb);
+            let args = [value_ptr, sym_ptr, argc_ptr, argv_ptr];
+            let args_ptr: *const u8 = mem::transmute(&args);
+            let data = MrValue::ptr(mrb, args_ptr);
 
-            match exc.typ {
-                MrType::MRB_TT_FALSE => {
-                    Ok(Value::new(self.mruby.clone(), result))
-                },
-                _  => Err(MrubyError::Runtime(exc.to_str(self.mruby.borrow().mrb).unwrap()
-                                                 .to_owned()))
+            let state = mem::uninitialized::<bool>();
+
+            let value = mrb_protect(mrb, call_protected, data, &state as *const bool);
+
+            if state {
+                let str = mrb_ext_exc_str(mrb, value).to_str(mrb).unwrap();
+
+                Err(MrubyError::Runtime(str.to_owned()))
+            } else {
+                Ok(Value::new(self.mruby.clone(), value))
             }
         }
     }
 
     /// Calls method `name` on a `Value` passing `args`. If call fails, mruby will be left to
     /// handle the exception.
+    ///
+    /// The method is unsafe because running it within a Rust context will interrupt drops,
+    /// potentially leading to memory leaks.
     ///
     /// # Examples
     ///
@@ -1699,22 +1784,22 @@ impl Value {
     /// # use mrusty::MrubyImpl;
     /// let mruby = Mruby::new();
     ///
-    /// let one = mruby.string("");
-    /// one.call("+", vec![mruby.fixnum(1)]);
+    /// let one = mruby.fixnum(1);
+    /// let result = unsafe { one.call_unchecked("+", vec![mruby.fixnum(2)]) };
+    ///
+    /// assert_eq!(result.to_i32().unwrap(), 3);
     /// ```
-    pub fn call_unchecked(&self, name: &str, args: Vec<Value>) -> Value {
-        unsafe {
-            let name_str = CString::new(name).unwrap();
+    pub unsafe fn call_unchecked(&self, name: &str, args: Vec<Value>) -> Value {
+        let name_str = CString::new(name).unwrap();
 
-            let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
+        let sym = mrb_intern(self.mruby.borrow().mrb, name_str.as_ptr(), name.len());
 
-            let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
+        let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
-            let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
-                                          args.len() as i32, args.as_ptr());
+        let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
+                                      args.len() as i32, args.as_ptr());
 
-            Value::new(self.mruby.clone(), result)
-        }
+        Value::new(self.mruby.clone(), result)
     }
 
     /// Returns whether the instance variable `name` is defined on a `Value`.
@@ -2108,7 +2193,7 @@ impl Clone for Value {
         if self.value.typ == MrType::MRB_TT_DATA {
             unsafe {
                 let ptr = mrb_ext_data_ptr(self.value);
-                let rc = mem::transmute::<*const u8, Rc<c_void>>(ptr);
+                let rc: Rc<c_void> = mem::transmute(ptr);
 
                 rc.clone();
 

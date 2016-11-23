@@ -28,29 +28,9 @@ fn ud() {
         let n = &1;
 
         mrb_ext_set_ud(mrb, mem::transmute::<&i32, *const u8>(n));
-        let n = mem::transmute::<*const u8, &i32>(mrb_ext_get_ud(mrb));
+        let n: &i32 = mem::transmute(mrb_ext_get_ud(mrb));
 
         assert_eq!(*n, 1);
-
-        mrb_close(mrb);
-    }
-}
-
-#[test]
-fn exec_context() {
-    unsafe {
-        let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
-        let filename = CString::new("script.rb").unwrap();
-
-        mrbc_filename(mrb, context, filename.as_ptr());
-
-        let code = "'' + 0";
-
-        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32,  context);
-
-        assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(),
-                   "script.rb:1: expected String (TypeError)");
 
         mrb_close(mrb);
     }
@@ -402,17 +382,13 @@ fn define_module_function() {
 }
 
 #[test]
-fn raise_exc() {
+fn protect() {
+    use std::mem::uninitialized;
+
     unsafe {
         let mrb = mrb_open();
-        let context = mrbc_context_new(mrb);
 
-        let obj_str = CString::new("Object").unwrap();
-        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
-        let new_class_str = CString::new("Mine").unwrap();
-        let new_class = mrb_define_class(mrb, new_class_str.as_ptr(), obj_class);
-
-        extern "C" fn job(mrb: *const MrState, _slf: MrValue) -> MrValue {
+        extern "C" fn job(mrb: *const MrState, _data: MrValue) -> MrValue {
             unsafe {
                 let runtime_str = CString::new("RuntimeError").unwrap();
                 let excepting_str = CString::new("excepting").unwrap();
@@ -423,15 +399,23 @@ fn raise_exc() {
             }
         }
 
-        let job_str = CString::new("job").unwrap();
+        let state = uninitialized::<bool>();
 
-        mrb_define_class_method(mrb, new_class, job_str.as_ptr(), job, 0);
+        let exc = mrb_protect(mrb, job, MrValue::nil(), &state as *const bool);
 
-        let code = "Mine.job";
+        assert_eq!(state, true);
 
-        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+        let args = &[];
 
-        assert_eq!(mrb_ext_get_exc(mrb).to_str(mrb).unwrap(), "RuntimeError: excepting");
+        let class_str = CString::new("class").unwrap();
+        let class_sym = mrb_intern(mrb, class_str.as_ptr(), 5usize);
+        let to_s_str = CString::new("to_s").unwrap();
+        let to_s_sym = mrb_intern(mrb, to_s_str.as_ptr(), 4usize);
+
+        let class = mrb_funcall_argv(mrb, exc, class_sym, 0, args.as_ptr());
+        let result = mrb_funcall_argv(mrb, class, to_s_sym, 0, args.as_ptr());
+
+        assert_eq!(result.to_str(mrb).unwrap(), "RuntimeError");
 
         mrb_close(mrb);
     }
@@ -774,10 +758,9 @@ fn obj_init() {
             unsafe {
                 let cont = Cont { value: 3 };
                 let rc = Rc::new(RefCell::new(cont));
-                let ptr = mem::transmute::<Rc<RefCell<Cont>>, *const u8>(rc);
+                let ptr: *const u8 = mem::transmute(rc);
 
-                let data_type = mem::transmute::<*const u8,
-                                                 *const MrDataType>(mrb_ext_get_ud(mrb));
+                let data_type: *const MrDataType = mem::transmute(mrb_ext_get_ud(mrb));
 
                 mrb_ext_data_init(&slf as *const MrValue, ptr, data_type);
 
@@ -787,7 +770,7 @@ fn obj_init() {
 
         extern "C" fn value(mrb: *const MrState, slf: MrValue) -> MrValue {
             unsafe {
-                let data_type = mem::transmute::<*const u8, &MrDataType>(mrb_ext_get_ud(mrb));
+                let data_type: &MrDataType = mem::transmute(mrb_ext_get_ud(mrb));
 
                 let cont = slf.to_obj::<Cont>(mrb, data_type).unwrap();
                 let value = cont.borrow().value;
