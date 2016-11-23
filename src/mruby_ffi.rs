@@ -250,6 +250,7 @@ extern "C" {
     pub fn mrb_ext_set_ud(mrb: *const MrState, ud: *const u8);
 
     pub fn mrbc_context_new(mrb: *const MrState) -> *const MrContext;
+    pub fn mrbc_context_free(mrb: *const MrState, ctx: *const MrContext);
 
     pub fn mrbc_filename(mrb: *const MrState, context: *const MrContext,
                          filename: *const c_char) -> *const c_char;

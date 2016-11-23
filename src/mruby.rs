@@ -209,6 +209,7 @@ impl Mruby {
 
     fn close(&self) {
         unsafe {
+            mrbc_context_free(self.mrb, self.ctx);
             mrb_close(self.mrb);
         }
     }

@@ -53,6 +53,7 @@ fn exec_bin_context() {
 
         assert_eq!(result.to_i32().unwrap(), 2);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -95,6 +96,7 @@ fn define_method() {
 
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context).to_i32().unwrap(), 2);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -288,6 +290,7 @@ fn include_module() {
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_i32().unwrap(), 2);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -318,6 +321,7 @@ fn define_class_method() {
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_i32().unwrap(), 2);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -344,11 +348,12 @@ fn define_constant() {
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_i32().unwrap(), 1);
 
-       let code = "Kernel::ONE";
+        let code = "Kernel::ONE";
 
-       assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
-                  .to_i32().unwrap(), 1);
+        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+                   .to_i32().unwrap(), 1);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -377,6 +382,7 @@ fn define_module_function() {
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_str(mrb).unwrap(), "hi");
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -464,6 +470,7 @@ pub fn args() {
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_i32().unwrap(), 2);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -516,6 +523,7 @@ pub fn str_args() {
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_str(mrb).unwrap(), "ab");
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -563,6 +571,7 @@ pub fn array_args() {
         assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
                    .to_i32().unwrap(), 2);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -615,6 +624,7 @@ fn iv() {
         assert!(mrb_iv_defined(mrb, obj, sym));
         assert_eq!(mrb_iv_get(mrb, obj, sym).to_i32().unwrap(), 1);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
@@ -797,6 +807,7 @@ fn obj_init() {
 
         assert_eq!(val, 3);
 
+        mrbc_context_free(mrb, context);
         mrb_close(mrb);
     }
 }
