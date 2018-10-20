@@ -126,8 +126,10 @@ void mrb_ext_set_instance_tt(struct RClass* class, enum mrb_vtype type) {
   MRB_SET_INSTANCE_TT(class, type);
 }
 
-int mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
-  return mrb_ary_len(mrb, array);
+long long mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
+  (void)mrb;
+  mrb_assert(mrb_array_p(array));
+  return RARRAY_LEN(array);
 }
 
 unsigned int mrb_ext_get_mid(struct mrb_state* mrb) {

@@ -14,8 +14,9 @@
 # * compile, linker & archiver
 # * unzip
 
-VERSION=1.2.0
+VERSION=1.4.1
 CURRENT=$PWD
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 # Checks is /tmp/mruby needs cleaning or creation.
 
@@ -34,6 +35,9 @@ mkdir -p mruby-out/src/mrblib
 mkdir -p mruby-out/src/mrbgems
 
 cd mruby-$VERSION
+
+# Use only supported gems.
+cat $DIR/mrusty.gembox > mrbgems/default.gembox
 
 # minirake compiles the compiler and rb files to C.
 
@@ -64,10 +68,29 @@ rm -rf build/host/mrbgems/mruby-bin*
 rm -rf mrbgems/mruby-test
 rm -rf build/host/mrbgems/mruby-test
 
+rm -rf mrbgems/mruby-io*
+rm -rf build/host/mrbgems/mruby-io*
+
+rm -rf mrbgems/mruby-socket*
+rm -rf build/host/mrbgems/mruby-socket*
+
 # Copies all gems.
 
 cp -R mrbgems/* ../mruby-out/src/mrbgems
 cp -R build/host/mrbgems/* ../mruby-out/src/mrbgems
+
+# String needs additional mruby header.
+
+sed -i -e $'s/#include "common.h"/#include "mruby.h"\\\n#include "common.h"/g' include/mruby/string.h
+
+# Copies header files so they will be available in top level includes.
+
+find include/mruby -type f -name '*.h' -exec cp {} ../mruby-out/include \;
+
+# Copies ext header files required by gems.
+
+mkdir -p ../mruby-out/include/mruby/ext
+find mrbgems -path '*/ext/*' -name '*.h' -exec cp {} ../mruby-out/include/mruby/ext \;
 
 cd ..
 
