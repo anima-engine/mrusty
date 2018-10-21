@@ -366,7 +366,7 @@ extern "C" {
     #[inline]
     pub fn mrb_ary_set(mrb: *const MrState, array: MrValue, i: i32, value: MrValue);
     #[inline]
-    pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> i32;
+    pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> i64;
 
     #[inline]
     pub fn mrb_ext_raise(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
