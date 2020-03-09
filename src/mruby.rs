@@ -312,7 +312,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "script.rb:1: undefined method \'nope\' for 1 (NoMethodError)");
+    ///         assert_eq!(err, "script.rb:1:undefined method \'nope\' for 1 (NoMethodError)");
     /// },
     ///     _ => assert!(false)
     /// }
@@ -342,7 +342,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "TypeError: expected String");
+    ///         assert_eq!(err, "TypeError:expected String");
     /// },
     ///     _ => assert!(false)
     /// }

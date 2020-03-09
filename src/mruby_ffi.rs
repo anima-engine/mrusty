@@ -169,7 +169,7 @@ impl MrValue {
                 let mut vec = Vec::with_capacity(len as usize);
 
                 for i in 0..len {
-                    vec.push(mrb_ary_ref(mrb, *self, i));
+                    vec.push(mrb_ary_ref(mrb, *self, i as i32));
                 }
 
                 Ok(vec)
@@ -257,6 +257,8 @@ pub enum MrType {
     MRB_TT_ENV,
     MRB_TT_DATA,
     MRB_TT_FIBER,
+    MRB_TT_ISTRUCT,
+    MRB_TT_BREAK,
     MRB_TT_MAXDEFINE
 }
 
@@ -363,7 +365,7 @@ extern "C" {
     pub fn mrb_ary_new_capa(mrb: *const MrState, size: i32) -> MrValue;
     pub fn mrb_ary_ref(mrb: *const MrState, array: MrValue, i: i32) -> MrValue;
     pub fn mrb_ary_set(mrb: *const MrState, array: MrValue, i: i32, value: MrValue);
-    pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> i32;
+    pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> i64;
 
     pub fn mrb_ext_raise_nothrow(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
     pub fn mrb_ext_raise_current(mrb: *const MrState);
