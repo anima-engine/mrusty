@@ -15,6 +15,7 @@
 #include <mruby/proc.h>
 #include <mruby/value.h>
 #include <mruby/variable.h>
+#include <mruby/throw.h>
 
 void* mrb_ext_get_ud(struct mrb_state* mrb) {
   return mrb->ud;
@@ -159,9 +160,21 @@ mrb_value mrb_ext_exc_str(struct mrb_state* mrb, mrb_value exc) {
     return mrb_funcall(mrb, exc, "inspect", 0);
 }
 
-mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass,
+mrb_noreturn void mrb_ext_raise_nothrow(struct mrb_state* mrb, const char* eclass,
   const char* msg) {
-  mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
+
+  struct mrb_jmpbuf c_jmp;
+  struct mrb_jmpbuf *pc_jmp_bak;
+  pc_jmp_bak = mrb->jmp;
+
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
+  }
+  MRB_CATCH(&c_jmp) {}
+  MRB_END_EXC(&c_jmp);
+
+  mrb->jmp = pc_jmp_bak;
 }
 
 mrb_bool mrb_ext_class_defined_under(struct mrb_state* mrb,

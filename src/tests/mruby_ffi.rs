@@ -393,21 +393,38 @@ fn protect() {
 
     unsafe {
         let mrb = mrb_open();
+        let ctx = mrbc_context_new(mrb);
 
-        extern "C" fn job(mrb: *const MrState, _data: MrValue) -> MrValue {
+        extern "C" fn run_protected(mrb: *const MrState, data: MrValue) -> MrValue {
             unsafe {
-                let runtime_str = CString::new("RuntimeError").unwrap();
-                let excepting_str = CString::new("excepting").unwrap();
+                let ptr = data.to_ptr().unwrap();
+                let args = *mem::transmute::<*const u8, *const [*const u8; 3]>(ptr);
 
-                mrb_ext_raise(mrb, runtime_str.as_ptr(), excepting_str.as_ptr());
+                let script = args[0];
+                let script_len: &i32 = mem::transmute(args[1]);
+                let ctx: *const MrContext = mem::transmute(args[2]);
 
-                MrValue::nil()
+                let result = mrb_load_nstring_cxt(mrb, script, *script_len, ctx);
+
+                mrb_ext_raise_current(mrb);
+
+                result
             }
         }
 
+        let script = "false 'surprize'";
+        let script_ptr = script.as_ptr();
+        let script_len = script.len();
+        let script_len_ptr: *const u8 = mem::transmute(&script_len);
+        let ctx_ptr: *const u8 = mem::transmute(ctx);
+
+        let args = [script_ptr, script_len_ptr, ctx_ptr];
+        let args_ptr: *const u8 = mem::transmute(&args);
+        let data = MrValue::ptr(mrb, args_ptr);
+
         let state = MaybeUninit::<bool>::zeroed().assume_init();
 
-        let exc = mrb_protect(mrb, job, MrValue::nil(), &state as *const bool);
+        let exc = mrb_protect(mrb, run_protected, data, &state as *const bool);
 
         assert_eq!(state, true);
 
@@ -421,8 +438,9 @@ fn protect() {
         let class = mrb_funcall_argv(mrb, exc, class_sym, 0, args.as_ptr());
         let result = mrb_funcall_argv(mrb, class, to_s_sym, 0, args.as_ptr());
 
-        assert_eq!(result.to_str(mrb).unwrap(), "RuntimeError");
+        assert_eq!(result.to_str(mrb).unwrap(), "SyntaxError");
 
+        mrbc_context_free(mrb, ctx);
         mrb_close(mrb);
     }
 }

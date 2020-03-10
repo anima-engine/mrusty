@@ -341,7 +341,7 @@ extern "C" {
     pub fn mrb_ary_set(mrb: *const MrState, array: MrValue, i: i32, value: MrValue);
     pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> i32;
 
-    pub fn mrb_ext_raise(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
+    pub fn mrb_ext_raise_nothrow(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
     pub fn mrb_ext_raise_current(mrb: *const MrState);
     pub fn mrb_ext_exc_str(mrb: *const MrState, exc: MrValue) -> MrValue;
 

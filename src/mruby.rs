@@ -201,7 +201,7 @@ impl Mruby {
             let eclass_str = CString::new(eclass).unwrap();
             let message_str = CString::new(message).unwrap();
 
-            mrb_ext_raise(mrb, eclass_str.as_ptr(), message_str.as_ptr());
+            mrb_ext_raise_nothrow(mrb, eclass_str.as_ptr(), message_str.as_ptr());
 
             MrValue::nil()
         }
