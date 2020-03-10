@@ -389,7 +389,7 @@ fn define_module_function() {
 
 #[test]
 fn protect() {
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
 
     unsafe {
         let mrb = mrb_open();
@@ -405,7 +405,7 @@ fn protect() {
             }
         }
 
-        let state = uninitialized::<bool>();
+        let state = MaybeUninit::<bool>::zeroed().assume_init();
 
         let exc = mrb_protect(mrb, job, MrValue::nil(), &state as *const bool);
 
@@ -429,7 +429,7 @@ fn protect() {
 
 #[test]
 pub fn args() {
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
 
     unsafe {
         let mrb = mrb_open();
@@ -437,8 +437,8 @@ pub fn args() {
 
         extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let a = uninitialized::<MrValue>();
-                let b = uninitialized::<MrValue>();
+                let a = MaybeUninit::<MrValue>::uninit().assume_init();
+                let b = MaybeUninit::<MrValue>::uninit().assume_init();
 
                 let sig_str = CString::new("oo").unwrap();
 
@@ -478,7 +478,7 @@ pub fn args() {
 #[test]
 pub fn str_args() {
     use std::ffi::CStr;
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
     use std::os::raw::c_char;
 
     unsafe {
@@ -487,8 +487,8 @@ pub fn str_args() {
 
         extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let a = uninitialized::<*const c_char>();
-                let b = uninitialized::<*const c_char>();
+                let a = MaybeUninit::<*const c_char>::uninit().assume_init();
+                let b = MaybeUninit::<*const c_char>::uninit().assume_init();
 
                 let sig_str = CString::new("zz").unwrap();
 
@@ -530,7 +530,7 @@ pub fn str_args() {
 
 #[test]
 pub fn array_args() {
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
 
     unsafe {
         let mrb = mrb_open();
@@ -538,7 +538,7 @@ pub fn array_args() {
 
         extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let array = uninitialized::<MrValue>();
+                let array = MaybeUninit::<MrValue>::uninit().assume_init();
 
                 let a_str = CString::new("A").unwrap();
 
