@@ -206,6 +206,29 @@ fn api_mruby_class() {
     assert_eq!(result.to_f64().unwrap(), 3.0);
 }
 
+#[test]
+fn api_mruby_panic() {
+    let mruby = Mruby::new();
+
+    Scalar::require(mruby.clone());
+
+    let result = mruby.run(r#"
+    s = Scalar.new 0.0
+    str = 'start'
+    begin
+      str = 'begin'
+      s.panic
+      str = 'Oh, not throwed'
+    rescue => e
+      str = 'rescued'
+    end
+
+    str
+    "#).unwrap();
+
+    assert_eq!(result.to_str().unwrap(), "rescued");
+}
+
 describe!(Scalar, "
   context 'when zero' do
     let(:zero) { Scalar.new 0 }

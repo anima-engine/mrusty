@@ -184,7 +184,7 @@ impl Mruby {
             let mruby: MrubyType = mem::transmute(ptr);
 
             mruby.run_unchecked("
-              class RustPanic < Exception
+              class RustPanic < StandardError
                 def initialize(message)
                   super message
                 end
