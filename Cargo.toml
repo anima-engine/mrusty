@@ -11,7 +11,7 @@ keywords = ["mruby", "ruby", "bindings", "repl"]
 license = "MPL-2.0"
 
 [build-dependencies]
-gcc = "0.3.22"
+cc = "1.0"
 tar = "0.4.4"
 walkdir = "0.1.5"
 

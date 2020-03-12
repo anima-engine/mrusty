@@ -75,7 +75,7 @@ impl Repl {
     ///
     /// repl.start(&GnuReadLine);
     /// ```
-    pub fn start<E: Display>(&self, read_line: &ReadLine<E>) {
+    pub fn start<E: Display>(&self, read_line: &dyn ReadLine<E>) {
         let mut command = String::new();
 
         let single = self.name.clone() + "> ";
@@ -101,7 +101,7 @@ impl Repl {
             };
 
             if input.ends_with("\\") {
-                let trimmed = input.trim_right_matches("\\");
+                let trimmed = input.trim_end_matches("\\");
 
                 command = command + trimmed + "\n";
                 read_line.add(&trimmed);
