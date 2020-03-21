@@ -1709,12 +1709,12 @@ impl Value {
                 let ptr = data.to_ptr().unwrap();
                 let args = *mem::transmute::<*const u8, *const [*const u8; 4]>(ptr);
 
-                let value: MrValue = mem::transmute_copy(&*args[0]);
+                let value: &MrValue = mem::transmute(args[0]);
                 let sym: &u32 = mem::transmute(args[1]);
                 let argc: &i32 = mem::transmute(args[2]);
                 let argv: *const MrValue = mem::transmute(args[3]);
 
-                let result = mrb_funcall_argv(mrb, value, *sym, *argc, argv);
+                let result = mrb_funcall_argv(mrb, *value, *sym, *argc, argv);
 
                 mrb_ext_raise_current(mrb);
 
@@ -1732,8 +1732,8 @@ impl Value {
 
             let value_ptr: *const u8 = mem::transmute(&self.value);
             let sym_ptr: *const u8 = mem::transmute(&sym);
-            let argc = args.len();
-            let argc_ptr: * const u8 = mem::transmute(&argc);
+            let argc = args.len() as i32;
+            let argc_ptr: *const u8 = mem::transmute(&argc);
             let argv_ptr: *const u8 = mem::transmute(args.as_ptr());
 
             let args = [value_ptr, sym_ptr, argc_ptr, argv_ptr];
