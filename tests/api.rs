@@ -10,7 +10,7 @@ extern crate mrusty;
 
 use std::path::Path;
 
-use mrusty::{Mruby, MrubyFile, MrubyImpl};
+use mrusty::{Mruby, MrubyFile, MrubyImpl, MrValue, MrDataType, mrb_ext_value_sizeof, mrb_ext_data_type_sizeof};
 
 mod example;
 
@@ -227,6 +227,22 @@ fn api_mruby_panic() {
     "#).unwrap();
 
     assert_eq!(result.to_str().unwrap(), "rescued");
+}
+
+#[test]
+fn api_mrb_value_size() {
+    let csize = unsafe { mrb_ext_value_sizeof() };
+    let rsize = std::mem::size_of::<MrValue>();
+
+    assert_eq!(csize, rsize);
+}
+
+#[test]
+fn api_mrb_data_type_size() {
+    let csize = unsafe { mrb_ext_data_type_sizeof() };
+    let rsize = std::mem::size_of::<MrDataType>();
+
+    assert_eq!(csize, rsize);
 }
 
 describe!(Scalar, "

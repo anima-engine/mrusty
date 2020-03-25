@@ -27,10 +27,10 @@ mod spec;
 
 /// Not meant to be called directly.
 #[doc(hidden)]
-pub use mruby_ffi::MrValue;
+pub use mruby_ffi::{MrValue, MrDataType};
 /// Not meant to be called directly.
 #[doc(hidden)]
-pub use mruby_ffi::mrb_get_args;
+pub use mruby_ffi::{mrb_get_args, mrb_ext_value_sizeof, mrb_ext_data_type_sizeof};
 
 pub use mruby::Class;
 pub use mruby::ClassLike;

@@ -742,7 +742,7 @@ fn obj() {
             }
         }
 
-        let data_type = MrDataType { name: cont_str.as_ptr(), free: free };
+        let data_type = mrb_ext_data_type(cont_str.as_ptr(), free);
 
         let obj = Cont { value: 3 };
         let obj = MrValue::obj(mrb, cont_class, obj, &data_type);
@@ -807,7 +807,7 @@ fn obj_init() {
             }
         }
 
-        let data_type = &MrDataType { name: cont_str.as_ptr(), free: free };
+        let data_type = &mrb_ext_data_type(cont_str.as_ptr(), free);
 
         mrb_ext_set_ud(mrb, mem::transmute::<&MrDataType, *const u8>(data_type));
 
@@ -866,7 +866,7 @@ fn obj_scoping() {
             }
         }
 
-        let data_type = MrDataType { name: cont_str.as_ptr(), free: free };
+        let data_type = mrb_ext_data_type(cont_str.as_ptr(), free);
 
         {
             let orig = Cont { value: 3 };

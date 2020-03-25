@@ -1006,7 +1006,7 @@ fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
             }
         }
 
-        let data_type = MrDataType { name: c_name.as_ptr(), free: free::<T> };
+        let data_type = mrb_ext_data_type(c_name.as_ptr(), free::<T>);
 
         mruby.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
         mruby.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
@@ -1879,7 +1879,7 @@ impl Value {
     /// ```
     #[inline]
     pub fn set_var(&self, name: &str, value: Value) {
-        match self.value.typ {
+        match self.value.typ() {
             MrType::MRB_TT_OBJECT |
             MrType::MRB_TT_CLASS |
             MrType::MRB_TT_MODULE |
@@ -2090,7 +2090,7 @@ impl Value {
     /// ```
     #[inline]
     pub fn to_option<T: Any>(&self) -> Result<Option<Rc<RefCell<T>>>, MrubyError> {
-        if self.value.typ == MrType::MRB_TT_DATA {
+        if self.value.typ() == MrType::MRB_TT_DATA {
             self.to_obj::<T>().map(|obj| Some(obj))
         } else {
             Ok(None)
@@ -2173,7 +2173,7 @@ use std::fmt;
 
 impl Clone for Value {
     fn clone(&self) -> Value {
-        if self.value.typ == MrType::MRB_TT_DATA {
+        if self.value.typ() == MrType::MRB_TT_DATA {
             unsafe {
                 let ptr = mrb_ext_data_ptr(self.value);
                 let rc: Rc<c_void> = mem::transmute(ptr);
