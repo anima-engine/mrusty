@@ -41,7 +41,7 @@ pub struct Mruby {
     pub mrb:             *const MrState,
     ctx:                 *const MrContext,
     filename:            Option<String>,
-    classes:             HashMap<TypeId, (*const MrClass, MrDataType, String, CString)>,
+    classes:             HashMap<TypeId, (*const MrClass, Rc<MrDataType>, String, CString)>,
     methods:             HashMap<TypeId, HashMap<u32, Rc<dyn Fn(MrubyType, Value) -> Value>>>,
     class_methods:       HashMap<TypeId, HashMap<u32, Rc<dyn Fn(MrubyType, Value) -> Value>>>,
     mruby_methods:       HashMap<String, HashMap<u32, Rc<dyn Fn(MrubyType, Value) -> Value>>>,
@@ -1008,7 +1008,7 @@ fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
 
         let data_type = mrb_ext_data_type(c_name.as_ptr(), free::<T>);
 
-        mruby.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name, c_name));
+        mruby.borrow_mut().classes.insert(TypeId::of::<T>(), (class, Rc::new(data_type), name, c_name));
         mruby.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
         mruby.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
 
@@ -1681,7 +1681,7 @@ impl Value {
                 None       => panic!("Class not found.")
             };
 
-            let data_type = &class.1;
+            let data_type = &*class.1;
 
             mrb_ext_data_init(&self.value as *const MrValue, ptr, data_type as *const MrDataType);
         }
