@@ -3,6 +3,7 @@
 extern crate mrusty;
 
 use mrusty::{Mruby, MrubyImpl};
+use mrusty::{MrInt};
 
 fn main() {
     let mruby = Mruby::new();

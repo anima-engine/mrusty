@@ -10,7 +10,9 @@ extern crate mrusty;
 
 use std::path::Path;
 
-use mrusty::{Mruby, MrubyFile, MrubyImpl, MrValue, MrDataType, mrb_ext_value_sizeof, mrb_ext_data_type_sizeof};
+use mrusty::{Mruby, MrubyFile, MrubyImpl};
+use mrusty::{MrValue, MrDataType, MrInt, MrFloat};
+use mrusty::{mrb_ext_value_sizeof, mrb_ext_data_type_sizeof, mrb_ext_int_sizeof, mrb_ext_float_sizeof};
 
 mod example;
 
@@ -230,19 +232,31 @@ fn api_mruby_panic() {
 }
 
 #[test]
-fn api_mrb_value_size() {
-    let csize = unsafe { mrb_ext_value_sizeof() };
-    let rsize = std::mem::size_of::<MrValue>();
+fn api_mrb_sizeof() {
+    {
+        let csize = unsafe { mrb_ext_value_sizeof() };
+        let rsize = std::mem::size_of::<MrValue>();
 
-    assert_eq!(csize, rsize);
-}
+        assert_eq!(csize, rsize);
+    }
+    {
+        let csize = unsafe { mrb_ext_data_type_sizeof() };
+        let rsize = std::mem::size_of::<MrDataType>();
 
-#[test]
-fn api_mrb_data_type_size() {
-    let csize = unsafe { mrb_ext_data_type_sizeof() };
-    let rsize = std::mem::size_of::<MrDataType>();
-
-    assert_eq!(csize, rsize);
+        assert_eq!(csize, rsize);
+    }
+    {
+        let csize = unsafe { mrb_ext_float_sizeof() };
+        let rsize = std::mem::size_of::<MrFloat>();
+        
+        assert_eq!(csize, rsize);
+    }
+    {
+        let csize = unsafe { mrb_ext_int_sizeof() };
+        let rsize = std::mem::size_of::<MrInt>();
+        
+        assert_eq!(csize, rsize);
+    }
 }
 
 describe!(Scalar, "

@@ -14,7 +14,8 @@
 # * compile, linker & archiver
 # * unzip
 
-VERSION=1.2.0
+VERSION=1.4.1
+#VERSION=2.1.0
 CURRENT=$PWD
 
 # Checks is /tmp/mruby needs cleaning or creation.
@@ -46,14 +47,14 @@ cp -R include ../mruby-out
 # Adds src and C-compiled mrblib.
 
 cp src/*.c ../mruby-out/src
-cp src/*.h ../mruby-out/src
+cp src/*.h ../mruby-out/include
 cp build/host/mrblib/mrblib.c ../mruby-out/src/mrblib/mrblib.c
 
 # Removes incompatible files.
 
-find mrbgems -type f ! -name "*.c" -and ! -name "*.h" -and ! -name "*.def" -delete
+find mrbgems -type f ! -name "*.c" -and ! -name "*.h" -and ! -name "*.def" -and ! -name "*.cstub" -delete
 find mrbgems -type d -empty -delete
-find build/host/mrbgems -type f ! -name "*.c" -and ! -name "*.h" -delete
+find build/host/mrbgems -type f ! -name "*.c" -and ! -name "*.h" -and ! -name "*.cstub" -delete
 find build/host/mrbgems -type d -empty -delete
 
 # Removes incompatible gems.
@@ -68,6 +69,12 @@ rm -rf build/host/mrbgems/mruby-test
 
 cp -R mrbgems/* ../mruby-out/src/mrbgems
 cp -R build/host/mrbgems/* ../mruby-out/src/mrbgems
+
+# Copies header files.
+
+mkdir -p ../mruby-out/include/mruby/ext
+find mrbgems -path '*/include/mruby/ext/*' -name '*.h' -exec cp {} ../mruby-out/include/mruby/ext \;
+find mrbgems -path '*/include/mruby/*' -name '*.h' -exec cp {} ../mruby-out/include/mruby \;
 
 cd ..
 

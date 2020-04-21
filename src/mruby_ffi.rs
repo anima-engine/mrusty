@@ -23,6 +23,9 @@ pub enum MrData {}
 pub type MrFunc = extern "C" fn(*const MrState, MrValue) -> MrValue;
 pub type MrDfree = extern "C" fn(*const MrState, *const u8);
 
+pub type MrFloat = f64;
+pub type MrInt = i64;
+
 #[repr(C)]
 pub struct MrDataType {
     _buf: [u8; 16]
@@ -53,12 +56,12 @@ impl MrValue {
 
     #[inline]
     pub unsafe fn fixnum(value: i32) -> MrValue {
-        mrb_ext_cint_to_fixnum(value)
+        mrb_ext_cint_to_fixnum(value as MrInt)
     }
 
     #[inline]
     pub unsafe fn float(mrb: *const MrState, value: f64) -> MrValue {
-        mrb_ext_cdouble_to_float(mrb, value)
+        mrb_ext_cdouble_to_float(mrb, value as MrFloat)
     }
 
     #[inline]
@@ -83,10 +86,10 @@ impl MrValue {
 
     #[inline]
     pub unsafe fn array(mrb: *const MrState, value: Vec<MrValue>) -> MrValue {
-        let array = mrb_ary_new_capa(mrb, value.len() as i32);
+        let array = mrb_ary_new_capa(mrb, value.len() as MrInt);
 
         for (i, value) in value.iter().enumerate() {
-            mrb_ary_set(mrb, array, i as i32, *value);
+            mrb_ary_set(mrb, array, i as MrInt, *value);
         }
 
         array
@@ -110,7 +113,7 @@ impl MrValue {
     pub unsafe fn to_i32(&self) -> Result<i32, MrubyError> {
         match self.typ() {
             MrType::MRB_TT_FIXNUM => {
-                Ok(mrb_ext_fixnum_to_cint(*self))
+                Ok(mrb_ext_fixnum_to_cint(*self) as i32)
             },
             _ => Err(MrubyError::Cast("Fixnum".to_owned()))
         }
@@ -120,7 +123,7 @@ impl MrValue {
     pub unsafe fn to_f64(&self) -> Result<f64, MrubyError> {
         match self.typ() {
             MrType::MRB_TT_FLOAT => {
-                Ok(mrb_ext_float_to_cdouble(*self))
+                Ok(mrb_ext_float_to_cdouble(*self) as f64)
             },
             _ => Err(MrubyError::Cast("Float".to_owned()))
         }
@@ -169,7 +172,7 @@ impl MrValue {
                 let mut vec = Vec::with_capacity(len as usize);
 
                 for i in 0..len {
-                    vec.push(mrb_ary_ref(mrb, *self, i));
+                    vec.push(mrb_ary_ref(mrb, *self, i as MrInt));
                 }
 
                 Ok(vec)
@@ -257,6 +260,8 @@ pub enum MrType {
     MRB_TT_ENV,
     MRB_TT_DATA,
     MRB_TT_FIBER,
+    MRB_TT_ISTRUCT,
+    MRB_TT_BREAK,
     MRB_TT_MAXDEFINE
 }
 
@@ -317,20 +322,21 @@ extern "C" {
 
     pub fn mrb_ext_class(mrb: *const MrState, value: MrValue) -> *const MrClass;
 
-    pub fn mrb_get_args(mrb: *const MrState, format: *const c_char, ...) -> i32;
+    pub fn mrb_get_args(mrb: *const MrState, format: *const c_char, ...) -> MrInt;
     pub fn mrb_ext_get_mid(mrb: *const MrState) -> u32;
 
     pub fn mrb_intern(mrb: *const MrState, string: *const c_char, len: usize) -> u32;
 
-    pub fn mrb_funcall_argv(mrb: *const MrState, object: MrValue, sym: u32, argc: i32,
+    // *const MrValue is MrValue array
+    pub fn mrb_funcall_argv(mrb: *const MrState, object: MrValue, sym: u32, argc: MrInt,
                             argv: *const MrValue) -> MrValue;
 
     pub fn mrb_iv_defined(mrb: *const MrState, object: MrValue, sym: u32) -> bool;
     pub fn mrb_iv_get(mrb: *const MrState, object: MrValue, sym: u32) -> MrValue;
     pub fn mrb_iv_set(mrb: *const MrState, object: MrValue, sym: u32, value: MrValue);
 
-    pub fn mrb_ext_fixnum_to_cint(value: MrValue) -> i32;
-    pub fn mrb_ext_float_to_cdouble(value: MrValue) -> f64;
+    pub fn mrb_ext_fixnum_to_cint(value: MrValue) -> MrInt;
+    pub fn mrb_ext_float_to_cdouble(value: MrValue) -> MrFloat;
     pub fn mrb_ext_ptr_to_ptr(value: MrValue) -> *const u8;
     pub fn mrb_ext_symbol_to_cuint(value: MrValue) -> u32;
     pub fn mrb_ext_type(value: MrValue) -> MrType;
@@ -338,8 +344,8 @@ extern "C" {
     pub fn mrb_ext_nil() -> MrValue;
     pub fn mrb_ext_false() -> MrValue;
     pub fn mrb_ext_true() -> MrValue;
-    pub fn mrb_ext_cint_to_fixnum(value: i32) -> MrValue;
-    pub fn mrb_ext_cdouble_to_float(mrb: *const MrState, value: f64) -> MrValue;
+    pub fn mrb_ext_cint_to_fixnum(value: MrInt) -> MrValue;
+    pub fn mrb_ext_cdouble_to_float(mrb: *const MrState, value: MrFloat) -> MrValue;
     pub fn mrb_str_new(mrb: *const MrState, value: *const c_uchar, len: usize) -> MrValue;
     pub fn mrb_ext_sym2name(mrb: *const MrState, value: MrValue) -> *const c_char;
     pub fn mrb_ext_sym_new(mrb: *const MrState, value: *const c_uchar, len: usize) -> MrValue;
@@ -360,10 +366,10 @@ extern "C" {
     pub fn mrb_ext_set_instance_tt(class: *const MrClass, typ: MrType);
     pub fn mrb_ext_data_value(data: *const MrData) -> MrValue;
 
-    pub fn mrb_ary_new_capa(mrb: *const MrState, size: i32) -> MrValue;
-    pub fn mrb_ary_ref(mrb: *const MrState, array: MrValue, i: i32) -> MrValue;
-    pub fn mrb_ary_set(mrb: *const MrState, array: MrValue, i: i32, value: MrValue);
-    pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> i32;
+    pub fn mrb_ary_new_capa(mrb: *const MrState, size: MrInt) -> MrValue;
+    pub fn mrb_ary_ref(mrb: *const MrState, array: MrValue, i: MrInt) -> MrValue;
+    pub fn mrb_ary_set(mrb: *const MrState, array: MrValue, i: MrInt, value: MrValue);
+    pub fn mrb_ext_ary_len(mrb: *const MrState, array: MrValue) -> MrInt;
 
     pub fn mrb_ext_raise_nothrow(mrb: *const MrState, eclass: *const c_char, msg: *const c_char);
     pub fn mrb_ext_raise_current(mrb: *const MrState);
@@ -373,6 +379,8 @@ extern "C" {
 
     pub fn mrb_ext_value_sizeof() -> usize;
     pub fn mrb_ext_data_type_sizeof() -> usize;
+    pub fn mrb_ext_int_sizeof() -> usize;
+    pub fn mrb_ext_float_sizeof() -> usize;
 }
 
 
