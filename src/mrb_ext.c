@@ -46,11 +46,12 @@ mrb_value mrb_ext_load_nstring_cxt_nothrow(mrb_state *mrb, const char *s, size_t
   return value;
 }
 
-int mrb_ext_fixnum_to_cint(mrb_value value) {
+
+mrb_int mrb_ext_fixnum_to_cint(mrb_value value) {
   return mrb_fixnum(value);
 }
 
-double mrb_ext_float_to_cdouble(mrb_value value) {
+mrb_float mrb_ext_float_to_cdouble(mrb_value value) {
   return mrb_float(value);
 }
 
@@ -58,7 +59,7 @@ void* mrb_ext_ptr_to_ptr(mrb_value value) {
   return mrb_ptr(value);
 }
 
-unsigned int mrb_ext_symbol_to_cuint(mrb_value value) {
+mrb_sym mrb_ext_symbol_to_cuint(mrb_value value) {
  return mrb_symbol(value);
 }
 
@@ -82,11 +83,11 @@ mrb_value mrb_ext_true() {
   return mrb_true_value();
 }
 
-mrb_value mrb_ext_cint_to_fixnum(int value) {
+mrb_value mrb_ext_cint_to_fixnum(mrb_int value) {
   return mrb_fixnum_value(value);
 }
 
-mrb_value mrb_ext_cdouble_to_float(struct mrb_state* mrb, double value) {
+mrb_value mrb_ext_cdouble_to_float(struct mrb_state* mrb, mrb_float value) {
   return mrb_float_value(mrb, value);
 }
 
@@ -159,11 +160,11 @@ void mrb_ext_set_instance_tt(struct RClass* class, enum mrb_vtype type) {
   MRB_SET_INSTANCE_TT(class, type);
 }
 
-long long mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
+mrb_int mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
   return RARRAY_LEN(array);
 }
 
-unsigned int mrb_ext_get_mid(struct mrb_state* mrb) {
+mrb_sym mrb_ext_get_mid(struct mrb_state* mrb) {
   mrb_sym mid = mrb_get_mid(mrb);
   if (mid == mrb_intern_lit(mrb, "new")) {
     mid = mrb_intern_lit(mrb, "initialize");
@@ -237,4 +238,12 @@ size_t mrb_ext_value_sizeof() {
 
 size_t mrb_ext_data_type_sizeof() {
 	return sizeof(mrb_data_type);
+}
+
+size_t mrb_ext_int_sizeof() {
+	return sizeof(mrb_int);
+}
+
+size_t mrb_ext_float_sizeof() {
+	return sizeof(mrb_float);
 }

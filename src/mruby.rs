@@ -312,7 +312,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "script.rb:1:undefined method \'nope\' for 1 (NoMethodError)");
+    ///         assert_eq!(err, "script.rb:1: undefined method \'nope\' (NoMethodError)");
     /// },
     ///     _ => assert!(false)
     /// }
@@ -342,7 +342,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "TypeError:expected String");
+    ///         assert_eq!(err, "TypeError: expected String");
     /// },
     ///     _ => assert!(false)
     /// }
@@ -532,6 +532,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -699,6 +700,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -724,6 +726,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -759,6 +762,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -895,6 +899,7 @@ pub trait MrubyImpl {
     /// ```
     /// # use mrusty::Mruby;
     /// # use mrusty::MrubyImpl;
+    /// # use mrusty::MrInt;
     /// let mruby = Mruby::new();
     ///
     /// struct Cont {
@@ -1647,6 +1652,7 @@ impl Value {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -1711,7 +1717,7 @@ impl Value {
 
                 let value: &MrValue = mem::transmute(args[0]);
                 let sym: &u32 = mem::transmute(args[1]);
-                let argc: &i32 = mem::transmute(args[2]);
+                let argc: &MrInt = mem::transmute(args[2]);
                 let argv: *const MrValue = mem::transmute(args[3]);
 
                 let result = mrb_funcall_argv(mrb, *value, *sym, *argc, argv);
@@ -1732,7 +1738,7 @@ impl Value {
 
             let value_ptr: *const u8 = mem::transmute(&self.value);
             let sym_ptr: *const u8 = mem::transmute(&sym);
-            let argc = args.len() as i32;
+            let argc = args.len() as MrInt;
             let argc_ptr: *const u8 = mem::transmute(&argc);
             let argv_ptr: *const u8 = mem::transmute(args.as_ptr());
 
@@ -1780,7 +1786,7 @@ impl Value {
         let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
         let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
-                                      args.len() as i32, args.as_ptr());
+                                      args.len() as MrInt, args.as_ptr());
 
         Value::new(self.mruby.clone(), result)
     }

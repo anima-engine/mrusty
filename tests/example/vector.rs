@@ -6,6 +6,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use mrusty::MrubyImpl;
+use mrusty::MrFloat;
 
 use super::Scalar;
 
