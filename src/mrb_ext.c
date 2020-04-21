@@ -15,6 +15,7 @@
 #include <mruby/proc.h>
 #include <mruby/value.h>
 #include <mruby/variable.h>
+#include <mruby/throw.h>
 
 void* mrb_ext_get_ud(struct mrb_state* mrb) {
   return mrb->ud;
@@ -24,12 +25,45 @@ void mrb_ext_set_ud(struct mrb_state* mrb, void* ud) {
   mrb->ud = ud;
 }
 
+mrb_value mrb_ext_load_nstring_cxt_nothrow(mrb_state *mrb, const char *s, size_t len, mrbc_context *cxt) {
+  mrb_value value;
+
+  struct mrb_jmpbuf c_jmp;
+  struct mrb_jmpbuf *pc_jmp_bak;
+  pc_jmp_bak = mrb->jmp;
+  
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    value = mrb_load_nstring_cxt(mrb, s, len, cxt);
+  }
+  MRB_CATCH(&c_jmp) {
+    value = mrb_nil_value();
+  }
+  MRB_END_EXC(&c_jmp);
+  
+  mrb->jmp = pc_jmp_bak;
+  
+  return value;
+}
+
 int mrb_ext_fixnum_to_cint(mrb_value value) {
   return mrb_fixnum(value);
 }
 
 double mrb_ext_float_to_cdouble(mrb_value value) {
   return mrb_float(value);
+}
+
+void* mrb_ext_ptr_to_ptr(mrb_value value) {
+  return mrb_ptr(value);
+}
+
+unsigned int mrb_ext_symbol_to_cuint(mrb_value value) {
+ return mrb_symbol(value);
+}
+
+enum mrb_vtype mrb_ext_type(mrb_value value) {
+	return mrb_type(value);
 }
 
 void* mrb_ext_data_ptr(mrb_value value) {
@@ -56,14 +90,6 @@ mrb_value mrb_ext_cdouble_to_float(struct mrb_state* mrb, double value) {
   return mrb_float_value(mrb, value);
 }
 
-mrb_value mrb_ext_proc_to_value(struct mrb_state* mrb, struct RProc* proc) {
-  mrb_value value = mrb_cptr_value(mrb, proc);
-
-  value.tt = MRB_TT_PROC;
-
-  return value;
-}
-
 const char* mrb_ext_sym2name(struct mrb_state* mrb, mrb_value value) {
   return mrb_sym2name(mrb, mrb_symbol(value));
 }
@@ -72,9 +98,7 @@ mrb_value mrb_ext_sym_new(struct mrb_state* mrb, const char* string,
                           size_t len) {
   mrb_value value;
 
-  mrb_symbol(value) = mrb_intern(mrb, string, len);
-
-  value.tt = MRB_TT_SYMBOL;
+  SET_SYM_VALUE(value, mrb_intern(mrb, string, len));
 
   return value;
 }
@@ -91,6 +115,15 @@ mrb_value mrb_ext_set_ptr(struct mrb_state* mrb, void* ptr) {
     return value;
 }
 
+mrb_data_type mrb_ext_data_type(const char* name, void (*dfree)(mrb_state *mrb, void*)) {
+	mrb_data_type data_type = {
+		.struct_name = name,
+		.dfree = dfree
+	};
+
+	return data_type;
+}
+
 void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
   mrb_data_init(*value, ptr, type);
 }
@@ -98,8 +131,8 @@ void mrb_ext_data_init(mrb_value* value, void* ptr, const mrb_data_type* type) {
 mrb_value mrb_ext_class_value(struct RClass* klass) {
   mrb_value value;
 
-  value.value.p = klass;
-  value.tt = MRB_TT_CLASS;
+  mrb_ptr(value) = klass;
+  mrb_type(value) = MRB_TT_CLASS;
 
   return value;
 }
@@ -107,8 +140,8 @@ mrb_value mrb_ext_class_value(struct RClass* klass) {
 mrb_value mrb_ext_module_value(struct RClass* module) {
   mrb_value value;
 
-  value.value.p = module;
-  value.tt = MRB_TT_MODULE;
+  mrb_ptr(value) = module;
+  mrb_type(value) = MRB_TT_MODULE;
 
   return value;
 }
@@ -116,8 +149,8 @@ mrb_value mrb_ext_module_value(struct RClass* module) {
 mrb_value mrb_ext_data_value(struct RData* data) {
   mrb_value value;
 
-  value.value.p = data;
-  value.tt = MRB_TT_DATA;
+  mrb_ptr(value) = data;
+  mrb_type(value) = MRB_TT_DATA;
 
   return value;
 }
@@ -159,9 +192,21 @@ mrb_value mrb_ext_exc_str(struct mrb_state* mrb, mrb_value exc) {
     return mrb_funcall(mrb, exc, "inspect", 0);
 }
 
-mrb_noreturn void mrb_ext_raise(struct mrb_state* mrb, const char* eclass,
+mrb_noreturn void mrb_ext_raise_nothrow(struct mrb_state* mrb, const char* eclass,
   const char* msg) {
-  mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
+
+  struct mrb_jmpbuf c_jmp;
+  struct mrb_jmpbuf *pc_jmp_bak;
+  pc_jmp_bak = mrb->jmp;
+
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    mrb_raise(mrb, mrb_class_get(mrb, eclass), msg);
+  }
+  MRB_CATCH(&c_jmp) {}
+  MRB_END_EXC(&c_jmp);
+
+  mrb->jmp = pc_jmp_bak;
 }
 
 mrb_bool mrb_ext_class_defined_under(struct mrb_state* mrb,
@@ -173,10 +218,18 @@ mrb_bool mrb_ext_class_defined_under(struct mrb_state* mrb,
   return mrb_const_defined(mrb, mrb_obj_value(outer), mrb_symbol(sym));
 }
 
-struct RClass* mrb_ext_get_class(mrb_value value) {
-  return (struct RClass*) value.value.p;
+struct RClass* mrb_ext_class_ptr(mrb_value value) {
+  return mrb_class_ptr(value);
 }
 
 struct RClass* mrb_ext_class(struct mrb_state* mrb, mrb_value value) {
   return mrb_class(mrb, value);
+}
+
+size_t mrb_ext_value_sizeof() {
+	return sizeof(mrb_value);
+}
+
+size_t mrb_ext_data_type_sizeof() {
+	return sizeof(mrb_data_type);
 }

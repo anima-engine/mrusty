@@ -10,7 +10,7 @@ extern crate mrusty;
 
 use std::path::Path;
 
-use mrusty::{Mruby, MrubyFile, MrubyImpl};
+use mrusty::{Mruby, MrubyFile, MrubyImpl, MrValue, MrDataType, mrb_ext_value_sizeof, mrb_ext_data_type_sizeof};
 
 mod example;
 
@@ -204,6 +204,45 @@ fn api_mruby_class() {
     let result = mruby.run("Container.new(Scalar.new 3.0).value").unwrap();
 
     assert_eq!(result.to_f64().unwrap(), 3.0);
+}
+
+#[test]
+fn api_mruby_panic() {
+    let mruby = Mruby::new();
+
+    Scalar::require(mruby.clone());
+
+    let result = mruby.run(r#"
+    s = Scalar.new 0.0
+    str = 'start'
+    begin
+      str = 'begin'
+      s.panic
+      str = 'Oh, not throwed'
+    rescue => e
+      str = 'rescued'
+    end
+
+    str
+    "#).unwrap();
+
+    assert_eq!(result.to_str().unwrap(), "rescued");
+}
+
+#[test]
+fn api_mrb_value_size() {
+    let csize = unsafe { mrb_ext_value_sizeof() };
+    let rsize = std::mem::size_of::<MrValue>();
+
+    assert_eq!(csize, rsize);
+}
+
+#[test]
+fn api_mrb_data_type_size() {
+    let csize = unsafe { mrb_ext_data_type_sizeof() };
+    let rsize = std::mem::size_of::<MrDataType>();
+
+    assert_eq!(csize, rsize);
 }
 
 describe!(Scalar, "
