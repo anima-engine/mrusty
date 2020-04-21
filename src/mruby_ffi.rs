@@ -273,7 +273,7 @@ extern "C" {
     pub fn mrbc_filename(mrb: *const MrState, context: *const MrContext,
                          filename: *const c_char) -> *const c_char;
 
-    pub fn mrb_load_nstring_cxt(mrb: *const MrState, code: *const c_uchar, len: i32,
+    pub fn mrb_ext_load_nstring_cxt_nothrow(mrb: *const MrState, code: *const c_uchar, len: usize,
                                 context: *const MrContext) -> MrValue;
     pub fn mrb_load_irep_cxt(mrb: *const MrState, code: *const c_uchar,
                              context: *const MrContext) -> MrValue;

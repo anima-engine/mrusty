@@ -63,7 +63,7 @@ impl Mruby {
         unsafe {
             let mrb = mrb_open();
 
-            let mruby = Rc::new(RefCell::new(
+            let mruby: MrubyType = Rc::new(RefCell::new(
                 Mruby {
                     mrb:                 mrb,
                     ctx:                 mrbc_context_new(mrb),
@@ -1162,10 +1162,10 @@ impl MrubyImpl for MrubyType {
                 let ptr = data.to_ptr().unwrap();
                 let args = *mem::transmute::<*const u8, *const [*const u8; 3]>(ptr);
 
-                let script_len: &i32 = mem::transmute(args[1]);
+                let script_len: &usize = mem::transmute(args[1]);
                 let ctx: *const MrContext = mem::transmute(args[2]);
 
-                let result = mrb_load_nstring_cxt(mrb, args[0], *script_len, ctx);
+                let result = mrb_ext_load_nstring_cxt_nothrow(mrb, args[0], *script_len, ctx);
 
                 mrb_ext_raise_current(mrb);
 
@@ -1211,7 +1211,7 @@ impl MrubyImpl for MrubyType {
             (borrow.mrb, borrow.ctx)
         };
 
-        let value = mrb_load_nstring_cxt(mrb, script.as_ptr(), script.len() as i32, ctx);
+        let value = mrb_ext_load_nstring_cxt_nothrow(mrb, script.as_ptr(), script.len(), ctx);
 
         Value::new(self.clone(), value)
     }

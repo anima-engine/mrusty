@@ -94,7 +94,7 @@ fn define_method() {
 
         let code = "Mine.new.job";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context).to_i32().unwrap(), 2);
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context).to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
         mrb_close(mrb);
@@ -276,7 +276,7 @@ fn include_module() {
 
         let code = "module Increment; def inc; self + 1; end; end";
 
-        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+        mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context);
 
         let fixnum_str = CString::new("Fixnum").unwrap();
         let fixnum = mrb_class_get(mrb, fixnum_str.as_ptr());
@@ -287,7 +287,7 @@ fn include_module() {
 
         let code = "1.inc";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -318,7 +318,7 @@ fn define_class_method() {
 
         let code = "Mine.job";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -345,12 +345,12 @@ fn define_constant() {
 
         let code = "Object::ONE";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 1);
 
         let code = "Kernel::ONE";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 1);
 
         mrbc_context_free(mrb, context);
@@ -379,7 +379,7 @@ fn define_module_function() {
 
         let code = "hi";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_str(mrb).unwrap(), "hi");
 
         mrbc_context_free(mrb, context);
@@ -401,10 +401,10 @@ fn protect() {
                 let args = *mem::transmute::<*const u8, *const [*const u8; 3]>(ptr);
 
                 let script = args[0];
-                let script_len: &i32 = mem::transmute(args[1]);
+                let script_len: &usize = mem::transmute(args[1]);
                 let ctx: *const MrContext = mem::transmute(args[2]);
 
-                let result = mrb_load_nstring_cxt(mrb, script, *script_len, ctx);
+                let result = mrb_ext_load_nstring_cxt_nothrow(mrb, script, *script_len, ctx);
 
                 mrb_ext_raise_current(mrb);
 
@@ -485,7 +485,7 @@ pub fn args() {
 
         let code = "Mine.new.add 1, 1";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -538,7 +538,7 @@ pub fn str_args() {
 
         let code = "Mine.new.add 'a', 'b'";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_str(mrb).unwrap(), "ab");
 
         mrbc_context_free(mrb, context);
@@ -586,7 +586,7 @@ pub fn array_args() {
 
         let code = "Mine.new.add [1, 1]";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -629,7 +629,7 @@ fn iv() {
         let one = MrValue::fixnum(1);
 
         let code = "Mine.new";
-        let obj = mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+        let obj = mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context);
 
         let value_str = CString::new("value").unwrap();
 
@@ -820,7 +820,7 @@ fn obj_init() {
                           1 << 12);
 
         let code = "Cont.new.value";
-        let val = mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        let val = mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                   .to_i32().unwrap();
 
         assert_eq!(val, 3);

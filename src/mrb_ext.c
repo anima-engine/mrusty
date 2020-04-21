@@ -25,6 +25,27 @@ void mrb_ext_set_ud(struct mrb_state* mrb, void* ud) {
   mrb->ud = ud;
 }
 
+mrb_value mrb_ext_load_nstring_cxt_nothrow(mrb_state *mrb, const char *s, size_t len, mrbc_context *cxt) {
+  mrb_value value;
+
+  struct mrb_jmpbuf c_jmp;
+  struct mrb_jmpbuf *pc_jmp_bak;
+  pc_jmp_bak = mrb->jmp;
+  
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    value = mrb_load_nstring_cxt(mrb, s, len, cxt);
+  }
+  MRB_CATCH(&c_jmp) {
+    value = mrb_nil_value();
+  }
+  MRB_END_EXC(&c_jmp);
+  
+  mrb->jmp = pc_jmp_bak;
+  
+  return value;
+}
+
 int mrb_ext_fixnum_to_cint(mrb_value value) {
   return mrb_fixnum(value);
 }
