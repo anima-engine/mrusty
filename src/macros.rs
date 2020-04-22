@@ -27,6 +27,7 @@
 /// ```
 /// # #[macro_use] extern crate mrusty;
 /// use mrusty::{Mruby, MrubyImpl};
+/// use mrusty::MrInt;
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -108,7 +109,7 @@
 ///
 /// ```
 /// # #[macro_use] extern crate mrusty;
-/// use mrusty::{Mruby, MrubyImpl};
+/// use mrusty::{Mruby, MrubyImpl, MrInt};
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -158,20 +159,16 @@
 macro_rules! mrfn {
     // init
     ( @init ) => ();
-    ( @init $name:ident, bool )          => (let $name = ::std::mem::uninitialized::<bool>(););
-    ( @init $name:ident, i32 )           => (let $name = ::std::mem::uninitialized::<i32>(););
-    ( @init $name:ident, f64 )           => (let $name = ::std::mem::uninitialized::<f64>(););
-    ( @init $name:ident, (&str) )        => (let $name = ::std::mem::uninitialized::<*const ::std::os::raw::c_char>(););
-    ( @init $name:ident, (Vec<Value>) )  => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
-    ( @init $name:ident, Class )         => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
-    ( @init $name:ident, Value )         => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
-    ( @init $name:ident, (&mut $_t:ty) ) => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
-    ( @init $name:ident, (&$_t:ty) )     => (let $name = ::std::mem::uninitialized::<$crate::MrValue>(););
-    ( @init $name:ident : $t:tt )        => (mrfn!(@init $name, $t));
-    ( @init $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        mrfn!(@init $name, $t);
-        mrfn!(@init $( $names : $ts ),*);
-    };
+    ( @init $name:ident, bool )          => (let $name = ::std::mem::MaybeUninit::<bool>::zeroed().assume_init(););
+    ( @init $name:ident, i32 )           => (let $name = ::std::mem::MaybeUninit::<MrInt>::uninit().assume_init(););
+    ( @init $name:ident, f64 )           => (let $name = ::std::mem::MaybeUninit::<MrFloat>::uninit().assume_init(););
+    ( @init $name:ident, (&str) )        => (let $name = ::std::mem::MaybeUninit::<*const ::std::os::raw::c_char>::uninit().assume_init(););
+    ( @init $name:ident, (Vec<Value>) )  => (let $name = ::std::mem::MaybeUninit::<$crate::MrValue>::uninit().assume_init(););
+    ( @init $name:ident, Class )         => (let $name = ::std::mem::MaybeUninit::<$crate::MrValue>::uninit().assume_init(););
+    ( @init $name:ident, Value )         => (let $name = ::std::mem::MaybeUninit::<$crate::MrValue>::uninit().assume_init(););
+    ( @init $name:ident, (&mut $_t:ty) ) => (let $name = ::std::mem::MaybeUninit::<$crate::MrValue>::uninit().assume_init(););
+    ( @init $name:ident, (&$_t:ty) )     => (let $name = ::std::mem::MaybeUninit::<$crate::MrValue>::uninit().assume_init(););
+    ( @init $($names:ident : $ts:tt),+ ) => ($( mrfn!(@init $names, $ts); )*);
 
     // sig
     ( @sig )               => ("");
@@ -184,13 +181,13 @@ macro_rules! mrfn {
     ( @sig Value )         => ("o");
     ( @sig (&mut $_t:ty) ) => ("o");
     ( @sig (&$_t:ty) )     => ("o");
-    ( @sig $t:tt, $( $ts:tt ),+ ) => (concat!(mrfn!(@sig $t), mrfn!(@sig $( $ts ),*)));
+    ( @sig $($ts:tt),+ ) => (concat!( $( mrfn!(@sig $ts) ),* ));
 
     // args
     ( @args )                            => ();
     ( @args $name:ident, bool )          => (&$name as *const bool);
-    ( @args $name:ident, i32 )           => (&$name as *const i32);
-    ( @args $name:ident, f64 )           => (&$name as *const f64);
+    ( @args $name:ident, i32 )           => (&$name as *const MrInt);
+    ( @args $name:ident, f64 )           => (&$name as *const MrFloat);
     ( @args $name:ident, (&str) )        => (&$name as *const *const ::std::os::raw::c_char);
     ( @args $name:ident, (Vec<Value>) )  => (&$name as *const $crate::MrValue);
     ( @args $name:ident, Class )         => (&$name as *const $crate::MrValue);
@@ -198,37 +195,21 @@ macro_rules! mrfn {
     ( @args $name:ident, (&mut $_t:ty) ) => (&$name as *const $crate::MrValue);
     ( @args $name:ident, (&$_t:ty) )     => (&$name as *const $crate::MrValue);
     ( @args $name:ident : $t:tt )        => (mrfn!(@args $name, $t));
-    ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt) => {
-        $crate::mrb_get_args($mrb, $sig, mrfn!(@args $name, $t));
-    };
-    ( @args $mrb:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        $crate::mrb_get_args($mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),*);
+    ( @args $mrb:expr, $sig:expr)        => ();
+    ( @args $mrb:expr, $sig:expr, $( $names:ident : $ts:tt ),+ ) => {
+        $crate::mrb_get_args($mrb, $sig $( , mrfn!(@args $names : $ts) )*);
     };
 
     // args_rest
-    ( @args_rest $mruby:expr, $sig:expr, $name:ident : $t:tt) => {
+    ( @args_rest $mruby:expr, $sig:expr $( , $names:ident : $ts:tt )* ) => {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
-            let count = ::std::mem::uninitialized::<i32>();
+            let args = ::std::mem::MaybeUninit::<*mut $crate::MrValue>::uninit().assume_init();
+            let count = ::std::mem::MaybeUninit::<MrInt>::uninit().assume_init();
 
-            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), &args as *const *mut $crate::MrValue,
-                         &count as *const i32);
-
-            let args = ::std::slice::from_raw_parts(args, count as usize);
-            args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
-         }
-    };
-    ( @args_rest $mruby:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        {
-            let mrb = $mruby.borrow().mrb;
-
-            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
-            let count = ::std::mem::uninitialized::<i32>();
-
-            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),* ,
-                         &args as *const *mut $crate::MrValue, &count as *const i32);
+            $crate::mrb_get_args(mrb, $sig, $( mrfn!(@args $names, $ts), )*
+                        &args as *const *mut $crate::MrValue, &count as *const MrInt);
 
             let args = ::std::slice::from_raw_parts(args, count as usize);
             args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>()
@@ -236,34 +217,16 @@ macro_rules! mrfn {
     };
 
     // args_rest_blk
-    ( @args_rest_blk $mruby:expr, $sig:expr, $name:ident : $t:tt) => {
+    ( @args_rest_blk $mruby:expr, $sig:expr $( , $names:ident : $ts:tt)* ) => {
         {
             let mrb = $mruby.borrow().mrb;
 
-            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
-            let count = ::std::mem::uninitialized::<i32>();
-            let blk = ::std::mem::uninitialized::<$crate::MrValue>();
+            let args = ::std::mem::MaybeUninit::<*mut $crate::MrValue>::uninit().assume_init();
+            let count = ::std::mem::MaybeUninit::<MrInt>::uninit().assume_init();
+            let blk = ::std::mem::MaybeUninit::<$crate::MrValue>::uninit().assume_init();
 
-            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), &args as *const *mut $crate::MrValue,
-                         &count as *const i32, &blk as *const $crate::MrValue);
-
-            let args = ::std::slice::from_raw_parts(args, count as usize);
-            let args = args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>();
-            let blk = $crate::Value::new($mruby.clone(), blk);
-
-            (args, blk)
-         }
-    };
-    ( @args_rest_blk $mruby:expr, $sig:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        {
-            let mrb = $mruby.borrow().mrb;
-
-            let args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
-            let count = ::std::mem::uninitialized::<i32>();
-            let blk = ::std::mem::uninitialized::<$crate::MrValue>();
-
-            $crate::mrb_get_args(mrb, $sig, mrfn!(@args $name, $t), $( mrfn!(@args $names : $ts) ),* ,
-                         &args as *const *mut $crate::MrValue, &count as *const i32, &blk as *const $crate::MrValue);
+            $crate::mrb_get_args(mrb, $sig, $(mrfn!(@args $names, $ts), )*
+                        &args as *const *mut $crate::MrValue, &count as *const MrInt, &blk as *const $crate::MrValue);
 
             let args = ::std::slice::from_raw_parts(args, count as usize);
             let args = args.iter().map(|arg| { $crate::Value::new($mruby.clone(), arg.clone()) }).collect::<Vec<_>>();
@@ -276,8 +239,12 @@ macro_rules! mrfn {
     // conv
     ( @conv $mruby:expr )                           => ();
     ( @conv $mruby:expr, $name:ident, bool )        => ();
-    ( @conv $mruby:expr, $name:ident, i32 )         => ();
-    ( @conv $mruby:expr, $name:ident, f64 )         => ();
+    ( @conv $mruby:expr, $name:ident, i32 )         => {
+        let $name = $name as i32;
+    };
+    ( @conv $mruby:expr, $name:ident, f64 )         => {
+        let $name = $name as f64;
+    };
     ( @conv $mruby:expr, $name:ident, (&str) )      => {
         let $name = ::std::ffi::CStr::from_ptr($name).to_str().unwrap();
     };
@@ -298,11 +265,7 @@ macro_rules! mrfn {
         let $name = $crate::Value::new($mruby.clone(), $name).to_obj::<$t>().unwrap();
         let $name = $name.borrow();
     };
-    ( @conv $mruby:expr, $name:ident : $t:tt )       => (mrfn!(@conv $mruby, $name, $t));
-    ( @conv $mruby:expr, $name:ident : $t:tt, $($names:ident : $ts:tt),+ ) => {
-        mrfn!(@conv $mruby, $name, $t);
-        mrfn!(@conv $mruby, $( $names : $ts ),*);
-    };
+    ( @conv $mruby:expr, $($names:ident : $ts:tt),+ )=> ($( mrfn!(@conv $mruby, $names, $ts); )*);
 
     // slf
     ( @slf $slf:ident, bool )         => (let $slf = $slf.to_bool().unwrap(););
@@ -329,76 +292,7 @@ macro_rules! mrfn {
             $block
         }
     };
-    ( |$mruby:ident, $slf:ident : $st:tt; &$blk:ident| $block:expr ) => {
-        |$mruby, $slf| {
-            mrfn!(@slf $slf, $st);
-
-            unsafe {
-                let mrb = $mruby.borrow().mrb;
-
-                mrfn!(@init $blk : Value);
-
-                let sig_str = ::std::ffi::CString::new("&").unwrap();
-
-                mrfn!(@args mrb, sig_str.as_ptr(), $blk : Value);
-                mrfn!(@conv $mruby, $blk : Value);
-
-                $block
-            }
-        }
-    };
-    ( |$mruby:ident, $slf:ident : $st:tt; $args:ident| $block:expr ) => {
-        |$mruby, $slf| {
-            mrfn!(@slf $slf, $st);
-
-            unsafe {
-                let mrb = $mruby.borrow().mrb;
-
-                let $args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
-                let count = ::std::mem::uninitialized::<i32>();
-
-                let sig_str = ::std::ffi::CString::new("*").unwrap();
-
-                $crate::mrb_get_args(mrb, sig_str.as_ptr(), &$args as *const *mut $crate::MrValue,
-                             &count as *const i32);
-
-                let $args = ::std::slice::from_raw_parts($args, count as usize);
-                let $args = $args.iter().map(|arg| {
-                    $crate::Value::new($mruby.clone(), arg.clone())
-                }).collect::<Vec<_>>();
-
-                $block
-            }
-        }
-    };
-    ( |$mruby:ident, $slf:ident : $st:tt; $args:ident, &$blk:ident| $block:expr ) => {
-        |$mruby, $slf| {
-            mrfn!(@slf $slf, $st);
-
-            unsafe {
-                let mrb = $mruby.borrow().mrb;
-
-                let $args = ::std::mem::uninitialized::<*mut $crate::MrValue>();
-                let count = ::std::mem::uninitialized::<i32>();
-                let $blk = ::std::mem::uninitialized::<$crate::MrValue>();
-
-                let sig_str = ::std::ffi::CString::new("*&").unwrap();
-
-                $crate::mrb_get_args(mrb, sig_str.as_ptr(),
-                             &$args as *const *mut $crate::MrValue, &count as *const i32,
-                             &$blk as *const $crate::MrValue);
-
-                let $args = ::std::slice::from_raw_parts($args, count as usize);
-                let $args = $args.iter().map(|arg| {
-                    $crate::Value::new($mruby.clone(), arg.clone())
-                }).collect::<Vec<_>>();
-                let $blk = $crate::Value::new($mruby.clone(), $blk);
-
-                $block
-            }
-        }
-    };
-    ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),*| $block:expr ) => {
+    ( |$mruby:ident, $slf:ident : $st:tt $( , $name:ident : $t:tt )*| $block:expr ) => {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
@@ -408,31 +302,31 @@ macro_rules! mrfn {
                 let mrb = $mruby.borrow().mrb;
                 let sig_str = ::std::ffi::CString::new(mrfn!(@sig $( $t ),*)).unwrap();
 
-                mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*);
-                mrfn!(@conv $mruby, $( $name : $t ),*);
+                mrfn!(@args mrb, sig_str.as_ptr() $( , $name : $t )*);
+                mrfn!(@conv $mruby $( , $name : $t )*);
 
                 $block
             }
         }
     };
-    ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),* ; &$blk:ident| $block:expr ) => {
+    ( |$mruby:ident, $slf:ident : $st:tt $( , $name:ident : $t:tt )* ; &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
 
-                mrfn!(@init $( $name : $t ),*, $blk : Value);
+                mrfn!(@init $( $name : $t, )* $blk : Value);
 
                 let mrb = $mruby.borrow().mrb;
                 let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "&")).unwrap();
 
-                mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*, $blk : Value);
-                mrfn!(@conv $mruby, $( $name : $t ),*, $blk : Value);
+                mrfn!(@args mrb, sig_str.as_ptr() $( , $name : $t )*, $blk : Value);
+                mrfn!(@conv $mruby $( , $name : $t )*, $blk : Value);
 
                 $block
             }
         }
     };
-    ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),* ; $args:ident| $block:expr ) => {
+    ( |$mruby:ident, $slf:ident : $st:tt $( , $name:ident : $t:tt )* ; $args:ident| $block:expr ) => {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
@@ -441,14 +335,14 @@ macro_rules! mrfn {
 
                 let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "*")).unwrap();
 
-                let $args = mrfn!(@args_rest $mruby, sig_str.as_ptr(), $( $name : $t ),*);
-                mrfn!(@conv $mruby, $( $name : $t ),*);
+                let $args = mrfn!(@args_rest $mruby, sig_str.as_ptr() $( , $name : $t )*);
+                mrfn!(@conv $mruby $( , $name : $t )*);
 
                 $block
             }
         }
     };
-    ( |$mruby:ident, $slf:ident : $st:tt, $( $name:ident : $t:tt ),* ; $args:ident, &$blk:ident| $block:expr ) => {
+    ( |$mruby:ident, $slf:ident : $st:tt $( , $name:ident : $t:tt )* ; $args:ident, &$blk:ident| $block:expr ) => {
         |$mruby, $slf| {
             unsafe {
                 mrfn!(@slf $slf, $st);
@@ -457,8 +351,8 @@ macro_rules! mrfn {
 
                 let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "*&")).unwrap();
 
-                let ($args, $blk) = mrfn!(@args_rest_blk $mruby, sig_str.as_ptr(), $( $name : $t ),*);
-                mrfn!(@conv $mruby, $( $name : $t ),*);
+                let ($args, $blk) = mrfn!(@args_rest_blk $mruby, sig_str.as_ptr() $( , $name : $t )*);
+                mrfn!(@conv $mruby $( , $name : $t )*);
 
                 $block
             }
@@ -1084,6 +978,7 @@ macro_rules! mruby_defines {
 /// ```
 /// # #[macro_use] extern crate mrusty;
 /// use mrusty::{Mruby, MrubyFile, MrubyImpl};
+/// use mrusty::MrInt;
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();
@@ -1194,6 +1089,7 @@ macro_rules! mrusty_class {
 /// ```
 /// # #[macro_use] extern crate mrusty;
 /// use mrusty::{Mruby, MrubyImpl};
+/// use mrusty::MrInt;
 ///
 /// # fn main() {
 /// let mruby = Mruby::new();

@@ -41,11 +41,11 @@ pub struct Mruby {
     pub mrb:             *const MrState,
     ctx:                 *const MrContext,
     filename:            Option<String>,
-    classes:             HashMap<TypeId, (*const MrClass, MrDataType, String)>,
-    methods:             HashMap<TypeId, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
-    class_methods:       HashMap<TypeId, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
-    mruby_methods:       HashMap<String, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
-    mruby_class_methods: HashMap<String, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
+    classes:             HashMap<TypeId, (*const MrClass, Rc<MrDataType>, String, CString)>,
+    methods:             HashMap<TypeId, HashMap<u32, Rc<dyn Fn(MrubyType, Value) -> Value>>>,
+    class_methods:       HashMap<TypeId, HashMap<u32, Rc<dyn Fn(MrubyType, Value) -> Value>>>,
+    mruby_methods:       HashMap<String, HashMap<u32, Rc<dyn Fn(MrubyType, Value) -> Value>>>,
+    mruby_class_methods: HashMap<String, HashMap<u32, Rc<dyn Fn(MrubyType, Value) -> Value>>>,
     files:               HashMap<String, Vec<fn(MrubyType)>>,
     required:            HashSet<String>
 }
@@ -63,7 +63,7 @@ impl Mruby {
         unsafe {
             let mrb = mrb_open();
 
-            let mruby = Rc::new(RefCell::new(
+            let mruby: MrubyType = Rc::new(RefCell::new(
                 Mruby {
                     mrb:                 mrb,
                     ctx:                 mrbc_context_new(mrb),
@@ -86,7 +86,7 @@ impl Mruby {
                     let ptr = mrb_ext_get_ud(mrb);
                     let mruby: MrubyType = mem::transmute(ptr);
 
-                    let name = mem::uninitialized::<*const c_char>();
+                    let name = mem::MaybeUninit::<*const c_char>::uninit().assume_init();
 
                     let sig_str = CString::new("z").unwrap();
 
@@ -184,7 +184,7 @@ impl Mruby {
             let mruby: MrubyType = mem::transmute(ptr);
 
             mruby.run_unchecked("
-              class RustPanic < Exception
+              class RustPanic < StandardError
                 def initialize(message)
                   super message
                 end
@@ -201,7 +201,7 @@ impl Mruby {
             let eclass_str = CString::new(eclass).unwrap();
             let message_str = CString::new(message).unwrap();
 
-            mrb_ext_raise(mrb, eclass_str.as_ptr(), message_str.as_ptr());
+            mrb_ext_raise_nothrow(mrb, eclass_str.as_ptr(), message_str.as_ptr());
 
             MrValue::nil()
         }
@@ -312,12 +312,11 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "script.rb:1: undefined method \'nope\' for 1 (NoMethodError)");
+    ///         assert_eq!(err, "script.rb:1: undefined method \'nope\' (NoMethodError)");
     /// },
     ///     _ => assert!(false)
     /// }
     /// ```
-    #[inline]
     fn filename(&self, filename: &str);
 
     /// Runs mruby `script` on a state and context and returns a `Value` in an `Ok`
@@ -343,12 +342,11 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "TypeError: expected String");
+    ///         assert_eq!(err, "TypeError: Fixnum cannot be converted to String");
     /// },
     ///     _ => assert!(false)
     /// }
     /// ```
-    #[inline]
     fn run(&self, script: &str) -> Result<Value, MrubyError>;
 
     /// Runs mruby `script` on a state and context and returns a `Value`. If an mruby Exception is
@@ -394,7 +392,6 @@ pub trait MrubyImpl {
     /// assert_eq!(result.to_str().unwrap(), "surprize");
     /// # }
     /// ```
-    #[inline]
     unsafe fn run_unchecked(&self, script: &str) -> Value;
 
     /// Runs mruby compiled (.mrb) `script` on a state and context and returns a `Value` in an `Ok`
@@ -406,7 +403,6 @@ pub trait MrubyImpl {
     /// let mruby = Mruby::new();
     /// let result = mruby.runb(include_bytes!("script.mrb")).unwrap();
     /// ```
-    #[inline]
     fn runb(&self, script: &[u8]) -> Result<Value, MrubyError>;
 
     /// Runs mruby (compiled (.mrb) or not (.rb)) `script` on a state and context and returns a
@@ -421,7 +417,6 @@ pub trait MrubyImpl {
     /// let mruby = Mruby::new();
     /// let result = mruby.execute(&Path::new("script.rb")).unwrap();
     /// ```
-    #[inline]
     fn execute(&self, script: &Path) -> Result<Value, MrubyError>;
 
     /// Returns whether the mruby `Class` or `Module` named `name` is defined.
@@ -438,7 +433,6 @@ pub trait MrubyImpl {
     /// assert!(object);
     /// assert!(!objekt);
     /// ```
-    #[inline]
     fn is_defined(&self, name: &str) -> bool;
 
     /// Returns whether the mruby `Class` or `Module` named `name` is defined under `outer` `Class`
@@ -456,7 +450,6 @@ pub trait MrubyImpl {
     ///
     /// assert!(mruby.is_defined_under("Mine", &module));
     /// ```
-    #[inline]
     fn is_defined_under<T: ClassLike>(&self, name: &str, outer: &T) -> bool;
 
     /// Returns the mruby `Class` named `name` in a `Some` or `None` if it is not defined.
@@ -473,7 +466,6 @@ pub trait MrubyImpl {
     /// assert_eq!(object.unwrap().to_str(), "Object");
     /// assert!(objekt.is_err());
     /// ```
-    #[inline]
     fn get_class(&self, name: &str) -> Result<Class, MrubyError>;
 
     /// Returns the mruby `Class` named `name` under `outer` `Class` or `Module` in a `Some` or
@@ -495,7 +487,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(result.to_str(), "Mine::Container");
     /// ```
-    #[inline]
     fn get_class_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Class, MrubyError>;
 
     /// Returns the mruby `Module` named `name` in a `Some` or `None` if it is not defined.
@@ -512,7 +503,6 @@ pub trait MrubyImpl {
     /// assert_eq!(kernel.unwrap().to_str(), "Kernel");
     /// assert!(kernet.is_err());
     /// ```
-    #[inline]
     fn get_module(&self, name: &str) -> Result<Module, MrubyError>;
 
     /// Returns the mruby `Module` named `name` under `outer` `Class` or `Module` in a `Some` or
@@ -532,7 +522,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(result.to_str(), "Just::Mine");
     /// ```
-    #[inline]
     fn get_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Module, MrubyError>;
 
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
@@ -543,6 +532,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyFile, MrubyImpl, MrubyType};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -576,7 +566,6 @@ pub trait MrubyImpl {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// # }
     /// ```
-    #[inline]
     fn def_file<T: MrubyFile>(&self, name: &str);
 
     /// Defines an mruby `Class` named `name`.
@@ -711,6 +700,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -736,6 +726,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -771,6 +762,7 @@ pub trait MrubyImpl {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -825,7 +817,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
-    #[inline]
     fn nil(&self) -> Value;
 
     /// Creates mruby `Value` containing `true` or `false`.
@@ -840,7 +831,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(b.to_bool().unwrap(), true);
     /// ```
-    #[inline]
     fn bool(&self, value: bool) -> Value;
 
     /// Creates mruby `Value` of `Class` `Fixnum`.
@@ -856,7 +846,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(fixn.to_i32().unwrap(), 2);
     /// ```
-    #[inline]
     fn fixnum(&self, value: i32) -> Value;
 
     /// Creates mruby `Value` of `Class` `Float`.
@@ -871,7 +860,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(fl.to_f64().unwrap(), 2.3);
     /// ```
-    #[inline]
     fn float(&self, value: f64) -> Value;
 
     /// Creates mruby `Value` of `Class` `String`.
@@ -886,7 +874,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(s.to_str().unwrap(), "hi");
     /// ```
-    #[inline]
     fn string(&self, value: &str) -> Value;
 
     /// Creates mruby `Value` of `Class` `Symbol`.
@@ -901,7 +888,6 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(s.to_str().unwrap(), "hi");
     /// ```
-    #[inline]
     fn symbol(&self, value: &str) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
@@ -913,6 +899,7 @@ pub trait MrubyImpl {
     /// ```
     /// # use mrusty::Mruby;
     /// # use mrusty::MrubyImpl;
+    /// # use mrusty::MrInt;
     /// let mruby = Mruby::new();
     ///
     /// struct Cont {
@@ -923,7 +910,6 @@ pub trait MrubyImpl {
     ///
     /// let value = mruby.obj(Cont { value: 3 });
     /// ```
-    #[inline]
     fn obj<T: Any>(&self, obj: T) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust `Option` of type `T`.
@@ -952,7 +938,6 @@ pub trait MrubyImpl {
     /// assert_eq!(none.call("nil?", vec![]).unwrap().to_bool().unwrap(), true);
     /// assert_eq!(some.value, 3);
     /// ```
-    #[inline]
     fn option<T: Any>(&self, obj: Option<T>) -> Value;
 
     /// Creates mruby `Value` of `Class` `Array`.
@@ -975,7 +960,6 @@ pub trait MrubyImpl {
     ///     mruby.fixnum(3)
     /// ]);
     /// ```
-    #[inline]
     fn array(&self, value: Vec<Value>) -> Value;
 }
 
@@ -1027,9 +1011,9 @@ fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
             }
         }
 
-        let data_type = MrDataType { name: c_name.as_ptr(), free: free::<T> };
+        let data_type = mrb_ext_data_type(c_name.as_ptr(), free::<T>);
 
-        mruby.borrow_mut().classes.insert(TypeId::of::<T>(), (class, data_type, name));
+        mruby.borrow_mut().classes.insert(TypeId::of::<T>(), (class, Rc::new(data_type), name, c_name));
         mruby.borrow_mut().methods.insert(TypeId::of::<T>(), HashMap::new());
         mruby.borrow_mut().class_methods.insert(TypeId::of::<T>(), HashMap::new());
 
@@ -1183,10 +1167,10 @@ impl MrubyImpl for MrubyType {
                 let ptr = data.to_ptr().unwrap();
                 let args = *mem::transmute::<*const u8, *const [*const u8; 3]>(ptr);
 
-                let script_len: &i32 = mem::transmute(args[1]);
+                let script_len: &usize = mem::transmute(args[1]);
                 let ctx: *const MrContext = mem::transmute(args[2]);
 
-                let result = mrb_load_nstring_cxt(mrb, args[0], *script_len, ctx);
+                let result = mrb_ext_load_nstring_cxt_nothrow(mrb, args[0], *script_len, ctx);
 
                 mrb_ext_raise_current(mrb);
 
@@ -1210,7 +1194,7 @@ impl MrubyImpl for MrubyType {
             let args_ptr: *const u8 = mem::transmute(&args);
             let data = MrValue::ptr(mrb, args_ptr);
 
-            let state = mem::uninitialized::<bool>();
+            let state = mem::MaybeUninit::<bool>::zeroed().assume_init();
 
             let value = mrb_protect(mrb, run_protected, data, &state as *const bool);
 
@@ -1232,7 +1216,7 @@ impl MrubyImpl for MrubyType {
             (borrow.mrb, borrow.ctx)
         };
 
-        let value = mrb_load_nstring_cxt(mrb, script.as_ptr(), script.len() as i32, ctx);
+        let value = mrb_ext_load_nstring_cxt_nothrow(mrb, script.as_ptr(), script.len(), ctx);
 
         Value::new(self.clone(), value)
     }
@@ -1246,7 +1230,7 @@ impl MrubyImpl for MrubyType {
 
                 let ctx: *const MrContext = mem::transmute(args[1]);
 
-                let result = mrb_load_irep_cxt(mrb, args[0], ctx);
+                let result = mrb_ext_load_irep_cxt_suppress_alignment(mrb, args[0], ctx);
 
                 mrb_ext_raise_current(mrb);
 
@@ -1268,7 +1252,7 @@ impl MrubyImpl for MrubyType {
             let args_ptr: *const u8 = mem::transmute(&args);
             let data = MrValue::ptr(mrb, args_ptr);
 
-            let state = mem::uninitialized::<bool>();
+            let state = mem::MaybeUninit::<bool>::zeroed().assume_init();
 
             let value = mrb_protect(mrb, runb_protected, data, &state as *const bool);
 
@@ -1288,18 +1272,18 @@ impl MrubyImpl for MrubyType {
             Some(ext) => {
                 self.filename(script.file_name().unwrap().to_str().unwrap());
 
-                let mut file = try!(File::open(script));
+                let mut file = File::open(script)?;
 
                 match ext.to_str().unwrap() {
                     "rb" => {
                         let mut script = String::new();
-                        try!(file.read_to_string(&mut script));
+                        file.read_to_string(&mut script)?;
 
                         self.run(&script)
                     },
                     "mrb" => {
                         let mut script = Vec::new();
-                        try!(file.read_to_end(&mut script));
+                        file.read_to_end(&mut script)?;
 
                         self.runb(&script)
                     },
@@ -1396,7 +1380,7 @@ impl MrubyImpl for MrubyType {
         let mut borrow = self.borrow_mut();
 
         if borrow.files.contains_key(name) {
-            let mut file = borrow.files.get_mut(name).unwrap();
+            let file = borrow.files.get_mut(name).unwrap();
 
             file.push(T::require);
         } else {
@@ -1668,6 +1652,7 @@ impl Value {
     /// ```
     /// # #[macro_use] extern crate mrusty;
     /// use mrusty::{Mruby, MrubyImpl};
+    /// use mrusty::MrInt;
     ///
     /// # fn main() {
     /// let mruby = Mruby::new();
@@ -1702,7 +1687,7 @@ impl Value {
                 None       => panic!("Class not found.")
             };
 
-            let data_type = &class.1;
+            let data_type = &*class.1;
 
             mrb_ext_data_init(&self.value as *const MrValue, ptr, data_type as *const MrDataType);
         }
@@ -1730,12 +1715,12 @@ impl Value {
                 let ptr = data.to_ptr().unwrap();
                 let args = *mem::transmute::<*const u8, *const [*const u8; 4]>(ptr);
 
-                let value: MrValue = mem::transmute_copy(&*args[0]);
+                let value: &MrValue = mem::transmute(args[0]);
                 let sym: &u32 = mem::transmute(args[1]);
-                let argc: &i32 = mem::transmute(args[2]);
+                let argc: &MrInt = mem::transmute(args[2]);
                 let argv: *const MrValue = mem::transmute(args[3]);
 
-                let result = mrb_funcall_argv(mrb, value, *sym, *argc, argv);
+                let result = mrb_funcall_argv(mrb, *value, *sym, *argc, argv);
 
                 mrb_ext_raise_current(mrb);
 
@@ -1753,15 +1738,15 @@ impl Value {
 
             let value_ptr: *const u8 = mem::transmute(&self.value);
             let sym_ptr: *const u8 = mem::transmute(&sym);
-            let argc = args.len();
-            let argc_ptr: * const u8 = mem::transmute(&argc);
+            let argc = args.len() as MrInt;
+            let argc_ptr: *const u8 = mem::transmute(&argc);
             let argv_ptr: *const u8 = mem::transmute(args.as_ptr());
 
             let args = [value_ptr, sym_ptr, argc_ptr, argv_ptr];
             let args_ptr: *const u8 = mem::transmute(&args);
             let data = MrValue::ptr(mrb, args_ptr);
 
-            let state = mem::uninitialized::<bool>();
+            let state = mem::MaybeUninit::<bool>::zeroed().assume_init();
 
             let value = mrb_protect(mrb, call_protected, data, &state as *const bool);
 
@@ -1801,7 +1786,7 @@ impl Value {
         let args: Vec<MrValue> = args.iter().map(|value| value.value).collect();
 
         let result = mrb_funcall_argv(self.mruby.borrow().mrb, self.value, sym,
-                                      args.len() as i32, args.as_ptr());
+                                      args.len() as MrInt, args.as_ptr());
 
         Value::new(self.mruby.clone(), result)
     }
@@ -1900,7 +1885,7 @@ impl Value {
     /// ```
     #[inline]
     pub fn set_var(&self, name: &str, value: Value) {
-        match self.value.typ {
+        match self.value.typ() {
             MrType::MRB_TT_OBJECT |
             MrType::MRB_TT_CLASS |
             MrType::MRB_TT_MODULE |
@@ -2111,7 +2096,7 @@ impl Value {
     /// ```
     #[inline]
     pub fn to_option<T: Any>(&self) -> Result<Option<Rc<RefCell<T>>>, MrubyError> {
-        if self.value.typ == MrType::MRB_TT_DATA {
+        if self.value.typ() == MrType::MRB_TT_DATA {
             self.to_obj::<T>().map(|obj| Some(obj))
         } else {
             Ok(None)
@@ -2162,7 +2147,7 @@ impl Value {
     #[inline]
     pub fn to_class(&self) -> Result<Class, MrubyError> {
         unsafe {
-            let class = try!(self.value.to_class());
+            let class = self.value.to_class()?;
 
             Ok(Class::new(self.mruby.clone(), class))
         }
@@ -2183,7 +2168,7 @@ impl Value {
     #[inline]
     pub fn to_module(&self) -> Result<Module, MrubyError> {
         unsafe {
-            let module = try!(self.value.to_module());
+            let module = self.value.to_module()?;
 
             Ok(Module::new(self.mruby.clone(), module))
         }
@@ -2194,12 +2179,10 @@ use std::fmt;
 
 impl Clone for Value {
     fn clone(&self) -> Value {
-        if self.value.typ == MrType::MRB_TT_DATA {
+        if self.value.typ() == MrType::MRB_TT_DATA {
             unsafe {
                 let ptr = mrb_ext_data_ptr(self.value);
                 let rc: Rc<c_void> = mem::transmute(ptr);
-
-                rc.clone();
 
                 mem::forget(rc);
             }

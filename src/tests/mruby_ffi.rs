@@ -42,14 +42,41 @@ fn exec_bin_context() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let bin = [82u8, 73u8, 84u8, 69u8, 48u8, 48u8, 48u8, 51u8, 107u8, 70u8, 0u8, 0u8, 0u8,
-                   72u8, 77u8, 65u8, 84u8, 90u8, 48u8, 48u8, 48u8, 48u8, 73u8, 82u8, 69u8, 80u8,
-                   0u8, 0u8, 0u8, 42u8, 48u8, 48u8, 48u8, 48u8, 0u8, 0u8, 0u8, 34u8, 0u8, 1u8, 0u8,
-                   2u8, 0u8, 0u8, 0u8, 0u8, 0u8, 2u8, 0u8, 192u8, 0u8, 131u8, 0u8, 0u8, 0u8, 74u8,
-                   0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 69u8, 78u8, 68u8, 0u8, 0u8, 0u8, 0u8,
-                   8u8];
+        let bin = [
+            // struct rite_binary_header
+            69u8, 84u8, 73u8, 82u8, // Binary identifier "RITE"
+            48u8, 48u8, 48u8, 54u8, // Binary format version "0006"
+            204u8, 148u8,           // Binary CRC
+            0u8, 0u8, 0u8, 69u8,    // Binary size
+            77u8, 65u8, 84u8, 90u8, // Compiler name "MATZ"
+            48u8, 48u8, 48u8, 48u8, // Compiler version "0000"
 
-        let result = mrb_load_irep_cxt(mrb, bin.as_ptr(), context);
+            // struct rite_section_irep_header
+            73u8, 82u8, 69u8, 80u8, // section_ident "IREP"
+            0u8, 0u8, 0u8, 39u8,    // section_size
+            48u8, 48u8, 48u8, 50u8, // rite_version "0002"
+
+            // irep record
+            0u8, 0u8, 0u8, 46u8,    // record size
+            0u8, 1u8,               // number of local variable
+            0u8, 2u8,               // number of register variable
+            0u8, 0u8,               // number of child irep
+
+            // ISEQ BLOCK
+            0u8, 0u8, 0u8, 5u8,     // number of iseq
+            // skip_padding target(nothing)
+            8u8, 1u8, 55u8, 1u8, 103u8, // mrb_code * number of iseq
+
+            // POOL BLOCK
+            0u8, 0u8, 0u8, 0u8,     // number of pool
+
+            // SYMS BLOCK
+            0u8, 0u8, 0u8, 0u8, // syms length
+
+            69u8, 78u8, 68u8, 0u8, // RITE_BINARY_EOF "END\0"
+            0u8, 0u8, 0u8, 8u8];
+
+        let result = mrb_ext_load_irep_cxt_suppress_alignment(mrb, bin.as_ptr(), context);
 
         assert_eq!(result.to_i32().unwrap(), 2);
 
@@ -94,7 +121,7 @@ fn define_method() {
 
         let code = "Mine.new.job";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context).to_i32().unwrap(), 2);
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context).to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
         mrb_close(mrb);
@@ -276,7 +303,7 @@ fn include_module() {
 
         let code = "module Increment; def inc; self + 1; end; end";
 
-        mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+        mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context);
 
         let fixnum_str = CString::new("Fixnum").unwrap();
         let fixnum = mrb_class_get(mrb, fixnum_str.as_ptr());
@@ -287,7 +314,7 @@ fn include_module() {
 
         let code = "1.inc";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -318,7 +345,7 @@ fn define_class_method() {
 
         let code = "Mine.job";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -345,12 +372,12 @@ fn define_constant() {
 
         let code = "Object::ONE";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 1);
 
         let code = "Kernel::ONE";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 1);
 
         mrbc_context_free(mrb, context);
@@ -379,7 +406,7 @@ fn define_module_function() {
 
         let code = "hi";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_str(mrb).unwrap(), "hi");
 
         mrbc_context_free(mrb, context);
@@ -389,25 +416,42 @@ fn define_module_function() {
 
 #[test]
 fn protect() {
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
 
     unsafe {
         let mrb = mrb_open();
+        let ctx = mrbc_context_new(mrb);
 
-        extern "C" fn job(mrb: *const MrState, _data: MrValue) -> MrValue {
+        extern "C" fn run_protected(mrb: *const MrState, data: MrValue) -> MrValue {
             unsafe {
-                let runtime_str = CString::new("RuntimeError").unwrap();
-                let excepting_str = CString::new("excepting").unwrap();
+                let ptr = data.to_ptr().unwrap();
+                let args = *mem::transmute::<*const u8, *const [*const u8; 3]>(ptr);
 
-                mrb_ext_raise(mrb, runtime_str.as_ptr(), excepting_str.as_ptr());
+                let script = args[0];
+                let script_len: &usize = mem::transmute(args[1]);
+                let ctx: *const MrContext = mem::transmute(args[2]);
 
-                MrValue::nil()
+                let result = mrb_ext_load_nstring_cxt_nothrow(mrb, script, *script_len, ctx);
+
+                mrb_ext_raise_current(mrb);
+
+                result
             }
         }
 
-        let state = uninitialized::<bool>();
+        let script = "false 'surprize'";
+        let script_ptr = script.as_ptr();
+        let script_len = script.len();
+        let script_len_ptr: *const u8 = mem::transmute(&script_len);
+        let ctx_ptr: *const u8 = mem::transmute(ctx);
 
-        let exc = mrb_protect(mrb, job, MrValue::nil(), &state as *const bool);
+        let args = [script_ptr, script_len_ptr, ctx_ptr];
+        let args_ptr: *const u8 = mem::transmute(&args);
+        let data = MrValue::ptr(mrb, args_ptr);
+
+        let state = MaybeUninit::<bool>::zeroed().assume_init();
+
+        let exc = mrb_protect(mrb, run_protected, data, &state as *const bool);
 
         assert_eq!(state, true);
 
@@ -421,15 +465,16 @@ fn protect() {
         let class = mrb_funcall_argv(mrb, exc, class_sym, 0, args.as_ptr());
         let result = mrb_funcall_argv(mrb, class, to_s_sym, 0, args.as_ptr());
 
-        assert_eq!(result.to_str(mrb).unwrap(), "RuntimeError");
+        assert_eq!(result.to_str(mrb).unwrap(), "SyntaxError");
 
+        mrbc_context_free(mrb, ctx);
         mrb_close(mrb);
     }
 }
 
 #[test]
 pub fn args() {
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
 
     unsafe {
         let mrb = mrb_open();
@@ -437,8 +482,8 @@ pub fn args() {
 
         extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let a = uninitialized::<MrValue>();
-                let b = uninitialized::<MrValue>();
+                let a = MaybeUninit::<MrValue>::uninit().assume_init();
+                let b = MaybeUninit::<MrValue>::uninit().assume_init();
 
                 let sig_str = CString::new("oo").unwrap();
 
@@ -467,7 +512,7 @@ pub fn args() {
 
         let code = "Mine.new.add 1, 1";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -478,7 +523,7 @@ pub fn args() {
 #[test]
 pub fn str_args() {
     use std::ffi::CStr;
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
     use std::os::raw::c_char;
 
     unsafe {
@@ -487,8 +532,8 @@ pub fn str_args() {
 
         extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let a = uninitialized::<*const c_char>();
-                let b = uninitialized::<*const c_char>();
+                let a = MaybeUninit::<*const c_char>::uninit().assume_init();
+                let b = MaybeUninit::<*const c_char>::uninit().assume_init();
 
                 let sig_str = CString::new("zz").unwrap();
 
@@ -520,7 +565,7 @@ pub fn str_args() {
 
         let code = "Mine.new.add 'a', 'b'";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_str(mrb).unwrap(), "ab");
 
         mrbc_context_free(mrb, context);
@@ -530,7 +575,7 @@ pub fn str_args() {
 
 #[test]
 pub fn array_args() {
-    use std::mem::uninitialized;
+    use std::mem::MaybeUninit;
 
     unsafe {
         let mrb = mrb_open();
@@ -538,7 +583,7 @@ pub fn array_args() {
 
         extern "C" fn add(mrb: *const MrState, _slf: MrValue) -> MrValue {
             unsafe {
-                let array = uninitialized::<MrValue>();
+                let array = MaybeUninit::<MrValue>::uninit().assume_init();
 
                 let a_str = CString::new("A").unwrap();
 
@@ -568,7 +613,7 @@ pub fn array_args() {
 
         let code = "Mine.new.add [1, 1]";
 
-        assert_eq!(mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        assert_eq!(mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                    .to_i32().unwrap(), 2);
 
         mrbc_context_free(mrb, context);
@@ -611,7 +656,7 @@ fn iv() {
         let one = MrValue::fixnum(1);
 
         let code = "Mine.new";
-        let obj = mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context);
+        let obj = mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context);
 
         let value_str = CString::new("value").unwrap();
 
@@ -724,7 +769,7 @@ fn obj() {
             }
         }
 
-        let data_type = MrDataType { name: cont_str.as_ptr(), free: free };
+        let data_type = mrb_ext_data_type(cont_str.as_ptr(), free);
 
         let obj = Cont { value: 3 };
         let obj = MrValue::obj(mrb, cont_class, obj, &data_type);
@@ -789,7 +834,7 @@ fn obj_init() {
             }
         }
 
-        let data_type = &MrDataType { name: cont_str.as_ptr(), free: free };
+        let data_type = &mrb_ext_data_type(cont_str.as_ptr(), free);
 
         mrb_ext_set_ud(mrb, mem::transmute::<&MrDataType, *const u8>(data_type));
 
@@ -802,7 +847,7 @@ fn obj_init() {
                           1 << 12);
 
         let code = "Cont.new.value";
-        let val = mrb_load_nstring_cxt(mrb, code.as_ptr(), code.len() as i32, context)
+        let val = mrb_ext_load_nstring_cxt_nothrow(mrb, code.as_ptr(), code.len(), context)
                   .to_i32().unwrap();
 
         assert_eq!(val, 3);
@@ -848,7 +893,7 @@ fn obj_scoping() {
             }
         }
 
-        let data_type = MrDataType { name: cont_str.as_ptr(), free: free };
+        let data_type = mrb_ext_data_type(cont_str.as_ptr(), free);
 
         {
             let orig = Cont { value: 3 };

@@ -308,8 +308,8 @@ mod tests {
           end
 
           it 'does not concatenate with String' do
-            expect { '' + 1 }.to raise_error TypeError, \"expected String\"
-            expect { 1 + '' }.not_to raise_error Exception
+            expect { '' + 1 }.to raise_error TypeError, \"Fixnum cannot be converted to String\"
+            expect { 1 + '' }.to raise_error TypeError, \"non float value\"
           end
 
           it { is_expected.to respond_to :to_s }
