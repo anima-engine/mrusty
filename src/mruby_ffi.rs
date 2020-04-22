@@ -280,7 +280,7 @@ extern "C" {
 
     pub fn mrb_ext_load_nstring_cxt_nothrow(mrb: *const MrState, code: *const c_uchar, len: usize,
                                 context: *const MrContext) -> MrValue;
-    pub fn mrb_load_irep_cxt(mrb: *const MrState, code: *const c_uchar,
+    pub fn mrb_ext_load_irep_cxt_suppress_alignment(mrb: *const MrState, code: *const c_uchar,
                              context: *const MrContext) -> MrValue;
 
     pub fn mrb_class_defined(mrb: *const MrState, name: *const c_char) -> bool;

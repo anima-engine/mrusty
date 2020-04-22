@@ -42,14 +42,41 @@ fn exec_bin_context() {
         let mrb = mrb_open();
         let context = mrbc_context_new(mrb);
 
-        let bin = [82u8, 73u8, 84u8, 69u8, 48u8, 48u8, 48u8, 51u8, 107u8, 70u8, 0u8, 0u8, 0u8,
-                   72u8, 77u8, 65u8, 84u8, 90u8, 48u8, 48u8, 48u8, 48u8, 73u8, 82u8, 69u8, 80u8,
-                   0u8, 0u8, 0u8, 42u8, 48u8, 48u8, 48u8, 48u8, 0u8, 0u8, 0u8, 34u8, 0u8, 1u8, 0u8,
-                   2u8, 0u8, 0u8, 0u8, 0u8, 0u8, 2u8, 0u8, 192u8, 0u8, 131u8, 0u8, 0u8, 0u8, 74u8,
-                   0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 69u8, 78u8, 68u8, 0u8, 0u8, 0u8, 0u8,
-                   8u8];
+        let bin = [
+            // struct rite_binary_header
+            69u8, 84u8, 73u8, 82u8, // Binary identifier "RITE"
+            48u8, 48u8, 48u8, 54u8, // Binary format version "0006"
+            204u8, 148u8,           // Binary CRC
+            0u8, 0u8, 0u8, 69u8,    // Binary size
+            77u8, 65u8, 84u8, 90u8, // Compiler name "MATZ"
+            48u8, 48u8, 48u8, 48u8, // Compiler version "0000"
 
-        let result = mrb_load_irep_cxt(mrb, bin.as_ptr(), context);
+            // struct rite_section_irep_header
+            73u8, 82u8, 69u8, 80u8, // section_ident "IREP"
+            0u8, 0u8, 0u8, 39u8,    // section_size
+            48u8, 48u8, 48u8, 50u8, // rite_version "0002"
+
+            // irep record
+            0u8, 0u8, 0u8, 46u8,    // record size
+            0u8, 1u8,               // number of local variable
+            0u8, 2u8,               // number of register variable
+            0u8, 0u8,               // number of child irep
+
+            // ISEQ BLOCK
+            0u8, 0u8, 0u8, 5u8,     // number of iseq
+            // skip_padding target(nothing)
+            8u8, 1u8, 55u8, 1u8, 103u8, // mrb_code * number of iseq
+
+            // POOL BLOCK
+            0u8, 0u8, 0u8, 0u8,     // number of pool
+
+            // SYMS BLOCK
+            0u8, 0u8, 0u8, 0u8, // syms length
+
+            69u8, 78u8, 68u8, 0u8, // RITE_BINARY_EOF "END\0"
+            0u8, 0u8, 0u8, 8u8];
+
+        let result = mrb_ext_load_irep_cxt_suppress_alignment(mrb, bin.as_ptr(), context);
 
         assert_eq!(result.to_i32().unwrap(), 2);
 
