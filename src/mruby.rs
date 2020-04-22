@@ -342,7 +342,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "TypeError: expected String");
+    ///         assert_eq!(err, "TypeError: Fixnum cannot be converted to String");
     /// },
     ///     _ => assert!(false)
     /// }

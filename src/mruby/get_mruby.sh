@@ -14,8 +14,7 @@
 # * compile, linker & archiver
 # * unzip
 
-VERSION=1.4.1
-#VERSION=2.1.0
+VERSION=2.1.0
 CURRENT=$PWD
 
 # Checks is /tmp/mruby needs cleaning or creation.

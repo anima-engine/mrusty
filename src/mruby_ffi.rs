@@ -238,13 +238,13 @@ impl fmt::Debug for MrValue {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MrType {
     MRB_TT_FALSE,
-    MRB_TT_FREE,
     MRB_TT_TRUE,
+    MRB_TT_FLOAT,
     MRB_TT_FIXNUM,
     MRB_TT_SYMBOL,
     MRB_TT_UNDEF,
-    MRB_TT_FLOAT,
     MRB_TT_CPTR,
+    MRB_TT_FREE,
     MRB_TT_OBJECT,
     MRB_TT_CLASS,
     MRB_TT_MODULE,
