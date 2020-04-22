@@ -6,6 +6,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <mruby.h>
 #include <mruby/array.h>
@@ -16,6 +17,7 @@
 #include <mruby/value.h>
 #include <mruby/variable.h>
 #include <mruby/throw.h>
+#include <mruby/dump.h>
 
 void* mrb_ext_get_ud(struct mrb_state* mrb) {
   return mrb->ud;
@@ -31,7 +33,7 @@ mrb_value mrb_ext_load_nstring_cxt_nothrow(mrb_state *mrb, const char *s, size_t
   struct mrb_jmpbuf c_jmp;
   struct mrb_jmpbuf *pc_jmp_bak;
   pc_jmp_bak = mrb->jmp;
-  
+
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
     value = mrb_load_nstring_cxt(mrb, s, len, cxt);
@@ -40,12 +42,60 @@ mrb_value mrb_ext_load_nstring_cxt_nothrow(mrb_state *mrb, const char *s, size_t
     value = mrb_nil_value();
   }
   MRB_END_EXC(&c_jmp);
-  
+
   mrb->jmp = pc_jmp_bak;
-  
+
   return value;
 }
 
+// from) load.c:read_binary_header()
+static int
+read_binary_size(const uint8_t *bin, size_t *bin_size)
+{
+  const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
+
+  if (memcmp(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident)) == 0) {
+	  // no-op
+  } else if (memcmp(header->binary_ident, RITE_BINARY_IDENT_LIL, sizeof(header->binary_ident)) == 0) {
+	  // no-op
+  } else {
+    return MRB_DUMP_INVALID_FILE_HEADER;
+  }
+
+  if (memcmp(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version)) != 0) {
+    return MRB_DUMP_INVALID_FILE_HEADER;
+  }
+
+  *bin_size = (size_t)bin_to_uint32(header->binary_size);
+
+  return MRB_DUMP_OK;
+}
+// from) load.c:irep_error()
+static void
+irep_error(mrb_state *mrb)
+{
+  mrb_exc_set(mrb, mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "irep load error"));
+}
+
+mrb_value mrb_ext_load_irep_cxt_suppress_alignment(mrb_state *mrb, const uint8_t *bin, mrbc_context *c) {
+  size_t bin_size = 0;
+  const size_t header_size = sizeof(struct rite_binary_header);
+
+  int result = read_binary_size(bin, &bin_size);
+  if (result != MRB_DUMP_OK || bin_size <= header_size) {
+    irep_error(mrb);
+    return mrb_nil_value();
+  }
+
+  // suppress alignment at run
+  const uint8_t *cpy_bin = (const uint8_t *)mrb_malloc(mrb, bin_size);
+
+  memcpy(cpy_bin, bin, bin_size);
+  mrb_value value = mrb_load_irep_cxt(mrb, cpy_bin, c);
+  mrb_free(mrb, cpy_bin);
+
+  return value;
+}
 
 mrb_int mrb_ext_fixnum_to_cint(mrb_value value) {
   return mrb_fixnum(value);

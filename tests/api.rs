@@ -248,13 +248,13 @@ fn api_mrb_sizeof() {
     {
         let csize = unsafe { mrb_ext_float_sizeof() };
         let rsize = std::mem::size_of::<MrFloat>();
-        
+
         assert_eq!(csize, rsize);
     }
     {
         let csize = unsafe { mrb_ext_int_sizeof() };
         let rsize = std::mem::size_of::<MrInt>();
-        
+
         assert_eq!(csize, rsize);
     }
 }

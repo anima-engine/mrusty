@@ -342,7 +342,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "TypeError: expected String");
+    ///         assert_eq!(err, "TypeError: Fixnum cannot be converted to String");
     /// },
     ///     _ => assert!(false)
     /// }
@@ -1230,7 +1230,7 @@ impl MrubyImpl for MrubyType {
 
                 let ctx: *const MrContext = mem::transmute(args[1]);
 
-                let result = mrb_load_irep_cxt(mrb, args[0], ctx);
+                let result = mrb_ext_load_irep_cxt_suppress_alignment(mrb, args[0], ctx);
 
                 mrb_ext_raise_current(mrb);
 
