@@ -86,12 +86,13 @@ impl Mruby {
                     let ptr = mrb_ext_get_ud(mrb);
                     let mruby: MrubyType = mem::transmute(ptr);
 
-                    let name = mem::uninitialized::<*const c_char>();
+                    let mut name = std::mem::MaybeUninit::<*const c_char>::uninit();
 
                     let sig_str = CString::new("z").unwrap();
 
-                    mrb_get_args(mrb, sig_str.as_ptr(), &name as *const *const c_char);
+                    mrb_get_args(mrb, sig_str.as_ptr(), name.as_mut_ptr() as *const *const c_char);
 
+                    let name = name.assume_init();
                     let name = CStr::from_ptr(name).to_str().unwrap();
 
                     let already_required = {
@@ -1210,11 +1211,11 @@ impl MrubyImpl for MrubyType {
             let args_ptr: *const u8 = mem::transmute(&args);
             let data = MrValue::ptr(mrb, args_ptr);
 
-            let state = true; //Box::new(true); // mem::uninitialized::<bool>();
+            let mut state = std::mem::MaybeUninit::<bool>::uninit();
 
-            let value = mrb_protect(mrb, run_protected, data, &state as *const bool);
+            let value = mrb_protect(mrb, run_protected, data, state.as_mut_ptr() as *const bool);
 
-            if state {
+            if state.assume_init() {
                 let str = mrb_ext_exc_str(mrb, value).to_str(mrb).unwrap();
 
                 Err(MrubyError::Runtime(str.to_owned()))
@@ -1268,11 +1269,11 @@ impl MrubyImpl for MrubyType {
             let args_ptr: *const u8 = mem::transmute(&args);
             let data = MrValue::ptr(mrb, args_ptr);
 
-            let state = mem::uninitialized::<bool>();
+            let mut state = std::mem::MaybeUninit::<bool>::uninit();
 
-            let value = mrb_protect(mrb, runb_protected, data, &state as *const bool);
+            let value = mrb_protect(mrb, runb_protected, data, state.as_mut_ptr() as *const bool);
 
-            if state {
+            if state.assume_init() {
                 let str = mrb_ext_exc_str(mrb, value).to_str(mrb).unwrap();
 
                 Err(MrubyError::Runtime(str.to_owned()))
@@ -1761,11 +1762,11 @@ impl Value {
             let args_ptr: *const u8 = mem::transmute(&args);
             let data = MrValue::ptr(mrb, args_ptr);
 
-            let state = mem::uninitialized::<bool>();
+            let mut state = std::mem::MaybeUninit::<bool>::uninit();
 
-            let value = mrb_protect(mrb, call_protected, data, &state as *const bool);
+            let value = mrb_protect(mrb, call_protected, data, state.as_mut_ptr() as *const bool);
 
-            if state {
+            if state.assume_init() {
                 let str = mrb_ext_exc_str(mrb, value).to_str(mrb).unwrap();
 
                 Err(MrubyError::Runtime(str.to_owned()))
