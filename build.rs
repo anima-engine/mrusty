@@ -42,6 +42,7 @@ fn main() {
         .include("target/mruby-out/include")
         .include("target/mruby-out/src/mrbgems/mruby-time/include")
         .flag("-Wno-unused-parameter")
+        .flag("-Wno-unused-variable")
         .define("MRB_NO_BOXING", "1")
         .compile("libmruby.a");
 
@@ -50,6 +51,8 @@ fn main() {
     config
         .file("src/mrb_ext.c")
         .include("target/mruby-out/include")
+        .flag("-Wno-unused-parameter")
+        .flag("-Wno-unused-variable")
         .define("MRB_NO_BOXING", "1")
         .compile("libmrbe.a");
 }
