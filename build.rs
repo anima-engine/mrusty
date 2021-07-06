@@ -12,7 +12,7 @@ extern crate walkdir;
 use std::fs::File;
 
 use tar::Archive;
-use walkdir::{DirEntry, WalkDir, WalkDirIterator};
+use walkdir::{DirEntry, WalkDir};
 
 fn is_c(entry: &DirEntry) -> bool {
     match entry.path().extension() {
@@ -50,7 +50,6 @@ fn main() {
     config
         .file("src/mrb_ext.c")
         .include("target/mruby-out/include")
-        .flag("-Wno-unused-parameter")
         .define("MRB_NO_BOXING", "1")
         .compile("libmrbe.a");
 }
