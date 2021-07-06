@@ -14,9 +14,7 @@ fn mrusty_initialize_empty() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("initialize", || {
-            Cont
-        });
+        def!("initialize", || { Cont });
     });
 
     Cont::require(mruby.clone());
@@ -31,9 +29,7 @@ fn mrusty_initialize_only_values() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("initialize", |_v: i32| {
-            Cont
-        });
+        def!("initialize", |_v: i32| { Cont });
     });
 
     Cont::require(mruby.clone());
@@ -48,9 +44,7 @@ fn mrusty_initialize_only_mruby() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("initialize", |_mruby| {
-            Cont
-        });
+        def!("initialize", |_mruby| { Cont });
     });
 
     Cont::require(mruby.clone());
@@ -65,9 +59,7 @@ fn mrusty_initialize_mruby_values() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("initialize", |_mruby, _v: i32| {
-            Cont
-        });
+        def!("initialize", |_mruby, _v: i32| { Cont });
     });
 
     Cont::require(mruby.clone());
@@ -82,9 +74,7 @@ fn mrusty_instance_empty() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("hi", |slf: Value| {
-            slf
-        });
+        def!("hi", |slf: Value| { slf });
     });
 
     Cont::require(mruby.clone());
@@ -99,9 +89,7 @@ fn mrusty_instance_only_values() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("hi", |slf: Value, _v: i32| {
-            slf
-        });
+        def!("hi", |slf: Value, _v: i32| { slf });
     });
 
     Cont::require(mruby.clone());
@@ -116,9 +104,7 @@ fn mrusty_instance_only_mruby() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("hi", |_mruby, slf: Value| {
-            slf
-        });
+        def!("hi", |_mruby, slf: Value| { slf });
     });
 
     Cont::require(mruby.clone());
@@ -133,9 +119,7 @@ fn mrusty_instance_mruby_values() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def!("hi", |mruby, _slf: Value, v: i32| {
-            mruby.fixnum(v)
-        });
+        def!("hi", |mruby, _slf: Value, v: i32| { mruby.fixnum(v) });
     });
 
     Cont::require(mruby.clone());
@@ -152,9 +136,7 @@ fn mrusty_class_empty() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def_self!("hi", |slf: Class| {
-            slf.to_value()
-        });
+        def_self!("hi", |slf: Class| { slf.to_value() });
     });
 
     Cont::require(mruby.clone());
@@ -171,9 +153,7 @@ fn mrusty_class_only_values() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def_self!("hi", |_slf: Class, other: Class| {
-            other.to_value()
-        });
+        def_self!("hi", |_slf: Class, other: Class| { other.to_value() });
     });
 
     Cont::require(mruby.clone());
@@ -190,9 +170,7 @@ fn mrusty_class_only_mruby() {
     struct Cont;
 
     mrusty_class!(Cont, "Container", {
-        def_self!("hi", |_mruby, slf: Class| {
-            slf.to_value()
-        });
+        def_self!("hi", |_mruby, slf: Class| { slf.to_value() });
     });
 
     Cont::require(mruby.clone());
@@ -692,7 +670,9 @@ fn mrusty_instance_args_block_empty() {
 
     Cont::require(mruby.clone());
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[2] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
@@ -711,7 +691,9 @@ fn mrusty_instance_args_block_only_values() {
 
     Cont::require(mruby.clone());
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[1] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
@@ -730,7 +712,9 @@ fn mrusty_instance_args_block_only_mruby() {
 
     Cont::require(mruby.clone());
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[2] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
@@ -749,7 +733,9 @@ fn mrusty_instance_args_block_mruby_values() {
 
     Cont::require(mruby.clone());
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[1] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
@@ -835,9 +821,7 @@ fn mruby_instance_empty() {
     let mruby = Mruby::new();
 
     mruby_class!(mruby, "Container", {
-        def!("hi", |slf: Value| {
-            slf
-        });
+        def!("hi", |slf: Value| { slf });
     });
 
     mruby.run("Container.new.hi").unwrap();
@@ -848,9 +832,7 @@ fn mruby_instance_only_values() {
     let mruby = Mruby::new();
 
     mruby_class!(mruby, "Container", {
-        def!("hi", |slf: Value, _v: i32| {
-            slf
-        });
+        def!("hi", |slf: Value, _v: i32| { slf });
     });
 
     mruby.run("Container.new.hi 3").unwrap();
@@ -861,9 +843,7 @@ fn mruby_instance_only_mruby() {
     let mruby = Mruby::new();
 
     mruby_class!(mruby, "Container", {
-        def!("hi", |_mruby, slf: Value| {
-            slf
-        });
+        def!("hi", |_mruby, slf: Value| { slf });
     });
 
     mruby.run("Container.new.hi").unwrap();
@@ -874,9 +854,7 @@ fn mruby_instance_mruby_values() {
     let mruby = Mruby::new();
 
     mruby_class!(mruby, "Container", {
-        def!("hi", |mruby, _slf: Value, v: i32| {
-            mruby.fixnum(v)
-        });
+        def!("hi", |mruby, _slf: Value, v: i32| { mruby.fixnum(v) });
     });
 
     let result = mruby.run("Container.new.hi 3").unwrap();
@@ -889,9 +867,7 @@ fn mruby_class_empty() {
     let mruby = Mruby::new();
 
     mruby_class!(mruby, "Container", {
-        def_self!("hi", |slf: Class| {
-            slf.to_value()
-        });
+        def_self!("hi", |slf: Class| { slf.to_value() });
     });
 
     let result = mruby.run("Container.hi == Container").unwrap();
@@ -904,9 +880,7 @@ fn mruby_class_only_values() {
     let mruby = Mruby::new();
 
     mruby_class!(mruby, "Container", {
-        def_self!("hi", |_slf: Class, other: Class| {
-            other.to_value()
-        });
+        def_self!("hi", |_slf: Class, other: Class| { other.to_value() });
     });
 
     let result = mruby.run("Container.hi(Fixnum) == Fixnum").unwrap();
@@ -919,9 +893,7 @@ fn mruby_class_only_mruby() {
     let mruby = Mruby::new();
 
     mruby_class!(mruby, "Container", {
-        def_self!("hi", |_mruby, slf: Class| {
-            slf.to_value()
-        });
+        def_self!("hi", |_mruby, slf: Class| { slf.to_value() });
     });
 
     let result = mruby.run("Container.hi == Container").unwrap();
@@ -1194,7 +1166,9 @@ fn mruby_instance_args_block_empty() {
         });
     });
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[2] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
@@ -1209,7 +1183,9 @@ fn mruby_instance_args_block_only_values() {
         });
     });
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[1] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
@@ -1224,7 +1200,9 @@ fn mruby_instance_args_block_only_mruby() {
         });
     });
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[2] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[2] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }
@@ -1239,7 +1217,9 @@ fn mruby_instance_args_block_mruby_values() {
         });
     });
 
-    let result = mruby.run("Container.new.hi(1, 2, 3) { |*a| a[1] }").unwrap();
+    let result = mruby
+        .run("Container.new.hi(1, 2, 3) { |*a| a[1] }")
+        .unwrap();
 
     assert_eq!(result.to_i32().unwrap(), 3);
 }

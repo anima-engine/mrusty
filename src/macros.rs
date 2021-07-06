@@ -359,6 +359,7 @@ macro_rules! mrfn {
                 let sig_str = ::std::ffi::CString::new("&").unwrap();
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $blk : Value);
+                std::mem::forget(sig_str);
                 mrfn!(@conv $mruby, $blk : Value);
 
                 $block
@@ -379,6 +380,7 @@ macro_rules! mrfn {
 
                 $crate::mrb_get_args(mrb, sig_str.as_ptr(), $args.as_mut_ptr() as *const *mut $crate::MrValue,
                              count.as_mut_ptr() as *const i32);
+                std::mem::forget(sig_str);
 
                 let $args = $args.assume_init();
                 let count = count.assume_init();
@@ -408,6 +410,7 @@ macro_rules! mrfn {
                 $crate::mrb_get_args(mrb, sig_str.as_ptr(),
                              $args.as_mut_ptr() as *const *mut $crate::MrValue, count.as_mut_ptr() as *const i32,
                              $blk.as_mut_ptr() as *const $crate::MrValue);
+                std::mem::forget(sig_str);
 
                 let $args = $args.assume_init();
                 let count = count.assume_init();
@@ -434,6 +437,7 @@ macro_rules! mrfn {
                 let sig_str = ::std::ffi::CString::new(mrfn!(@sig $( $t ),*)).unwrap();
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*);
+                std::mem::forget(sig_str);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
 
                 $block
@@ -451,6 +455,7 @@ macro_rules! mrfn {
                 let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "&")).unwrap();
 
                 mrfn!(@args mrb, sig_str.as_ptr(), $( $name : $t ),*, $blk : Value);
+                std::mem::forget(sig_str);
                 mrfn!(@conv $mruby, $( $name : $t ),*, $blk : Value);
 
                 $block
@@ -467,6 +472,7 @@ macro_rules! mrfn {
                 let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "*")).unwrap();
 
                 let $args = mrfn!(@args_rest $mruby, sig_str.as_ptr(), $( $name : $t ),*);
+                std::mem::forget(sig_str);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
 
                 $block
@@ -483,6 +489,7 @@ macro_rules! mrfn {
                 let sig_str = ::std::ffi::CString::new(concat!(mrfn!(@sig $( $t ),*), "*&")).unwrap();
 
                 let ($args, $blk) = mrfn!(@args_rest_blk $mruby, sig_str.as_ptr(), $( $name : $t ),*);
+                std::mem::forget(sig_str);
                 mrfn!(@conv $mruby, $( $name : $t ),*);
 
                 $block
