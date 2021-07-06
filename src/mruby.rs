@@ -269,6 +269,7 @@ impl fmt::Display for MrubyError {
 }
 
 impl Error for MrubyError {
+    #[allow(deprecated)]
     fn description(&self) -> &str {
         match *self {
             MrubyError::Cast(_) => "mruby value cast error",
@@ -1208,6 +1209,7 @@ macro_rules! mruby_callback {
     };
 }
 
+#[allow(unused_mut)]
 impl MrubyImpl for MrubyType {
     fn filename(&self, filename: &str) {
         self.borrow_mut().filename = Some(filename.to_owned());
@@ -1327,6 +1329,7 @@ impl MrubyImpl for MrubyType {
             Some(ext) => {
                 self.filename(script.file_name().unwrap().to_str().unwrap());
 
+                // This should be mut but got warning...
                 let mut file = File::open(script)?;
 
                 match ext.to_str().unwrap() {
@@ -2239,13 +2242,15 @@ impl Value {
 use std::fmt;
 
 impl Clone for Value {
+    // #[allow(unused_must_use)]
     fn clone(&self) -> Value {
         if self.value.typ == MrType::MRB_TT_DATA {
             unsafe {
                 let ptr = mrb_ext_data_ptr(self.value);
                 let rc: Rc<c_void> = mem::transmute(ptr);
 
-                rc.clone();
+                // Looks like a bad magic, but I dont know how to avoid
+                //rc.clone();
 
                 mem::forget(rc);
             }

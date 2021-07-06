@@ -97,7 +97,7 @@ impl Repl {
             };
 
             if input.ends_with("\\") {
-                let trimmed = input.trim_right_matches("\\");
+                let trimmed = input.trim_end_matches("\\");
 
                 command = command + trimmed + "\n";
                 read_line.add(&trimmed);
