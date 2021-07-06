@@ -190,6 +190,7 @@ impl MrValue {
 }
 
 #[allow(dead_code)]
+#[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MrType {
