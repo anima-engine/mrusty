@@ -64,7 +64,7 @@ class Context
     tests = @children.map { |e| e.run depth + 1 }.flatten
 
     if depth == 0
-      puts
+      puts ""
       puts describe depth
 
       failures = tests.select { |t| t.is_a? Exception }

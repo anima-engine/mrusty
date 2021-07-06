@@ -6,6 +6,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use super::mruby::*;
+use crate::{mrfn, mruby_class, mruby_defines};
 
 /// A `macro` useful to run mruby specs. You can pass a tuple of `MrubyFile`s dependencies
 /// as a second argument.
@@ -129,7 +130,7 @@ macro_rules! describe {
 pub struct Spec {
     script: String,
     target: String,
-    mruby: MrubyType
+    mruby: MrubyType,
 }
 
 impl Spec {
@@ -168,6 +169,23 @@ impl Spec {
     /// ");
     /// ```
     pub fn new(mruby: MrubyType, name: &str, script: &str) -> Spec {
+        mruby_class!(mruby, "Prelude", {
+            def_self!("puts", |mruby, _rbself: Value, msg: (&str)| {
+                println!("{}", msg);
+                mruby.nil()
+            });
+        });
+
+        mruby
+            .run(
+                "module Kernel
+                   def puts(arg)
+                     Prelude.puts arg
+                   end
+                 end",
+            )
+            .ok();
+
         mruby.filename("matchers/be.rb");
         mruby.run(include_str!("spec/matchers/be.rb")).unwrap();
 
@@ -213,7 +231,7 @@ impl Spec {
         Spec {
             script: script.to_owned(),
             target: name.to_owned(),
-            mruby: mruby
+            mruby: mruby,
         }
     }
 
@@ -254,11 +272,14 @@ impl Spec {
     /// assert_eq!(spec.run(), true);
     /// ```
     pub fn run(&self) -> bool {
-        let describe = format!("
+        let describe = format!(
+            "
             Spec.describe {} do
               {}
             end
-        ", self.target, self.script);
+        ",
+            self.target, self.script
+        );
 
         self.mruby.run(&describe).unwrap().to_bool().unwrap()
     }
@@ -276,7 +297,9 @@ mod tests {
         }
     }
 
-    describe!(Empty, "
+    describe!(
+        Empty,
+        "
       context Fixnum do
         context 'when 1' do
           subject { 1 }
@@ -308,8 +331,8 @@ mod tests {
           end
 
           it 'does not concatenate with String' do
-            expect { '' + 1 }.to raise_error TypeError, \"expected String\"
-            expect { 1 + '' }.not_to raise_error Exception
+            expect { '' + 1 }.to raise_error TypeError, \"Integer cannot be converted to String\"
+            expect { 1 + '' }.not_to raise_error MyException
           end
 
           it { is_expected.to respond_to :to_s }
@@ -329,5 +352,6 @@ mod tests {
           it { is_expected.not_to be_empty }
         end
       end
-    ");
+    "
+    );
 }

@@ -50,3 +50,6 @@ class RaiseMatcher
     method == :raise_error
   end
 end
+
+class MyException < Exception
+end

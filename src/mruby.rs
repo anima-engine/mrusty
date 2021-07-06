@@ -331,7 +331,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "script.rb:1: undefined method \'nope\' for 1 (NoMethodError)");
+    ///         assert_eq!(err, "undefined method 'nope' (NoMethodError)");
     /// },
     ///     _ => assert!(false)
     /// }
@@ -362,7 +362,7 @@ pub trait MrubyImpl {
     ///
     /// match result {
     ///     Err(MrubyError::Runtime(err)) => {
-    ///         assert_eq!(err, "TypeError: expected String");
+    ///         assert_eq!(err, "Integer cannot be converted to String (TypeError)");
     /// },
     ///     _ => assert!(false)
     /// }
@@ -1987,7 +1987,7 @@ impl Value {
     /// let mruby = Mruby::new();
     ///
     /// let one = mruby.run("1").unwrap();
-    /// assert_eq!(one.class().to_str(), "Fixnum");
+    /// assert_eq!(one.class().to_str(), "Integer");
     /// ```
 
     pub fn class(&self) -> Class {
