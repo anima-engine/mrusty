@@ -14,7 +14,7 @@
 # * compile, linker & archiver
 # * unzip
 
-VERSION=1.2.0
+VERSION=3.0.0
 CURRENT=$PWD
 
 # Checks is /tmp/mruby needs cleaning or creation.
@@ -35,40 +35,40 @@ mkdir -p mruby-out/src/mrbgems
 
 cd mruby-$VERSION
 
+# remove mruby-io and bin dep
+sed -i.bak '/stdlib-io/d' mrbgems/default.gembox
+sed -i.bak '/mruby-bin-/d' mrbgems/default.gembox
+
+# Add mruby-error dep
+sed -i.bak '/Generate mruby-config command/a conf.gem :core => "mruby-error"' mrbgems/default.gembox
+
 # minirake compiles the compiler and rb files to C.
 
 ./minirake
 
 # Adds all .h files from include.
 
-cp -R include ../mruby-out
+cp -vR include ../mruby-out
+cp build/host/presym ../mruby-out/
+cp build/host/include/mruby/presym/*.h ../mruby-out/include/mruby/presym
 
 # Adds src and C-compiled mrblib.
 
 cp src/*.c ../mruby-out/src
 cp src/*.h ../mruby-out/src
+cp src/*.pi ../mruby-out/src
+cp src/presym ../mruby-out/src
 cp build/host/mrblib/mrblib.c ../mruby-out/src/mrblib/mrblib.c
 
-# Removes incompatible files.
-
-find mrbgems -type f ! -name "*.c" -and ! -name "*.h" -and ! -name "*.def" -delete
-find mrbgems -type d -empty -delete
-find build/host/mrbgems -type f ! -name "*.c" -and ! -name "*.h" -delete
-find build/host/mrbgems -type d -empty -delete
-
-# Removes incompatible gems.
-
-rm -rf mrbgems/mruby-bin*
-rm -rf build/host/mrbgems/mruby-bin*
-
-rm -rf mrbgems/mruby-test
-rm -rf build/host/mrbgems/mruby-test
-
-# Copies all gems.
-
-cp -R mrbgems/* ../mruby-out/src/mrbgems
-cp -R build/host/mrbgems/* ../mruby-out/src/mrbgems
+# Copies gems that are included in libmruby.
+for fullpath in $(find build/host/mrbgems -type d -name 'mruby-*')
+do
+    mgemname=$(basename $fullpath)
+    cp -R mrbgems/$mgemname ../mruby-out/src/mrbgems
+    cp -R build/host/mrbgems/$mgemname ../mruby-out/src/mrbgems
+done
+cp build/host/mrbgems/gem_init.c ../mruby-out/src/mrbgems
 
 cd ..
 
-tar -cf $CURRENT/mruby-out.tar mruby-out
+tar -cvf $CURRENT/mruby-out.tar mruby-out

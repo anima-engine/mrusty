@@ -15,6 +15,7 @@
 #include <mruby/proc.h>
 #include <mruby/value.h>
 #include <mruby/variable.h>
+#include <mruby/array.h>
 
 void* mrb_ext_get_ud(struct mrb_state* mrb) {
   return mrb->ud;
@@ -127,7 +128,7 @@ void mrb_ext_set_instance_tt(struct RClass* class, enum mrb_vtype type) {
 }
 
 int mrb_ext_ary_len(struct mrb_state* mrb, mrb_value array) {
-  return mrb_ary_len(mrb, array);
+  return RARRAY_LEN(array);
 }
 
 unsigned int mrb_ext_get_mid(struct mrb_state* mrb) {

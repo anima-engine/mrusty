@@ -1210,7 +1210,7 @@ impl MrubyImpl for MrubyType {
             let args_ptr: *const u8 = mem::transmute(&args);
             let data = MrValue::ptr(mrb, args_ptr);
 
-            let state = mem::uninitialized::<bool>();
+            let state = true; //Box::new(true); // mem::uninitialized::<bool>();
 
             let value = mrb_protect(mrb, run_protected, data, &state as *const bool);
 

@@ -17,7 +17,7 @@ use walkdir::{DirEntry, WalkDir, WalkDirIterator};
 fn is_c(entry: &DirEntry) -> bool {
     match entry.path().extension() {
         Some(ext) => "c" == ext,
-        None      => false
+        None => false,
     }
 }
 
@@ -27,15 +27,30 @@ fn main() {
 
     let mut config = gcc::Config::new();
 
-    for entry in WalkDir::new("target/mruby-out/src").into_iter().filter_entry(|e| e.file_type().is_dir() || is_c(e)) {
+    for entry in WalkDir::new("target/mruby-out/src")
+        .into_iter()
+        .filter_entry(|e| e.file_type().is_dir() || is_c(e))
+    {
         let entry = entry.unwrap();
 
-        if is_c(&entry) { config.file(entry.path()); }
+        if is_c(&entry) {
+            config.file(entry.path());
+        }
     }
 
-    config.include("target/mruby-out/include").compile("libmruby.a");
+    config
+        .include("target/mruby-out/include")
+        .include("target/mruby-out/src/mrbgems/mruby-time/include")
+        .flag("-Wno-unused-parameter")
+        .define("MRB_NO_BOXING", "1")
+        .compile("libmruby.a");
 
     let mut config = gcc::Config::new();
 
-    config.file("src/mrb_ext.c").include("target/mruby-out/include").compile("libmrbe.a");
+    config
+        .file("src/mrb_ext.c")
+        .include("target/mruby-out/include")
+        .flag("-Wno-unused-parameter")
+        .define("MRB_NO_BOXING", "1")
+        .compile("libmrbe.a");
 }
