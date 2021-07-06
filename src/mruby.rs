@@ -211,7 +211,6 @@ impl Mruby {
         }
     }
 
-    #[inline]
     fn raise(mrb: *const MrState, eclass: &str, message: &str) -> MrValue {
         unsafe {
             let eclass_str = CString::new(eclass).unwrap();
@@ -336,7 +335,7 @@ pub trait MrubyImpl {
     ///     _ => assert!(false)
     /// }
     /// ```
-    #[inline]
+
     fn filename(&self, filename: &str);
 
     /// Runs mruby `script` on a state and context and returns a `Value` in an `Ok`
@@ -367,7 +366,7 @@ pub trait MrubyImpl {
     ///     _ => assert!(false)
     /// }
     /// ```
-    #[inline]
+
     fn run(&self, script: &str) -> Result<Value, MrubyError>;
 
     /// Runs mruby `script` on a state and context and returns a `Value`. If an mruby Exception is
@@ -413,7 +412,7 @@ pub trait MrubyImpl {
     /// assert_eq!(result.to_str().unwrap(), "surprize");
     /// # }
     /// ```
-    #[inline]
+
     unsafe fn run_unchecked(&self, script: &str) -> Value;
 
     /// Runs mruby compiled (.mrb) `script` on a state and context and returns a `Value` in an `Ok`
@@ -425,7 +424,7 @@ pub trait MrubyImpl {
     /// let mruby = Mruby::new();
     /// let result = mruby.runb(include_bytes!("script.mrb")).unwrap();
     /// ```
-    #[inline]
+
     fn runb(&self, script: &[u8]) -> Result<Value, MrubyError>;
 
     /// Runs mruby (compiled (.mrb) or not (.rb)) `script` on a state and context and returns a
@@ -440,7 +439,7 @@ pub trait MrubyImpl {
     /// let mruby = Mruby::new();
     /// let result = mruby.execute(&Path::new("script.rb")).unwrap();
     /// ```
-    #[inline]
+
     fn execute(&self, script: &Path) -> Result<Value, MrubyError>;
 
     /// Returns whether the mruby `Class` or `Module` named `name` is defined.
@@ -457,7 +456,7 @@ pub trait MrubyImpl {
     /// assert!(object);
     /// assert!(!objekt);
     /// ```
-    #[inline]
+
     fn is_defined(&self, name: &str) -> bool;
 
     /// Returns whether the mruby `Class` or `Module` named `name` is defined under `outer` `Class`
@@ -475,7 +474,7 @@ pub trait MrubyImpl {
     ///
     /// assert!(mruby.is_defined_under("Mine", &module));
     /// ```
-    #[inline]
+
     fn is_defined_under<T: ClassLike>(&self, name: &str, outer: &T) -> bool;
 
     /// Returns the mruby `Class` named `name` in a `Some` or `None` if it is not defined.
@@ -492,7 +491,7 @@ pub trait MrubyImpl {
     /// assert_eq!(object.unwrap().to_str(), "Object");
     /// assert!(objekt.is_err());
     /// ```
-    #[inline]
+
     fn get_class(&self, name: &str) -> Result<Class, MrubyError>;
 
     /// Returns the mruby `Class` named `name` under `outer` `Class` or `Module` in a `Some` or
@@ -514,7 +513,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(result.to_str(), "Mine::Container");
     /// ```
-    #[inline]
+
     fn get_class_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Class, MrubyError>;
 
     /// Returns the mruby `Module` named `name` in a `Some` or `None` if it is not defined.
@@ -531,7 +530,7 @@ pub trait MrubyImpl {
     /// assert_eq!(kernel.unwrap().to_str(), "Kernel");
     /// assert!(kernet.is_err());
     /// ```
-    #[inline]
+
     fn get_module(&self, name: &str) -> Result<Module, MrubyError>;
 
     /// Returns the mruby `Module` named `name` under `outer` `Class` or `Module` in a `Some` or
@@ -551,7 +550,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(result.to_str(), "Just::Mine");
     /// ```
-    #[inline]
+
     fn get_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Module, MrubyError>;
 
     /// Defines a dynamic file that can be `require`d containing the Rust type `T` and runs its
@@ -595,7 +594,7 @@ pub trait MrubyImpl {
     /// assert_eq!(result.to_i32().unwrap(), 3);
     /// # }
     /// ```
-    #[inline]
+
     fn def_file<T: MrubyFile>(&self, name: &str);
 
     /// Defines an mruby `Class` named `name`.
@@ -848,7 +847,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
-    #[inline]
+
     fn nil(&self) -> Value;
 
     /// Creates mruby `Value` containing `true` or `false`.
@@ -863,7 +862,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(b.to_bool().unwrap(), true);
     /// ```
-    #[inline]
+
     fn bool(&self, value: bool) -> Value;
 
     /// Creates mruby `Value` of `Class` `Fixnum`.
@@ -879,7 +878,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(fixn.to_i32().unwrap(), 2);
     /// ```
-    #[inline]
+
     fn fixnum(&self, value: i32) -> Value;
 
     /// Creates mruby `Value` of `Class` `Float`.
@@ -894,7 +893,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(fl.to_f64().unwrap(), 2.3);
     /// ```
-    #[inline]
+
     fn float(&self, value: f64) -> Value;
 
     /// Creates mruby `Value` of `Class` `String`.
@@ -909,7 +908,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(s.to_str().unwrap(), "hi");
     /// ```
-    #[inline]
+
     fn string(&self, value: &str) -> Value;
 
     /// Creates mruby `Value` of `Class` `Symbol`.
@@ -924,7 +923,7 @@ pub trait MrubyImpl {
     ///
     /// assert_eq!(s.to_str().unwrap(), "hi");
     /// ```
-    #[inline]
+
     fn symbol(&self, value: &str) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust object of type `T`.
@@ -946,7 +945,7 @@ pub trait MrubyImpl {
     ///
     /// let value = mruby.obj(Cont { value: 3 });
     /// ```
-    #[inline]
+
     fn obj<T: Any>(&self, obj: T) -> Value;
 
     /// Creates mruby `Value` of `Class` `name` containing a Rust `Option` of type `T`.
@@ -975,7 +974,7 @@ pub trait MrubyImpl {
     /// assert_eq!(none.call("nil?", vec![]).unwrap().to_bool().unwrap(), true);
     /// assert_eq!(some.value, 3);
     /// ```
-    #[inline]
+
     fn option<T: Any>(&self, obj: Option<T>) -> Value;
 
     /// Creates mruby `Value` of `Class` `Array`.
@@ -998,11 +997,10 @@ pub trait MrubyImpl {
     ///     mruby.fixnum(3)
     /// ]);
     /// ```
-    #[inline]
+
     fn array(&self, value: Vec<Value>) -> Value;
 }
 
-#[inline]
 fn get_class<F>(mruby: &MrubyType, name: &str, class: Result<Class, MrubyError>, get: F) -> Class
 where
     F: Fn(*const MrState, *const c_char, *const MrClass) -> *const MrClass,
@@ -1035,7 +1033,6 @@ where
     }
 }
 
-#[inline]
 fn get_class_for<T: Any, F>(mruby: &MrubyType, name: &str, get: F) -> Class
 where
     F: Fn(*const MrState, *const c_char, *const MrClass) -> *const MrClass,
@@ -1212,7 +1209,6 @@ macro_rules! mruby_callback {
 }
 
 impl MrubyImpl for MrubyType {
-    #[inline]
     fn filename(&self, filename: &str) {
         self.borrow_mut().filename = Some(filename.to_owned());
 
@@ -1223,7 +1219,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn run(&self, script: &str) -> Result<Value, MrubyError> {
         extern "C" fn run_protected(mrb: *const MrState, data: MrValue) -> MrValue {
             unsafe {
@@ -1271,7 +1266,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     unsafe fn run_unchecked(&self, script: &str) -> Value {
         let (mrb, ctx) = {
             let borrow = self.borrow();
@@ -1284,7 +1278,6 @@ impl MrubyImpl for MrubyType {
         Value::new(self.clone(), value)
     }
 
-    #[inline]
     fn runb(&self, script: &[u8]) -> Result<Value, MrubyError> {
         extern "C" fn runb_protected(mrb: *const MrState, data: MrValue) -> MrValue {
             unsafe {
@@ -1329,7 +1322,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn execute(&self, script: &Path) -> Result<Value, MrubyError> {
         match script.extension() {
             Some(ext) => {
@@ -1357,7 +1349,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn is_defined(&self, name: &str) -> bool {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1366,7 +1357,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn is_defined_under<T: ClassLike>(&self, name: &str, outer: &T) -> bool {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1375,7 +1365,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn get_class(&self, name: &str) -> Result<Class, MrubyError> {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1390,7 +1379,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn get_class_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Class, MrubyError> {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1406,7 +1394,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn get_module(&self, name: &str) -> Result<Module, MrubyError> {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1421,7 +1408,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn get_module_under<T: ClassLike>(&self, name: &str, outer: &T) -> Result<Module, MrubyError> {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1610,7 +1596,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn class_name_for<T: Any>(&self) -> Result<String, MrubyError> {
         let borrow = self.borrow();
 
@@ -1620,37 +1605,30 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn nil(&self) -> Value {
         unsafe { Value::new(self.clone(), MrValue::nil()) }
     }
 
-    #[inline]
     fn bool(&self, value: bool) -> Value {
         unsafe { Value::new(self.clone(), MrValue::bool(value)) }
     }
 
-    #[inline]
     fn fixnum(&self, value: i32) -> Value {
         unsafe { Value::new(self.clone(), MrValue::fixnum(value)) }
     }
 
-    #[inline]
     fn float(&self, value: f64) -> Value {
         unsafe { Value::new(self.clone(), MrValue::float(self.borrow().mrb, value)) }
     }
 
-    #[inline]
     fn string(&self, value: &str) -> Value {
         unsafe { Value::new(self.clone(), MrValue::string(self.borrow().mrb, value)) }
     }
 
-    #[inline]
     fn symbol(&self, value: &str) -> Value {
         unsafe { Value::new(self.clone(), MrValue::symbol(self.borrow().mrb, value)) }
     }
 
-    #[inline]
     fn obj<T: Any>(&self, obj: T) -> Value {
         let borrow = self.borrow();
 
@@ -1667,7 +1645,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn option<T: Any>(&self, obj: Option<T>) -> Value {
         match obj {
             Some(obj) => self.obj(obj),
@@ -1675,7 +1652,6 @@ impl MrubyImpl for MrubyType {
         }
     }
 
-    #[inline]
     fn array(&self, value: Vec<Value>) -> Value {
         let array: Vec<MrValue> = value.iter().map(|value| value.value).collect();
 
@@ -1899,7 +1875,7 @@ impl Value {
     ///
     /// assert!(!cont.has_var("value"));
     /// ```
-    #[inline]
+
     pub fn has_var(&self, name: &str) -> bool {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1929,7 +1905,7 @@ impl Value {
     /// assert_eq!(cont.get_var("value").unwrap().to_i32().unwrap(), 2);
     /// assert!(cont.get_var("valup").is_none());
     /// ```
-    #[inline]
+
     pub fn get_var(&self, name: &str) -> Option<Value> {
         unsafe {
             let name_str = CString::new(name).unwrap();
@@ -1978,7 +1954,7 @@ impl Value {
     ///
     /// one.set_var("value", mruby.fixnum(2)); // panics because Fixnum cannot have instance vars
     /// ```
-    #[inline]
+
     pub fn set_var(&self, name: &str, value: Value) {
         match self.value.typ {
             MrType::MRB_TT_OBJECT
@@ -2010,7 +1986,7 @@ impl Value {
     /// let one = mruby.run("1").unwrap();
     /// assert_eq!(one.class().to_str(), "Fixnum");
     /// ```
-    #[inline]
+
     pub fn class(&self) -> Class {
         unsafe {
             let class = mrb_ext_class(self.mruby.borrow().mrb, self.value);
@@ -2037,7 +2013,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_bool().unwrap(), true);
     /// ```
-    #[inline]
+
     pub fn to_bool(&self) -> Result<bool, MrubyError> {
         unsafe { self.value.to_bool() }
     }
@@ -2060,7 +2036,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_i32().unwrap(), 120);
     /// ```
-    #[inline]
+
     pub fn to_i32(&self) -> Result<i32, MrubyError> {
         unsafe { self.value.to_i32() }
     }
@@ -2079,7 +2055,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_f64().unwrap(), 1.5);
     /// ```
-    #[inline]
+
     pub fn to_f64(&self) -> Result<f64, MrubyError> {
         unsafe { self.value.to_f64() }
     }
@@ -2107,7 +2083,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_str().unwrap(), "symbol");
     /// ```
-    #[inline]
+
     pub fn to_str<'a>(&self) -> Result<&'a str, MrubyError> {
         unsafe { self.value.to_str(self.mruby.borrow().mrb) }
     }
@@ -2135,7 +2111,7 @@ impl Value {
     ///
     /// assert_eq!(cont.value, 3);
     /// ```
-    #[inline]
+
     pub fn to_obj<T: Any>(&self) -> Result<Rc<RefCell<T>>, MrubyError> {
         unsafe {
             let borrow = self.mruby.borrow();
@@ -2179,7 +2155,7 @@ impl Value {
     /// assert_eq!(cont.value, 3);
     /// assert!(mruby.nil().to_option::<Cont>().unwrap().is_none());
     /// ```
-    #[inline]
+
     pub fn to_option<T: Any>(&self) -> Result<Option<Rc<RefCell<T>>>, MrubyError> {
         if self.value.typ == MrType::MRB_TT_DATA {
             self.to_obj::<T>().map(|obj| Some(obj))
@@ -2206,7 +2182,7 @@ impl Value {
     ///     mruby.string("3")
     /// ]);
     /// ```
-    #[inline]
+
     pub fn to_vec(&self) -> Result<Vec<Value>, MrubyError> {
         unsafe {
             self.value.to_vec(self.mruby.borrow().mrb).map(|vec| {
@@ -2229,7 +2205,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_class().unwrap().to_str(), "Object");
     /// ```
-    #[inline]
+
     pub fn to_class(&self) -> Result<Class, MrubyError> {
         unsafe {
             let class = self.value.to_class()?;
@@ -2250,7 +2226,7 @@ impl Value {
     ///
     /// assert_eq!(result.to_module().unwrap().to_str(), "Kernel");
     /// ```
-    #[inline]
+
     pub fn to_module(&self) -> Result<Module, MrubyError> {
         unsafe {
             let module = self.value.to_module()?;
@@ -2417,7 +2393,7 @@ impl Class {
     ///
     /// assert_eq!(class.to_str(), "Container");
     /// ```
-    #[inline]
+
     pub fn to_str(&self) -> &str {
         &self.name
     }
@@ -2440,7 +2416,7 @@ impl Class {
     ///
     /// assert_eq!(name.to_str().unwrap(), "Container");
     /// ```
-    #[inline]
+
     pub fn to_value(&self) -> Value {
         unsafe {
             let value = mrb_ext_class_value(self.class);
@@ -2595,7 +2571,7 @@ impl Module {
     ///
     /// assert_eq!(module.to_str(), "Container");
     /// ```
-    #[inline]
+
     pub fn to_str(&self) -> &str {
         &self.name
     }
@@ -2616,7 +2592,7 @@ impl Module {
     ///
     /// assert_eq!(name.to_str().unwrap(), "Container");
     /// ```
-    #[inline]
+
     pub fn to_value(&self) -> Value {
         unsafe {
             let value = mrb_ext_module_value(self.module);
