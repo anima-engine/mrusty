@@ -24,7 +24,7 @@ use super::read_line::ReadLine;
 /// ```
 pub struct Repl {
     mruby: MrubyType,
-    name: String
+    name: String,
 }
 
 impl Repl {
@@ -41,7 +41,7 @@ impl Repl {
     pub fn new(mruby: MrubyType) -> Repl {
         Repl {
             mruby: mruby,
-            name: "mrusty".to_owned()
+            name: "mrusty".to_owned(),
         }
     }
 
@@ -75,20 +75,16 @@ impl Repl {
     ///
     /// repl.start(&GnuReadLine);
     /// ```
-    pub fn start<E: Display>(&self, read_line: &ReadLine<E>) {
+    pub fn start<E: Display>(&self, read_line: &dyn ReadLine<E>) {
         let mut command = String::new();
 
         let single = self.name.clone() + "> ";
-        let multi  = self.name.clone() + "* ";
+        let multi = self.name.clone() + "* ";
 
         loop {
             self.mruby.filename("repl");
 
-            let head = if command.is_empty() {
-                &single
-            } else {
-                &multi
-            };
+            let head = if command.is_empty() { &single } else { &multi };
 
             let input = match read_line.read(head) {
                 Ok(Some(s)) => s,
@@ -96,7 +92,7 @@ impl Repl {
                 Err(e) => {
                     println!("{}", e);
 
-                    break
+                    break;
                 }
             };
 
@@ -106,7 +102,7 @@ impl Repl {
                 command = command + trimmed + "\n";
                 read_line.add(&trimmed);
 
-                continue
+                continue;
             } else {
                 read_line.add(&input);
             }
@@ -122,7 +118,7 @@ impl Repl {
                     let result = value.call("to_s", vec![]).unwrap().to_str().unwrap();
 
                     println!("{}", result);
-                },
+                }
                 Err(message) => {
                     println!("{}", message);
                 }
