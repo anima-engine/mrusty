@@ -5,7 +5,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-extern crate gcc;
+extern crate cc;
 extern crate tar;
 extern crate walkdir;
 
@@ -25,7 +25,7 @@ fn main() {
     let mut archive = Archive::new(File::open("src/mruby/mruby-out.tar").unwrap());
     archive.unpack("target").unwrap();
 
-    let mut config = gcc::Config::new();
+    let mut config = cc::Build::new();
 
     for entry in WalkDir::new("target/mruby-out/src")
         .into_iter()
@@ -43,16 +43,18 @@ fn main() {
         .include("target/mruby-out/src/mrbgems/mruby-time/include")
         .flag("-Wno-unused-parameter")
         .flag("-Wno-unused-variable")
+        .flag("-Wno-missing-field-initializers")
         .define("MRB_NO_BOXING", "1")
         .compile("libmruby.a");
 
-    let mut config = gcc::Config::new();
+    let mut config = cc::Build::new();
 
     config
         .file("src/mrb_ext.c")
         .include("target/mruby-out/include")
         .flag("-Wno-unused-parameter")
         .flag("-Wno-unused-variable")
+        .flag("-Wno-missing-field-initializers")
         .define("MRB_NO_BOXING", "1")
         .compile("libmrbe.a");
 }
