@@ -2291,7 +2291,17 @@ impl<'a, T: 'static + 'a> From<Value> for Rc<RefCell<T>> {
             Err(err) => panic!(err),
         }
     }
-} 
+}
+
+// Again, I don't think 'static is correct but I'm not sure...
+impl<'a, T: 'static + 'a> From<Value> for Option<Rc<RefCell<T>>> {
+    fn from(value: Value) -> Self {
+        match value.to_option::<T>() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
 
 use std::fmt;
 
