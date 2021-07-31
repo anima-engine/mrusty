@@ -787,6 +787,46 @@ fn string() {
 
         mrb_close(mrb);
     }
+}#[test]
+fn obj_from_ruby() {
+    use std::cell::RefCell;
+    use std::mem;
+    use std::rc::Rc;
+
+    unsafe {
+        struct Cont {
+            value: i32,
+        }
+
+        let mrb = mrb_open();
+
+        let obj_str = CString::new("Object").unwrap();
+        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
+        let cont_str = CString::new("Cont").unwrap();
+        let cont_class = mrb_define_class(mrb, cont_str.as_ptr(), obj_class);
+
+        mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
+
+        extern "C" fn free(_mrb: *const MrState, ptr: *const u8) {
+            unsafe {
+                mem::transmute::<*const u8, Rc<Cont>>(ptr);
+            }
+        }
+
+        let data_type = MrDataType {
+            name: cont_str.as_ptr(),
+            free: free,
+        };
+
+        let obj = Cont { value: 3 };
+        let obj = MrValue::obj(mrb, cont_class, obj, &data_type);
+        let obj: Rc<RefCell<Cont>> = obj.into();
+        let value = obj.borrow().value;
+
+        assert_eq!(value, 3);
+
+        mrb_close(mrb);
+    }
 }
 
 #[test]

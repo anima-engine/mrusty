@@ -7,7 +7,7 @@
 
 use std::any::Any;
 use std::cell::RefCell;
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::c_char;
 use std::rc::Rc;
@@ -189,7 +189,28 @@ impl MrValue {
     }
 }
 
-
+impl<T> From<MrValue> for Rc<RefCell<T>> {
+    fn from(value: MrValue) -> Self {
+        unsafe {
+            extern "C" fn free<T>(_mrb: *const MrState, ptr: *const u8) {
+                unsafe {
+                    mem::transmute::<*const u8, Rc<T>>(ptr);
+                }
+            }
+            let data_type = MrDataType {
+                name: CString::new(stringify!(T)).unwrap().as_ptr(),
+                free: free,
+            };
+            let mrb = mrb_open();
+            let obj = value.to_obj(mrb, &data_type);
+            mrb_close(mrb);
+            match obj {
+                Ok(res) => res,
+                Err(err) => panic!(err),
+            }
+        }
+    }
+}
 impl From<MrValue> for Vec<MrValue> {
     fn from(value: MrValue) -> Self {
         unsafe {
@@ -204,6 +225,7 @@ impl From<MrValue> for Vec<MrValue> {
         }
     }
 }
+
 impl From<MrValue> for &str {
     fn from(value: MrValue) -> Self {
         unsafe {
