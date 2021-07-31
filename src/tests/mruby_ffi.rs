@@ -767,6 +767,18 @@ fn float() {
 }
 
 #[test]
+fn string_from_ruby() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let string_value: &str = MrValue::string(mrb, "qwerty").into();
+        assert_eq!(string_value, "qwerty");
+
+        mrb_close(mrb);
+    }
+}
+
+#[test]
 fn string() {
     unsafe {
         let mrb = mrb_open();

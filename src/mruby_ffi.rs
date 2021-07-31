@@ -189,6 +189,22 @@ impl MrValue {
     }
 }
 
+
+impl From<MrValue> for &str {
+    fn from(value: MrValue) -> Self {
+        unsafe {
+            // I think doing this is a code smell but I'm not sure of a better way
+            let mrb = mrb_open();
+            let s = value.to_str(mrb);
+            mrb_close(mrb);
+            match s {
+                Ok(res) => res,
+                Err(err) => panic!(err),
+            }
+        }
+    }
+}
+
 impl From<MrValue> for f64 {
     fn from(value: MrValue) -> Self {
         unsafe {
