@@ -726,6 +726,14 @@ fn bool_false() {
 }
 
 #[test]
+fn fixnum_from_ruby() {
+    unsafe {
+        let number: i32 = MrValue::fixnum(-1291657).into();
+        assert_eq!(number, -1291657);
+    }
+}
+
+#[test]
 fn fixnum() {
     unsafe {
         let number = MrValue::fixnum(-1291657);

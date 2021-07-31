@@ -189,8 +189,19 @@ impl MrValue {
     }
 }
 
+impl From<MrValue> for i32 {
+    fn from(value: MrValue) -> Self {
+        unsafe {
+            match value.to_i32() {
+                Ok(res) => res,
+                Err(err) => panic!(err),
+            }
+        }
+    }
+}
+
 impl From<MrValue> for bool {
-    fn from(value: MrValue) -> bool {
+    fn from(value: MrValue) -> Self {
         unsafe {
             match value.to_bool() {
                 Ok(res) => res,
