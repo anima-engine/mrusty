@@ -742,6 +742,19 @@ fn fixnum() {
 }
 
 #[test]
+fn float_from_ruby() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let number: f64  = MrValue::float(mrb, -1291657.37).into();
+        assert_eq!(number, -1291657.37);
+
+        mrb_close(mrb);
+
+    }
+}
+
+#[test]
 fn float() {
     unsafe {
         let mrb = mrb_open();

@@ -189,6 +189,17 @@ impl MrValue {
     }
 }
 
+impl From<MrValue> for f64 {
+    fn from(value: MrValue) -> Self {
+        unsafe {
+            match value.to_f64() {
+                Ok(res) => res,
+                Err(err) => panic!(err),
+            }
+        }
+    }
+}
+
 impl From<MrValue> for i32 {
     fn from(value: MrValue) -> Self {
         unsafe {
