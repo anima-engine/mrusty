@@ -695,14 +695,6 @@ fn nil() {
 
 
 #[test]
-fn bool_true_from_ruby() {
-    unsafe {
-        let bool_true: bool = MrValue::bool(true).into();
-        assert_eq!(bool_true, true);
-    }
-}
-
-#[test]
 fn bool_true() {
     unsafe {
         let bool_true = MrValue::bool(true);
@@ -711,46 +703,10 @@ fn bool_true() {
 }
 
 #[test]
-fn bool_false_from_ruby() {
-    unsafe {
-        let bool_false: bool = MrValue::bool(false).into();
-        assert_eq!(bool_false, false);
-    }
-}
-#[test]
-fn bool_false() {
-    unsafe {
-        let bool_false = MrValue::bool(false);
-        assert_eq!(bool_false.to_bool().unwrap(), false);
-    }
-}
-
-#[test]
-fn fixnum_from_ruby() {
-    unsafe {
-        let number: i32 = MrValue::fixnum(-1291657).into();
-        assert_eq!(number, -1291657);
-    }
-}
-
-#[test]
 fn fixnum() {
     unsafe {
         let number = MrValue::fixnum(-1291657);
         assert_eq!(number.to_i32().unwrap(), -1291657);
-    }
-}
-
-#[test]
-fn float_from_ruby() {
-    unsafe {
-        let mrb = mrb_open();
-
-        let number: f64  = MrValue::float(mrb, -1291657.37).into();
-        assert_eq!(number, -1291657.37);
-
-        mrb_close(mrb);
-
     }
 }
 
@@ -767,63 +723,12 @@ fn float() {
 }
 
 #[test]
-fn string_from_ruby() {
-    unsafe {
-        let mrb = mrb_open();
-
-        let string_value: &str = MrValue::string(mrb, "qwerty").into();
-        assert_eq!(string_value, "qwerty");
-        mrb_close(mrb);
-    }
-}
-
-#[test]
 fn string() {
     unsafe {
         let mrb = mrb_open();
 
         let string_value = MrValue::string(mrb, "qwerty");
         assert_eq!(string_value.to_str(mrb).unwrap(), "qwerty");
-
-        mrb_close(mrb);
-    }
-}#[test]
-fn obj_from_ruby() {
-    use std::cell::RefCell;
-    use std::mem;
-    use std::rc::Rc;
-
-    unsafe {
-        struct Cont {
-            value: i32,
-        }
-
-        let mrb = mrb_open();
-
-        let obj_str = CString::new("Object").unwrap();
-        let obj_class = mrb_class_get(mrb, obj_str.as_ptr());
-        let cont_str = CString::new("Cont").unwrap();
-        let cont_class = mrb_define_class(mrb, cont_str.as_ptr(), obj_class);
-
-        mrb_ext_set_instance_tt(cont_class, MrType::MRB_TT_DATA);
-
-        extern "C" fn free(_mrb: *const MrState, ptr: *const u8) {
-            unsafe {
-                mem::transmute::<*const u8, Rc<Cont>>(ptr);
-            }
-        }
-
-        let data_type = MrDataType {
-            name: cont_str.as_ptr(),
-            free: free,
-        };
-
-        let obj = Cont { value: 3 };
-        let obj = MrValue::obj(mrb, cont_class, obj, &data_type);
-        let obj: Rc<RefCell<Cont>> = obj.into();
-        let value = obj.borrow().value;
-
-        assert_eq!(value, 3);
 
         mrb_close(mrb);
     }
@@ -1010,21 +915,6 @@ fn obj_scoping() {
         mrb_close(mrb);
 
         assert_eq!(DROPPED, true);
-    }
-}
-
-#[test]
-fn array_from_ruby() {
-    unsafe {
-        let mrb = mrb_open();
-
-        let vec: Vec<MrValue> = [1, 2, 3].iter().map(|v| MrValue::fixnum(*v)).collect();
-
-        let array: Vec<MrValue> = MrValue::array(mrb, vec.clone()).into();
-
-        assert_eq!(array, vec);
-
-        mrb_close(mrb);
     }
 }
 
