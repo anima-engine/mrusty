@@ -773,7 +773,6 @@ fn string_from_ruby() {
 
         let string_value: &str = MrValue::string(mrb, "qwerty").into();
         assert_eq!(string_value, "qwerty");
-
         mrb_close(mrb);
     }
 }
@@ -971,6 +970,21 @@ fn obj_scoping() {
         mrb_close(mrb);
 
         assert_eq!(DROPPED, true);
+    }
+}
+
+#[test]
+fn array_from_ruby() {
+    unsafe {
+        let mrb = mrb_open();
+
+        let vec: Vec<MrValue> = [1, 2, 3].iter().map(|v| MrValue::fixnum(*v)).collect();
+
+        let array: Vec<MrValue> = MrValue::array(mrb, vec.clone()).into();
+
+        assert_eq!(array, vec);
+
+        mrb_close(mrb);
     }
 }
 

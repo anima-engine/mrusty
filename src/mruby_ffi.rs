@@ -190,14 +190,28 @@ impl MrValue {
 }
 
 
+impl From<MrValue> for Vec<MrValue> {
+    fn from(value: MrValue) -> Self {
+        unsafe {
+            // I think doing this is a code smell but I'm not sure of a better way
+            let mrb = mrb_open();
+            let array = value.to_vec(mrb);
+            mrb_close(mrb);
+            match array {
+                Ok(res) => res,
+                Err(err) => panic!(err),
+            }
+        }
+    }
+}
 impl From<MrValue> for &str {
     fn from(value: MrValue) -> Self {
         unsafe {
             // I think doing this is a code smell but I'm not sure of a better way
             let mrb = mrb_open();
-            let s = value.to_str(mrb);
+            let string = value.to_str(mrb);
             mrb_close(mrb);
-            match s {
+            match string {
                 Ok(res) => res,
                 Err(err) => panic!(err),
             }
