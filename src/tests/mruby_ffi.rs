@@ -693,6 +693,15 @@ fn nil() {
     }
 }
 
+
+#[test]
+fn bool_true_from_ruby() {
+    unsafe {
+        let bool_true: bool = MrValue::bool(true).into();
+        assert_eq!(bool_true, true);
+    }
+}
+
 #[test]
 fn bool_true() {
     unsafe {
@@ -701,6 +710,13 @@ fn bool_true() {
     }
 }
 
+#[test]
+fn bool_false_from_ruby() {
+    unsafe {
+        let bool_false: bool = MrValue::bool(false).into();
+        assert_eq!(bool_false, false);
+    }
+}
 #[test]
 fn bool_false() {
     unsafe {

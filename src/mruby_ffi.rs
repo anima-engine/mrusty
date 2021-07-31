@@ -189,6 +189,17 @@ impl MrValue {
     }
 }
 
+impl From<MrValue> for bool {
+    fn from(value: MrValue) -> bool {
+        unsafe {
+            match value.to_bool() {
+                Ok(res) => res,
+                Err(err) => panic!(err),
+            }
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 #[repr(C)]
