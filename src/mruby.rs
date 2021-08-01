@@ -2239,6 +2239,70 @@ impl Value {
     }
 }
 
+impl From<Value> for bool {
+    fn from(value: Value) -> Self {
+        match value.to_bool() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
+impl From<Value> for i32 {
+    fn from(value: Value) -> Self {
+        match value.to_i32() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
+
+impl From<Value> for f64 {
+    fn from(value: Value) -> Self {
+        match value.to_f64() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
+
+impl From<Value> for &str {
+    fn from(value: Value) -> Self {
+        match value.to_str() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
+
+impl From<Value> for Vec<Value> {
+    fn from(value: Value) -> Self {
+        match value.to_vec() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
+
+// I don't think 'static is correct but I'm not sure...
+impl<'a, T: 'static + 'a> From<Value> for Rc<RefCell<T>> {
+    fn from(value: Value) -> Self {
+        match value.to_obj::<T>() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
+
+// Again, I don't think 'static is correct but I'm not sure...
+impl<'a, T: 'static + 'a> From<Value> for Option<Rc<RefCell<T>>> {
+    fn from(value: Value) -> Self {
+        match value.to_option::<T>() {
+            Ok(res) => res,
+            Err(err) => panic!(err),
+        }
+    }
+}
+
 use std::fmt;
 
 impl Clone for Value {
