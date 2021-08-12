@@ -20,17 +20,19 @@ extern crate rl_sys;
 
 mod macros;
 mod mruby;
-mod mruby_ffi;
 mod read_line;
 mod repl;
 mod spec;
 
-/// Not meant to be called directly.
-#[doc(hidden)]
-pub use mruby_ffi::MrValue;
+/// But we dare to use.
+pub mod mruby_ffi;
+
 /// Not meant to be called directly.
 #[doc(hidden)]
 pub use mruby_ffi::mrb_get_args;
+/// Not meant to be called directly.
+#[doc(hidden)]
+pub use mruby_ffi::MrValue;
 
 pub use mruby::Class;
 pub use mruby::ClassLike;

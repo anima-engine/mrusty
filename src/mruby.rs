@@ -1693,8 +1693,8 @@ impl Drop for Mruby {
 /// assert_eq!(result.to_bool().unwrap(), true);
 /// ```
 pub struct Value {
-    mruby: MrubyType,
-    value: MrValue,
+    pub mruby: MrubyType,
+    pub value: MrValue,
 }
 
 impl Value {
@@ -2089,6 +2089,10 @@ impl Value {
 
     pub fn to_str<'a>(&self) -> Result<&'a str, MrubyError> {
         unsafe { self.value.to_str(self.mruby.borrow().mrb) }
+    }
+
+    pub fn to_bytes<'a>(&self) -> Result<&'a [u8], MrubyError> {
+        unsafe { self.value.to_bytes(self.mruby.borrow().mrb) }
     }
 
     /// Casts mruby `Value` of `Class` `name` to Rust type `Rc<T>`.

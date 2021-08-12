@@ -41,6 +41,7 @@ fn main() {
     config
         .include("target/mruby-out/include")
         .include("target/mruby-out/src/mrbgems/mruby-time/include")
+        .flag("-g")
         .flag("-Wno-unused-parameter")
         .flag("-Wno-unused-variable")
         .flag("-Wno-missing-field-initializers")
@@ -52,6 +53,7 @@ fn main() {
     config
         .file("src/mrb_ext.c")
         .include("target/mruby-out/include")
+        .flag("-g")
         .flag("-Wno-unused-parameter")
         .flag("-Wno-unused-variable")
         .flag("-Wno-missing-field-initializers")

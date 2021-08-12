@@ -16,6 +16,7 @@
 #include <mruby/value.h>
 #include <mruby/variable.h>
 #include <mruby/array.h>
+#include <mruby/string.h>
 
 void* mrb_ext_get_ud(struct mrb_state* mrb) {
   return mrb->ud;
@@ -180,4 +181,19 @@ struct RClass* mrb_ext_get_class(mrb_value value) {
 
 struct RClass* mrb_ext_class(struct mrb_state* mrb, mrb_value value) {
   return mrb_class(mrb, value);
+}
+
+// We dare to wrap
+struct RProc* mrb_ext_proc_ptr(mrb_state *mrb, mrb_value value) {
+  return (struct RProc*) value.value.p;
+}
+
+char* mrb_ext_str_to_bytes(mrb_state *mrb, mrb_value str0)
+{
+  return RSTRING_PTR(str0);
+}
+
+unsigned int mrb_ext_str_to_bytes_len(mrb_state *mrb, mrb_value str0)
+{
+  return RSTRING_LEN(str0);
 }

@@ -19,6 +19,7 @@ pub enum MrContext {}
 
 pub enum MrClass {}
 pub enum MrData {}
+pub enum MrProc {}
 
 pub type MrFunc = extern "C" fn(*const MrState, MrValue) -> MrValue;
 
@@ -126,6 +127,19 @@ impl MrValue {
                 let s = mrb_ext_sym2name(mrb, *self) as *const i8;
 
                 Ok(CStr::from_ptr(s).to_str().unwrap().clone())
+            }
+            _ => Err(MrubyError::Cast("String".to_owned())),
+        }
+    }
+
+    pub unsafe fn to_bytes<'a>(&self, mrb: *const MrState) -> Result<&'a [u8], MrubyError> {
+        match self.typ {
+            MrType::MRB_TT_STRING => {
+                let s = mrb_ext_str_to_bytes(mrb, *self) as *const u8;
+                let len = mrb_ext_str_to_bytes_len(mrb, *self);
+
+                let bytes = std::slice::from_raw_parts(s, len);
+                Ok(bytes.clone())
             }
             _ => Err(MrubyError::Cast("String".to_owned())),
         }
@@ -413,6 +427,15 @@ extern "C" {
     pub fn mrb_ext_exc_str(mrb: *const MrState, exc: MrValue) -> MrValue;
 
     pub fn mrb_ext_get_class(class: MrValue) -> *const MrClass;
+
+    /// Here we added
+    pub fn mrb_ext_proc_ptr(mrb: *const MrState, proc: MrValue) -> *const MrProc;
+
+    pub fn mrb_codedump_all(mrb: *const MrState, proc: *const MrProc) -> ();
+
+    pub fn mrb_ext_str_to_bytes(mrb: *const MrState, value: MrValue) -> *const c_char;
+
+    pub fn mrb_ext_str_to_bytes_len(mrb: *const MrState, value: MrValue) -> usize;
 }
 
 #[path = "tests/mruby_ffi.rs"]
