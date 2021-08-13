@@ -447,7 +447,7 @@ extern "C" {
     /// typedef uint32_t mrb_sym;
     pub fn mrb_sym_dump(mrb: *const MrState, sym: u32) -> *const c_char;
 
-    pub fn mrb_ext_get_syms_from_proc(mrb: *const MrState, proc: *const MrProc) -> *const MrValue;
+    pub fn mrb_ext_get_syms_from_proc(mrb: *const MrState, proc: *const MrProc) -> MrValue;
 }
 
 #[path = "tests/mruby_ffi.rs"]
