@@ -201,7 +201,7 @@ unsigned int mrb_ext_str_to_bytes_len(mrb_state *mrb, mrb_value str0)
 
 mrb_value mrb_ext_get_locals_from_proc(mrb_state *mrb, struct RProc *proc)
 {
-  mrb_irep *irep = proc->body.irep;
+  const mrb_irep *irep = proc->body.irep;
   if (!irep || !irep->lv) return mrb_nil_value();
 
   int i;
@@ -217,7 +217,7 @@ mrb_value mrb_ext_get_locals_from_proc(mrb_state *mrb, struct RProc *proc)
 
 mrb_value mrb_ext_get_syms_from_proc(mrb_state *mrb, struct RProc *proc)
 {
-  mrb_irep *irep = proc->body.irep;
+  const mrb_irep *irep = proc->body.irep;
   if (!irep || !irep->syms) return mrb_nil_value();
 
   int i;
@@ -233,18 +233,18 @@ mrb_value mrb_ext_get_syms_from_proc(mrb_state *mrb, struct RProc *proc)
 
 uint8_t *mrb_ext_get_insns_from_proc(struct RProc *proc)
 {
-  mrb_irep *irep = proc->body.irep;
+  const mrb_irep *irep = proc->body.irep;
   if (!irep) return NULL;
   if (irep->clen > 0) {
     // TODO: Skip try/catch for now
   }
 
-  return irep->iseq;
+  return (uint8_t *)irep->iseq;
 }
 
 unsigned int mrb_ext_get_insns_len_from_proc(struct RProc *proc)
 {
-  mrb_irep *irep = proc->body.irep;
+  const mrb_irep *irep = proc->body.irep;
   if (!irep) return 0;
 
   return irep->ilen;
