@@ -202,10 +202,10 @@ unsigned int mrb_ext_str_to_bytes_len(mrb_state *mrb, mrb_value str0)
 mrb_value mrb_ext_get_locals_from_proc(mrb_state *mrb, struct RProc *proc)
 {
   const mrb_irep *irep = proc->body.irep;
-  if (!irep || !irep->lv) return mrb_nil_value();
+  mrb_value ret = mrb_ary_new(mrb);
+  if (!irep || !irep->lv) return ret;
 
   int i;
-  mrb_value ret = mrb_ary_new(mrb);
 
   for (i = 1; i < irep->nlocals; ++i) {
     char const *s = mrb_sym_dump(mrb, irep->lv[i - 1]);
@@ -218,10 +218,10 @@ mrb_value mrb_ext_get_locals_from_proc(mrb_state *mrb, struct RProc *proc)
 mrb_value mrb_ext_get_syms_from_proc(mrb_state *mrb, struct RProc *proc)
 {
   const mrb_irep *irep = proc->body.irep;
-  if (!irep || !irep->syms) return mrb_nil_value();
+  mrb_value ret = mrb_ary_new(mrb);
+  if (!irep || !irep->syms) return ret;
 
   int i;
-  mrb_value ret = mrb_ary_new(mrb);
 
   for (i = 0; i < irep->slen; ++i) {
     char const *s = mrb_sym_dump(mrb, irep->syms[i]);
