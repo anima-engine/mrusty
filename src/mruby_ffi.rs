@@ -436,6 +436,18 @@ extern "C" {
     pub fn mrb_ext_str_to_bytes(mrb: *const MrState, value: MrValue) -> *const c_char;
 
     pub fn mrb_ext_str_to_bytes_len(mrb: *const MrState, value: MrValue) -> usize;
+
+    /// Proc dump
+    pub fn mrb_ext_get_locals_from_proc(mrb: *const MrState, proc: *const MrProc) -> MrValue;
+
+    pub fn mrb_ext_get_insns_from_proc(proc: *const MrProc) -> *const u8;
+
+    pub fn mrb_ext_get_insns_len_from_proc(proc: *const MrProc) -> usize;
+
+    /// typedef uint32_t mrb_sym;
+    pub fn mrb_sym_dump(mrb: *const MrState, sym: u32) -> *const c_char;
+
+    pub fn mrb_ext_get_syms_from_proc(mrb: *const MrState, proc: *const MrProc) -> *const MrValue;
 }
 
 #[path = "tests/mruby_ffi.rs"]

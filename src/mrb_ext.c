@@ -17,6 +17,7 @@
 #include <mruby/variable.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
+#include <mruby/dump.h>
 
 void* mrb_ext_get_ud(struct mrb_state* mrb) {
   return mrb->ud;
@@ -196,4 +197,55 @@ char* mrb_ext_str_to_bytes(mrb_state *mrb, mrb_value str0)
 unsigned int mrb_ext_str_to_bytes_len(mrb_state *mrb, mrb_value str0)
 {
   return RSTRING_LEN(str0);
+}
+
+mrb_value mrb_ext_get_locals_from_proc(mrb_state *mrb, struct RProc *proc)
+{
+  mrb_irep *irep = proc->body.irep;
+  if (!irep || !irep->lv) return mrb_nil_value();
+
+  int i;
+  mrb_value ret = mrb_ary_new(mrb);
+
+  for (i = 1; i < irep->nlocals; ++i) {
+    char const *s = mrb_sym_dump(mrb, irep->lv[i - 1]);
+    mrb_ary_push(mrb, ret, mrb_str_new_cstr(mrb, s));
+  }
+
+  return ret;
+}
+
+mrb_value mrb_ext_get_syms_from_proc(mrb_state *mrb, struct RProc *proc)
+{
+  mrb_irep *irep = proc->body.irep;
+  if (!irep || !irep->syms) return mrb_nil_value();
+
+  int i;
+  mrb_value ret = mrb_ary_new(mrb);
+
+  for (i = 0; i < irep->slen; ++i) {
+    char const *s = mrb_sym_dump(mrb, irep->syms[i]);
+    mrb_ary_push(mrb, ret, mrb_str_new_cstr(mrb, s));
+  }
+
+  return ret;
+}
+
+uint8_t *mrb_ext_get_insns_from_proc(struct RProc *proc)
+{
+  mrb_irep *irep = proc->body.irep;
+  if (!irep) return NULL;
+  if (irep->clen > 0) {
+    // TODO: Skip try/catch for now
+  }
+
+  return irep->iseq;
+}
+
+unsigned int mrb_ext_get_insns_len_from_proc(struct RProc *proc)
+{
+  mrb_irep *irep = proc->body.irep;
+  if (!irep) return 0;
+
+  return irep->ilen;
 }
